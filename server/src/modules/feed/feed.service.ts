@@ -10,7 +10,7 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, Sequelize } from 'sequelize';
-import * as sanitizeHtml from 'sanitize-html';
+import sanitizeHtml, { simpleTransform, IOptions } from 'sanitize-html';  // ✅ Fixed import
 import { Post, PostType, ContentFormat } from './entities/post.entity';
 import { PostLike } from './entities/post-like.entity';
 import { PostComment } from './entities/post-comment.entity';

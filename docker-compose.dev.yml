@@ -1,0 +1,92 @@
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tatt-postgres-dev
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-tatt_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tatt-network-dev
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: tatt-api-dev
+    restart: always
+    ports:
+      - "3000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_NAME: ${DB_NAME:-tatt_db}
+      DB_SYNC: "true"
+      APP_SECRET: ${APP_SECRET:-my_super_secret_app_key_12345} 
+      JWT_SECRET: ${JWT_SECRET:-dev_secret}
+      FRONTEND_URL: http://localhost:3001
+      API_BASE_URL: http://localhost:3000
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: "http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000"
+    volumes:
+      - ./server:/app          # Mount source code
+      - /app/node_modules      # Keep container node_modules
+      - /app/dist              # Mount compiled output
+      - uploads_data_dev:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tatt-network-dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: tatt-frontend-dev
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      # Don't set NODE_ENV - let Next.js handle it
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+    volumes:
+      - ./frontend:/app        # Mount source code
+      - /app/node_modules      # Keep container node_modules
+      - /app/.next             # Keep Next.js build cache
+    depends_on:
+      - api
+    networks:
+      - tatt-network-dev
+
+  adminer:
+    image: adminer
+    container_name: tatt-adminer-dev
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - tatt-network-dev
+
+networks:
+  tatt-network-dev:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
+  uploads_data_dev:

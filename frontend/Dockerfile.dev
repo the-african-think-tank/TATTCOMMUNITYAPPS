@@ -1,0 +1,19 @@
+# frontend/Dockerfile.dev (No build stage, just dev mode)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY package-lock.json* ./
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+EXPOSE 3000
+
+# Run Next.js in development mode with hot reload
+CMD ["npm", "run", "dev"]
