@@ -86,7 +86,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     },
     allowedSchemes: ['https', 'http', 'mailto'],
     transformTags: {
-        'a': sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' }, true),
+        'a': simpleTransform('a', { rel: 'noopener noreferrer' }, true),
     },
 };
 
