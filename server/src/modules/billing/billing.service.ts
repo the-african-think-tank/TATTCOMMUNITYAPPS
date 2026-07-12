@@ -34,10 +34,17 @@ export class BillingService {
         private mailService: MailService,
         private notificationsService: NotificationsService,
         private settingsService: SystemSettingsService,
-    ) { }
+    ) {
+        // Initialize Stripe directly from environment variable
+        const apiKey = process.env.STRIPE_SECRET_KEY;
+        if (!apiKey) {
+            throw new Error('STRIPE_SECRET_KEY is not defined in environment');
+        }
+        this.stripe = new Stripe(apiKey);
+    }
 
     private async getStripe(): Promise<Stripe> {
-        return this.settingsService.getStripeInstance();
+        return this.stripe;
     }
 
     async handleStripeWebhook(payload: Buffer, signature: string) {
@@ -699,40 +706,53 @@ export class BillingService {
         tier: CommunityTier,
         cycle: 'MONTHLY' | 'YEARLY',
     ) {
-        // 1. Récupérer la session Stripe
-        const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+        // 1. Get Stripe instance (now returns the properly initialized instance)
+        const stripe = await this.getStripe();
 
-        // 2. Vérifier le statut du paiement
+        // 2. Retrieve the session
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
         if (session.payment_status !== 'paid') {
             throw new BadRequestException('Le paiement n\'est pas encore complété.');
         }
 
-        // 3. (Optionnel) Récupérer le paymentMethodId pour traçabilité
         const paymentIntentId = session.payment_intent as string;
-        const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
         const paymentMethodId = paymentIntent.payment_method as string;
 
-        // 4. Mettre à jour l'utilisateur
+        // 3. Update the user
         const user = await this.userRepository.findByPk(userId);
         if (!user) {
             throw new BadRequestException('Utilisateur non trouvé');
         }
 
-        // Mettre à jour le plan et le cycle
+        // Update tier and cycle
         user.communityTier = tier;
         user.billingCycle = cycle;
 
-        // Définir la date d'expiration (1 mois ou 1 an)
+        // Set expiration date (1 month or 1 year)
         const durationMonths = cycle === 'YEARLY' ? 12 : 1;
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + durationMonths);
         user.subscriptionExpiresAt = expiresAt;
 
-        // Optionnel : stocker l'ID de session ou le paymentMethodId pour suivi
-        // user.stripeSessionId = sessionId;
-        // user.stripePaymentMethodId = paymentMethodId;
-
         await user.save();
+
+        // Log a revenue transaction
+        const plan = await this.planRepo.findOne({ where: { tier } });
+        const amount = cycle === 'YEARLY' ? plan?.yearlyPrice : plan?.monthlyPrice;
+
+        await this.transactionRepo.create({
+            userId: user.id,
+            chapterId: user.chapterId,
+            type: TransactionType.SUBSCRIPTION,
+            amount: amount || 0,
+            currency: 'USD',
+            status: TransactionStatus.COMPLETED,
+            stripePaymentIntentId: paymentIntentId,
+            membershipTier: tier,
+            referenceNumber: `SUB-${Date.now()}`,
+        } as any);
 
         return {
             message: `Plan ${tier} activé avec succès pour ${durationMonths} mois.`,
@@ -744,5 +764,3 @@ export class BillingService {
         };
     }
 }
-
-
