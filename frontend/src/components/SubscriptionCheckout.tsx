@@ -16,8 +16,8 @@ const stripePromise = loadStripe(
 interface SubscriptionCheckoutProps {
   tier: string;
   isYearly: boolean;
-  amount: number;          // ← Montant en centimes
-  currency?: string;       // ← "usd" par défaut
+  amount: number;          // Amount in cents
+  currency?: string;       // Default: "usd"
   userEmail: string;
   userId: string;
   onSuccess: (sessionId: string) => void;
@@ -43,7 +43,7 @@ export default function SubscriptionCheckout({
 
   useEffect(() => {
     if (!userEmail?.includes('@')) {
-      setError("Adresse email invalide.");
+      setError("Invalid email address.");
       setLoading(false);
       return;
     }
@@ -73,11 +73,11 @@ export default function SubscriptionCheckout({
           setClientSecret(result.clientSecret);
           initialized.current = true;
         } else {
-          throw new Error("Réponse invalide du serveur");
+          throw new Error("Invalid server response");
         }
       } catch (err: any) {
         if (isMounted) {
-          setError(err.message || "Impossible d'initialiser le paiement.");
+          setError(err.message || "Unable to initialize payment.");
           onError?.(err);
         }
       } finally {
@@ -94,34 +94,34 @@ export default function SubscriptionCheckout({
   const handleComplete = useCallback(async () => {
     const sessionId = sessionIdRef.current;
     if (!sessionId) {
-      onError(new Error("ID de session manquant"));
+      onError(new Error("Missing session ID"));
       return;
     }
 
     try {
-      console.log("💰 Paiement réussi !");
+      console.log("💰 Payment successful!");
 
-      // Appel au backend pour mettre à jour l'utilisateur
+      // Call backend to update the user
       const response = await api.post("/billing/confirm-payment", {
         sessionId,
         communityTier: tier,
         billingCycle: isYearly ? "YEARLY" : "MONTHLY",
       });
 
-      console.log("✅ Utilisateur mis à jour :", response.data);
+      console.log("✅ User updated:", response.data);
       onSuccess(sessionId);
     } catch (err: any) {
-      console.error("Erreur confirmation :", err);
+      console.error("Confirmation error:", err);
       onError(err);
     }
   }, [tier, isYearly, onSuccess, onError]);
 
-  // États d'affichage (loading, error, render)
+  // Display states (loading, error, render)
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tatt-lime mb-4"></div>
-        <p className="text-gray-600">Préparation du paiement...</p>
+        <p className="text-gray-600">Preparing payment...</p>
       </div>
     );
   }
@@ -130,13 +130,13 @@ export default function SubscriptionCheckout({
     return (
       <div className="text-center py-8">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-red-800 font-semibold mb-2">Erreur</h3>
+          <h3 className="text-red-800 font-semibold mb-2">Error</h3>
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="bg-tatt-lime text-tatt-black px-4 py-2 rounded hover:brightness-105"
           >
-            Réessayer
+            Try Again
           </button>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function SubscriptionCheckout({
   }
 
   if (!clientSecret) {
-    return <div className="text-center py-8">Impossible d'initialiser le paiement.</div>;
+    return <div className="text-center py-8">Unable to initialize payment.</div>;
   }
 
   return (

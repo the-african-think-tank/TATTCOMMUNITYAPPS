@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm install --legacy-peer-deps
+RUN npm install @stripe/react-stripe-js @stripe/stripe-js stripe --legacy-peer-deps
 
 # Copy source code
 COPY . .

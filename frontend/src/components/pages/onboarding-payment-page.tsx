@@ -52,11 +52,34 @@ export function OnboardingPaymentPage() {
     };
   }, [plans, planId, isYearly]);
 
-  const handleCheckoutSuccess = (sessionId: string) => {
+  // ✅ Option A: Fetch updated user and pass tier as URL param
+  const fetchUpdatedUser = async () => {
+    try {
+      const { data } = await api.get("/auth/me");
+      updateUser(data);
+      return data;
+    } catch (error) {
+      console.error("Failed to fetch updated user:", error);
+      throw error;
+    }
+  };
+
+  const handleCheckoutSuccess = async (sessionId: string) => {
     console.log("✅ Payment successful, session:", sessionId);
-    // Mettre à jour l'utilisateur localement (le webhook Stripe fera le reste)
-    updateUser({ ...user, communityTier: planId });
-    router.push(`/onboarding/success?plan=${planId}&session=${sessionId}`);
+    
+    try {
+      // ✅ Try to refresh user data from server
+      await fetchUpdatedUser();
+      console.log("✅ User refreshed with updated tier");
+    } catch (err) {
+      console.error("Failed to refresh user:", err);
+      // Fallback: manual update with the plan we know
+      updateUser({ ...user, communityTier: planId });
+    }
+    
+    // ✅ OPTION A: Pass tier as URL parameter to success page
+    // This ensures the success page knows the tier even if auth context is stale
+    router.push(`/onboarding/success?plan=${planId}&session=${sessionId}&tier=${planId}&yearly=${isYearly}`);
   };
 
   const handleCheckoutError = (err: any) => {
@@ -113,7 +136,6 @@ export function OnboardingPaymentPage() {
             </section>
 
             {!showCheckout ? (
-              // Vue Résumé + Bouton "Pay with Stripe"
               <section className="space-y-6">
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium">
@@ -148,7 +170,6 @@ export function OnboardingPaymentPage() {
                 </div>
               </section>
             ) : (
-              // Vue Stripe Embedded Checkout
               <SubscriptionCheckout
                 tier={planId}
                 isYearly={isYearly}

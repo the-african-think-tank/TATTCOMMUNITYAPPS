@@ -14,13 +14,36 @@ import { Footer, Navbar } from "@/components/organisms";
 import { useAuth } from "@/context/auth-context";
 
 export function OnboardingSuccessPage() {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const planId = searchParams.get("plan") || "FREE";
+    
+    // ✅ OPTION A: Get tier from URL parameter (passed from payment page)
+    const planId = searchParams.get("tier") || searchParams.get("plan") || "FREE";
+    const sessionId = searchParams.get("session") || "";
+    const isYearly = searchParams.get("yearly") === "true";
+    
     const [plans, setPlans] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [userRefreshed, setUserRefreshed] = useState(false);
 
+    // ✅ Fetch the latest user data on mount to ensure auth context is updated
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const { data } = await api.get("/auth/me");
+                updateUser(data);
+                setUserRefreshed(true);
+                console.log("✅ User refreshed on success page:", data.communityTier);
+            } catch (err) {
+                console.error("Failed to fetch user on success page:", err);
+                setUserRefreshed(true);
+            }
+        };
+        fetchUser();
+    }, [updateUser]);
+
+    // Fetch plans for display
     useEffect(() => {
         const fetchPlans = async () => {
             try {
@@ -47,7 +70,6 @@ export function OnboardingSuccessPage() {
 
     const benefits = useMemo(() => {
         if (selectedPlan && selectedPlan.features) return selectedPlan.features;
-        // Fallbacks based on common tier features if API fetch failed
         if (planId === "FREE") return [
             "Access to chapter events",
             "Basic community forums",
@@ -63,7 +85,8 @@ export function OnboardingSuccessPage() {
         ];
     }, [selectedPlan, planId]);
 
-    if (isLoading) {
+    // ✅ If still loading, show spinner
+    if (isLoading || !userRefreshed) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-background">
                 <Loader2 className="h-10 w-10 text-tatt-lime animate-spin" />
@@ -84,10 +107,15 @@ export function OnboardingSuccessPage() {
                         </div>
                         <h1 className="text-3xl sm:text-4xl font-black mb-4 leading-tight text-foreground">
                             Welcome to the <br />
-                            <span className="text-tatt-lime uppercase">TATT Family, {user?.firstName}!</span>
+                            <span className="text-tatt-lime uppercase">TATT Family, {user?.firstName || "Member"}!</span>
                         </h1>
                         <p className="text-tatt-gray text-base sm:text-lg mb-10 max-w-sm">
                             Your <strong>{planName}</strong> subscription is now active. You have been granted full access to your plan's benefits.
+                            {sessionId && (
+                                <span className="block text-xs text-tatt-gray/50 mt-2 font-mono">
+                                    Session: {sessionId.slice(0, 20)}...
+                                </span>
+                            )}
                         </p>
 
                         <div className="w-full">
@@ -114,7 +142,14 @@ export function OnboardingSuccessPage() {
                             </div>
                             <div>
                                 <div className="font-extrabold text-xl text-foreground">{planName}</div>
-                                <div className="text-tatt-lime text-xs font-black uppercase tracking-tighter">Plan Active</div>
+                                <div className="text-tatt-lime text-xs font-black uppercase tracking-tighter">
+                                    {planId === 'FREE' ? 'Free Plan Active' : 'Paid Plan Active'}
+                                </div>
+                                {isYearly && planId !== 'FREE' && (
+                                    <div className="text-[10px] text-tatt-gray font-bold uppercase tracking-wider">
+                                        Yearly Billing
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -3,12 +3,18 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
 # Copy package files
 COPY package*.json ./
 COPY package-lock.json* ./
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+RUN npm install @stripe/react-stripe-js @stripe/stripe-js stripe --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -21,7 +27,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
-RUN npm run build
+RUN node --max-old-space-size=4096 node_modules/.bin/next build
 
 # --- Production Stage ---
 FROM node:20-bookworm-slim AS runner
