@@ -46,7 +46,7 @@ export async function createSubscriptionCheckoutSession({
         quantity: 1,
       },
     ],
-    ui_mode: 'embedded',
+    ui_mode: 'embedded_page',
     redirect_on_completion: 'never',
     customer_email: userEmail,
     metadata: {
