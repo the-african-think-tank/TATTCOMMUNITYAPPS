@@ -12,7 +12,7 @@ import {
 import toast from "react-hot-toast";
 import Link from "next/link";
 
-const CATEGORIES = ["Green Energy", "FinTech", "Sustainability", "Education", "Healthcare", "E-commerce", "AgriTech", "Other"];
+const CATEGORIES = ["Green Energy", "FinTech", "Sustainability", "Policy & Govt", "AgriTech", "Education", "Healthcare", "E-commerce", "Other"];
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance", "Internship"];
 
 export default function JobPostPage() {
