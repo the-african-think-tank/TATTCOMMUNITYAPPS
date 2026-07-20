@@ -33,6 +33,10 @@ const CATEGORIES = [
   "Sustainability",
   "Policy & Govt",
   "AgriTech",
+  "Education",
+  "Healthcare",
+  "E-commerce",
+  "Other",
 ];
 
 const LOCATION_OPTIONS = ["All", "Remote", "Hybrid", "On-site"];
