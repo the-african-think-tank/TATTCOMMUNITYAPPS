@@ -53,7 +53,7 @@ export class JobsService {
                 {
                     model: User,
                     as: 'postedBy',
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'communityTier', 'businessName', 'businessRole', 'businessProfileLink', 'industry'],
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'communityTier', 'businessName', 'businessRole', 'businessProfileLink', 'industryId'],
                 },
             ],
             order: [['createdAt', 'DESC']],
@@ -69,7 +69,7 @@ export class JobsService {
                 {
                     model: User,
                     as: 'postedBy',
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'communityTier', 'businessName', 'businessRole', 'businessProfileLink', 'industry'],
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'communityTier', 'businessName', 'businessRole', 'businessProfileLink', 'industryId'],
                 },
             ],
         });
