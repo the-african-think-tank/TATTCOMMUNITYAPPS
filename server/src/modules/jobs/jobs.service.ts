@@ -17,6 +17,7 @@ export type MarketInsights = {
     topEmployers: { name: string; initials: string }[];
 };
 
+
 @Injectable()
 export class JobsService {
     constructor(
@@ -26,7 +27,20 @@ export class JobsService {
         @InjectModel(JobAlert) private alertRepo: typeof JobAlert,
         @InjectModel(User) private userRepo: typeof User,
         private readonly notificationsService: NotificationsService,
-    ) {}
+    ) { }
+    
+    private USER_PUBLIC_ATTRIBUTES = [
+        'id',
+        'firstName',
+        'lastName',
+        'email',
+        'communityTier',
+        'businessName',
+        'businessRole',
+        'businessProfileLink',
+        'industryId',
+    ];
+
 
     async getListings(params: { category?: string; type?: string; location?: string; search?: string; page?: number; limit?: number }) {
         const { category, type, location, search, page = 1, limit = 10 } = params;
@@ -53,7 +67,7 @@ export class JobsService {
                 {
                     model: User,
                     as: 'postedBy',
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'communityTier', 'businessName', 'businessRole', 'businessProfileLink', 'industryId'],
+                    attributes: this.USER_PUBLIC_ATTRIBUTES,
                 },
             ],
             order: [['createdAt', 'DESC']],
@@ -69,7 +83,7 @@ export class JobsService {
                 {
                     model: User,
                     as: 'postedBy',
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'communityTier', 'businessName', 'businessRole', 'businessProfileLink', 'industryId'],
+                    attributes: this.USER_PUBLIC_ATTRIBUTES,
                 },
             ],
         });

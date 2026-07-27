@@ -42,9 +42,9 @@ services:
       API_BASE_URL: http://localhost:3000
       UPLOAD_DIR: /app/uploads
       CORS_ORIGINS: "http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000"
-      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY:-re_dev_dummy_key}
       RESEND_FROM_EMAIL: noreply@theafricanthinktank.com
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_dummy_key}
     volumes:
       - ./server:/app
       - /app/node_modules
@@ -66,8 +66,8 @@ services:
       - "3001:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3000
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_test_dummy_key}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_dummy_key}
     volumes:
       - ./frontend:/app
       - /app/node_modules
