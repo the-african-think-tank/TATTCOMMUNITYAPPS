@@ -41,6 +41,7 @@ export class JobsService {
         'industryId',
     ];
 
+
     async getListings(params: { category?: string; type?: string; location?: string; search?: string; page?: number; limit?: number }) {
         const { category, type, location, search, page = 1, limit = 10 } = params;
         const where: WhereOptions<JobListing> = { isActive: true };
