@@ -948,12 +948,12 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-5 bg-surface rounded-2xl flex flex-col justify-between min-h-[160px]">
+                                    <div className="p-5 bg-gradient-to-br from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between min-h-[160px] relative overflow-hidden">
                                         <div>
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-[10px] font-bold uppercase tracking-widest text-tatt-gray">Current Plan</span>
-                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-tatt-lime bg-tatt-lime/10 px-2.5 py-0.5 rounded-full">
-                                                    <span className="size-1.5 rounded-full bg-tatt-lime animate-pulse"></span>
+                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-black bg-tatt-lime px-2.5 py-0.5 rounded-full shadow-sm">
+                                                    <span className="size-1.5 rounded-full bg-black animate-pulse"></span>
                                                     Active
                                                 </span>
                                             </div>
@@ -976,7 +976,7 @@ export default function SettingsPage() {
                                         </div>
 
                                         {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
-                                            <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-tatt-gray">
+                                            <div className="pt-3 border-t border-tatt-lime/20 flex items-center justify-between text-xs text-tatt-gray">
                                                 <span>Cancels on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
                                                 <button
                                                     type="button"
@@ -992,7 +992,7 @@ export default function SettingsPage() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsCancelModalOpen(true)}
-                                                        className="text-[11px] text-tatt-gray/50 hover:text-red-500 transition-colors cursor-pointer"
+                                                        className="text-[11px] text-tatt-gray/70 hover:text-red-500 transition-colors cursor-pointer"
                                                     >
                                                         Cancel subscription
                                                     </button>
