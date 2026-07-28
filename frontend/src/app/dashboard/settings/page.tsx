@@ -960,9 +960,7 @@ export default function SettingsPage() {
                                                 <span className={`size-1.5 rounded-full animate-pulse ${
                                                     user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'bg-amber-500' : 'bg-black'
                                                 }`}></span>
-                                                {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
-                                                    ? `Ends ${user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt).toLocaleDateString() : ''}`
-                                                    : 'Active'}
+                                                {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'Canceling' : 'Active'}
                                             </span>
                                         </div>
 
@@ -975,8 +973,8 @@ export default function SettingsPage() {
                                                 {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
                                                 {user?.subscriptionExpiresAt && (
                                                     user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
-                                                        ? ` • Ends ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
-                                                        : ` • Renews ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
+                                                        ? ` • Ends on ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
+                                                        : ` • Renews on ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
                                                 )}
                                             </p>
                                         </div>
