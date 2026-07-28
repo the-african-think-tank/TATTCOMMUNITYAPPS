@@ -948,14 +948,21 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-6 bg-gradient-to-br from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between gap-6 relative overflow-hidden">
+                                    <div className="p-6 bg-gradient-to-br mt-1 from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between gap-6 relative overflow-hidden">
                                         {/* Header Row */}
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Plan</span>
-                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-black bg-tatt-lime px-2.5 py-0.5 rounded-full shadow-sm">
-                                                <span className="size-1.5 rounded-full bg-black animate-pulse"></span>
-                                                Active
-                                            </span>
+                                            {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? (
+                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-800 bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 rounded-full shadow-sm">
+                                                    <span className="size-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                    Cancels {user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt).toLocaleDateString() : 'at Period End'}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-black bg-tatt-lime px-2.5 py-0.5 rounded-full shadow-sm">
+                                                    <span className="size-1.5 rounded-full bg-black animate-pulse"></span>
+                                                    Active
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Body Row */}
@@ -963,9 +970,16 @@ export default function SettingsPage() {
                                             <h4 className="text-2xl font-black text-foreground tracking-tight">
                                                 {user?.communityTier || 'FREE'} Tier
                                             </h4>
-                                            <p className="text-xs text-tatt-gray mt-1">
-                                                {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
-                                            </p>
+                                            {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
+                                                <p className="text-xs text-amber-700 font-medium mt-1">
+                                                    Access ends on {new Date(user.subscriptionExpiresAt).toLocaleDateString()} (Auto-renew off)
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs text-tatt-gray mt-1">
+                                                    {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
+                                                    {user?.subscriptionExpiresAt && ` • Renews ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`}
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Footer Row: Change Plan & Cancel / Reactivate on Same Line */}
@@ -977,17 +991,14 @@ export default function SettingsPage() {
                                                 Change Plan
                                             </Link>
 
-                                            {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
-                                                <div className="flex items-center gap-2 text-xs">
-                                                    <span className="text-tatt-gray">Cancels {new Date(user.subscriptionExpiresAt).toLocaleDateString()}</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleReactivateAutoPay}
-                                                        className="text-tatt-lime font-bold hover:underline cursor-pointer"
-                                                    >
-                                                        Reactivate
-                                                    </button>
-                                                </div>
+                                            {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleReactivateAutoPay}
+                                                    className="text-xs font-bold text-black bg-tatt-lime hover:bg-black hover:text-white px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm"
+                                                >
+                                                    Reactivate Auto-Pay
+                                                </button>
                                             ) : (
                                                 user?.communityTier && user.communityTier !== 'FREE' && (
                                                     <button
@@ -1008,7 +1019,7 @@ export default function SettingsPage() {
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Default Payment Method</label>
 
                                     {paymentMethod ? (
-                                        <div className="p-5 bg-gradient-to-br from-[#1d1d1b] to-black rounded-2xl shadow-xl relative overflow-hidden group">
+                                        <div className="p-5 bg-gradient-to-br from-[#1d1d1b] mt-1 to-black rounded-2xl shadow-xl relative overflow-hidden group">
                                             <div className="size-10 bg-yellow-400/20 rounded-lg mb-8 backdrop-blur-sm border border-yellow-400/10 flex items-center justify-center">
                                                 <div className="size-6 bg-yellow-400/40 rounded-sm"></div>
                                             </div>
