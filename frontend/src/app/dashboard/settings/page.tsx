@@ -145,6 +145,84 @@ const ConfirmationModal = ({
     );
 };
 
+const CancelPlanModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    isLoading,
+    tierName,
+    expiresAt,
+    reason,
+    setReason,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (immediate: boolean) => void;
+    isLoading: boolean;
+    tierName: string;
+    expiresAt?: Date | string | null | undefined;
+    reason: string;
+    setReason: (r: string) => void;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-surface border border-border w-full max-w-md rounded-3xl p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
+                <button onClick={onClose} className="absolute top-6 right-6 text-tatt-gray hover:text-foreground">
+                    <X className="size-6" />
+                </button>
+
+                <div className="size-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6">
+                    <AlertTriangle className="text-red-500 size-7" />
+                </div>
+
+                <h3 className="text-2xl font-black mb-2">Cancel {tierName} Subscription?</h3>
+                <p className="text-tatt-gray text-sm mb-6 leading-relaxed">
+                    Your plan will remain active until{" "}
+                    <strong>{expiresAt ? new Date(expiresAt).toLocaleDateString() : "the end of your billing period"}</strong>.
+                    After that, your account will return to the Free tier.
+                </p>
+
+                <div className="space-y-2 mb-6">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray block">
+                        Reason for Cancellation (Optional)
+                    </label>
+                    <select
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
+                    >
+                        <option value="">Select a reason...</option>
+                        <option value="Too expensive">Too expensive</option>
+                        <option value="Not using benefits">Not using benefits enough</option>
+                        <option value="Switching to another platform">Switching to another platform</option>
+                        <option value="Temporary pause">Temporary pause</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={() => onConfirm(false)}
+                        disabled={isLoading}
+                        className="w-full py-4 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Confirm Cancellation"}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="w-full py-3 text-tatt-gray text-xs font-bold hover:text-foreground transition-colors"
+                    >
+                        Keep My Subscription
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const PaymentMethodModal = ({
     isOpen,
     onClose,
@@ -331,6 +409,38 @@ export default function SettingsPage() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [togglingAutoPay, setTogglingAutoPay] = useState(false);
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING' | 'BUSINESS'>('GENERAL');
+
+    // Cancellation State
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelingPlan, setCancelingPlan] = useState(false);
+
+    const handleCancelSubscription = async (immediate: boolean = false) => {
+        setCancelingPlan(true);
+        try {
+            await api.post("/billing/cancel", {
+                immediate,
+                reason: cancelReason,
+            });
+            toast.success(immediate ? "Subscription cancelled." : "Subscription scheduled for cancellation.");
+            setIsCancelModalOpen(false);
+            window.location.reload();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to cancel subscription.");
+        } finally {
+            setCancelingPlan(false);
+        }
+    };
+
+    const handleReactivateAutoPay = async () => {
+        try {
+            await api.post("/billing/autopay/toggle", { enabled: true });
+            toast.success("Auto-pay reactivated!");
+            window.location.reload();
+        } catch (err: any) {
+            toast.error("Failed to reactivate auto-pay.");
+        }
+    };
 
     // Business Profile State
     const [businessData, setBusinessData] = useState({
@@ -911,38 +1021,49 @@ export default function SettingsPage() {
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Auto-pay Toggle Block */}
-                                {/* <div className="space-y-4">
-                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Renewal Preference</label>
-                                    <div className="flex flex-col gap-3">
-                                        {[
-                                            { id: true, title: 'Full Autopay (Recommended)', desc: 'Seamlessly renew membership using your default card on file.', icon: RefreshCw },
-                                            { id: false, title: 'Manual Renewal', desc: 'Receive invoice reminders and pay manually each billing cycle.', icon: UserIcon }
-                                        ].map((item) => {
-                                            const Icon = item.icon;
-                                            const isSelected = formData.hasAutoPayEnabled === item.id;
-                                            return (
+                                {/* Active Membership Status Block */}
+                                <div className="space-y-4">
+                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
+                                    
+                                    <div className="p-5 bg-background border border-border rounded-2xl space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Tier</p>
+                                                <h4 className="text-xl font-black text-foreground mt-0.5 flex items-center gap-2">
+                                                    {user?.communityTier || 'FREE'}
+                                                    <span className="text-[10px] bg-tatt-lime text-black font-black uppercase px-2 py-0.5 rounded-full">Active</span>
+                                                </h4>
+                                            </div>
+                                            {user?.communityTier && user.communityTier !== 'FREE' && (
                                                 <button
-                                                    key={item.title}
                                                     type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, hasAutoPayEnabled: item.id }))}
-                                                    className={`flex items-start gap-4 p-4 cursor-pointer rounded-xl border text-left transition-all ${isSelected
-                                                        ? 'border-tatt-lime bg-tatt-lime/5 shadow-md'
-                                                        : 'border-border hover:border-tatt-lime/30'}`}
+                                                    onClick={() => setIsCancelModalOpen(true)}
+                                                    className="px-3.5 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-bold rounded-xl transition-colors border border-red-500/20"
                                                 >
-                                                    <div className={`mt-1 p-2 rounded-lg ${isSelected ? 'bg-tatt-lime text-black' : 'bg-gray-100 text-tatt-gray'}`}>
-                                                        <Icon className="size-4" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className={`text-sm font-bold ${isSelected ? 'text-foreground' : 'text-tatt-gray'}`}>{item.title}</p>
-                                                        <p className="text-[10px] text-tatt-gray mt-1 leading-relaxed">{item.desc}</p>
-                                                    </div>
-                                                    {isSelected && <CheckCircle className="size-4 text-tatt-lime mt-1" />}
+                                                    Cancel Subscription
                                                 </button>
-                                            );
-                                        })}
+                                            )}
+                                        </div>
+
+                                        {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' && (
+                                            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-3">
+                                                <div className="flex items-start gap-2.5">
+                                                    <AlertTriangle className="size-4 text-yellow-500 shrink-0 mt-0.5" />
+                                                    <p className="text-xs text-tatt-gray leading-relaxed">
+                                                        Subscription scheduled to end on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong>.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleReactivateAutoPay}
+                                                    className="w-full py-2 bg-tatt-lime text-black text-[10px] font-black uppercase rounded-lg hover:scale-[1.02] transition-all"
+                                                >
+                                                    Reactivate Auto-Pay
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                </div> */}
+                                </div>
 
                                 {/* Payment Method Block */}
                                 <div className="space-y-4">
@@ -1262,6 +1383,17 @@ export default function SettingsPage() {
                         console.error("Failed to fetch payment method", err);
                     }
                 }}
+            />
+
+            <CancelPlanModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onConfirm={handleCancelSubscription}
+                isLoading={cancelingPlan}
+                tierName={user?.communityTier || 'Membership'}
+                expiresAt={user?.subscriptionExpiresAt}
+                reason={cancelReason}
+                setReason={setCancelReason}
             />
         </div>
     );
