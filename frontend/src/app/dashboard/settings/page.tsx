@@ -948,57 +948,58 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-5 bg-gradient-to-br from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between min-h-[160px] relative overflow-hidden">
+                                    <div className="p-6 bg-gradient-to-br from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between gap-6 relative overflow-hidden">
+                                        {/* Header Row */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Plan</span>
+                                            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-black bg-tatt-lime px-2.5 py-0.5 rounded-full shadow-sm">
+                                                <span className="size-1.5 rounded-full bg-black animate-pulse"></span>
+                                                Active
+                                            </span>
+                                        </div>
+
+                                        {/* Body Row */}
                                         <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-tatt-gray">Current Plan</span>
-                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-black bg-tatt-lime px-2.5 py-0.5 rounded-full shadow-sm">
-                                                    <span className="size-1.5 rounded-full bg-black animate-pulse"></span>
-                                                    Active
-                                                </span>
-                                            </div>
-
-                                            <div className="flex items-baseline justify-between mt-1">
-                                                <h4 className="text-xl font-black text-foreground tracking-tight">
-                                                    {user?.communityTier || 'FREE'} Tier
-                                                </h4>
-                                                <Link
-                                                    href="/dashboard/upgrade"
-                                                    className="text-xs font-bold text-foreground hover:text-tatt-lime transition-all underline underline-offset-4"
-                                                >
-                                                    Change Plan
-                                                </Link>
-                                            </div>
-
+                                            <h4 className="text-2xl font-black text-foreground tracking-tight">
+                                                {user?.communityTier || 'FREE'} Tier
+                                            </h4>
                                             <p className="text-xs text-tatt-gray mt-1">
                                                 {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
                                             </p>
                                         </div>
 
-                                        {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
-                                            <div className="pt-3 border-t border-tatt-lime/20 flex items-center justify-between text-xs text-tatt-gray">
-                                                <span>Cancels on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleReactivateAutoPay}
-                                                    className="text-tatt-lime font-bold hover:underline cursor-pointer"
-                                                >
-                                                    Reactivate
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            user?.communityTier && user.communityTier !== 'FREE' && (
-                                                <div className="flex justify-end pt-2">
+                                        {/* Footer Row: Change Plan & Cancel / Reactivate on Same Line */}
+                                        <div className="pt-3 border-t border-tatt-lime/20 flex items-center justify-between">
+                                            <Link
+                                                href="/dashboard/upgrade"
+                                                className="text-xs font-bold text-foreground hover:text-tatt-lime transition-all underline underline-offset-4"
+                                            >
+                                                Change Plan
+                                            </Link>
+
+                                            {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <span className="text-tatt-gray">Cancels {new Date(user.subscriptionExpiresAt).toLocaleDateString()}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleReactivateAutoPay}
+                                                        className="text-tatt-lime font-bold hover:underline cursor-pointer"
+                                                    >
+                                                        Reactivate
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                user?.communityTier && user.communityTier !== 'FREE' && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsCancelModalOpen(true)}
-                                                        className="text-[11px] text-tatt-gray/70 hover:text-red-500 transition-colors cursor-pointer"
+                                                        className="text-xs text-tatt-gray/70 hover:text-red-500 transition-colors cursor-pointer"
                                                     >
                                                         Cancel subscription
                                                     </button>
-                                                </div>
-                                            )
-                                        )}
+                                                )
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
