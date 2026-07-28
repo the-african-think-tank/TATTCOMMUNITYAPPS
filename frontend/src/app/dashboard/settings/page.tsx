@@ -204,18 +204,18 @@ const CancelPlanModal = ({
 
                 <div className="flex flex-col gap-3">
                     <button
-                        onClick={() => onConfirm(false)}
-                        disabled={isLoading}
-                        className="w-full py-4 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Confirm Cancellation"}
-                    </button>
-                    <button
                         onClick={onClose}
                         disabled={isLoading}
-                        className="w-full py-3 text-tatt-gray text-xs font-bold hover:text-foreground transition-colors"
+                        className="w-full py-4 bg-tatt-lime text-black text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-tatt-lime/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                     >
                         Keep My Subscription
+                    </button>
+                    <button
+                        onClick={() => onConfirm(false)}
+                        disabled={isLoading}
+                        className="w-full py-2 text-tatt-gray hover:text-red-500 text-xs font-bold hover:underline transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                        {isLoading ? <Loader2 className="size-4 animate-spin" /> : "I still want to cancel my subscription"}
                     </button>
                 </div>
             </div>
