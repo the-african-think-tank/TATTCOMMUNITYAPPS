@@ -338,14 +338,13 @@ export default function SettingsPage() {
     const [cancelReason, setCancelReason] = useState("");
     const [cancelingPlan, setCancelingPlan] = useState(false);
 
-    const handleCancelSubscription = async (immediate: boolean = false) => {
+    const handleCancelSubscription = async () => {
         setCancelingPlan(true);
         try {
             await api.post("/billing/cancel", {
-                immediate,
                 reason: cancelReason,
             });
-            toast.success(immediate ? "Subscription cancelled." : "Subscription scheduled for cancellation.");
+            toast.success("Subscription scheduled for cancellation at period end.");
             setIsCancelModalOpen(false);
             window.location.reload();
         } catch (err: any) {

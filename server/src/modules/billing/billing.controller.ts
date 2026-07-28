@@ -80,11 +80,11 @@ export class BillingController {
     }
 
     @ApiBearerAuth()
-    @ApiOperation({ summary: 'Cancel membership subscription' })
+    @ApiOperation({ summary: 'Cancel membership subscription at period end' })
     @UseGuards(JwtAuthGuard)
     @Post('cancel')
-    async cancelSubscription(@Req() req: any, @Body() dto: { immediate?: boolean, reason?: string }) {
-        return this.billingService.cancelSubscription(req.user.id, dto.immediate, dto.reason);
+    async cancelSubscription(@Req() req: any, @Body() dto: { reason?: string }) {
+        return this.billingService.cancelSubscription(req.user.id, dto.reason);
     }
 
 

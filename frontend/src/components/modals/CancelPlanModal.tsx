@@ -6,7 +6,7 @@ import { X, AlertTriangle, Loader2 } from "lucide-react";
 export interface CancelPlanModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (immediate: boolean) => void;
+    onConfirm: () => void;
     isLoading: boolean;
     tierName: string;
     expiresAt?: Date | string | null | undefined;
@@ -71,7 +71,7 @@ export const CancelPlanModal: React.FC<CancelPlanModalProps> = ({
                         Keep My Subscription
                     </button>
                     <button
-                        onClick={() => onConfirm(false)}
+                        onClick={() => onConfirm()}
                         disabled={isLoading}
                         className="w-full py-2 text-tatt-gray cursor-pointer hover:text-red-500 text-xs font-bold hover:underline transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >

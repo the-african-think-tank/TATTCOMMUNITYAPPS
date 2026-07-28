@@ -560,7 +560,7 @@ export class BillingService {
         }
     }
 
-    async cancelSubscription(userId: string, immediate: boolean = false, reason?: string) {
+    async cancelSubscription(userId: string, reason?: string) {
         const user = await this.userRepository.findByPk(userId);
         if (!user) throw new Error('User not found');
         if (user.communityTier === CommunityTier.FREE) {
@@ -581,35 +581,22 @@ export class BillingService {
 
                 if (subscriptions.data.length > 0) {
                     const subId = subscriptions.data[0].id;
-                    if (immediate) {
-                        await stripe.subscriptions.cancel(subId);
-                    } else {
-                        await stripe.subscriptions.update(subId, {
-                            cancel_at_period_end: true,
-                        });
-                    }
+                    await stripe.subscriptions.update(subId, {
+                        cancel_at_period_end: true,
+                    });
                 }
             } catch (err: any) {
                 this.logger.error(`Stripe subscription cancellation error for user ${userId}: ${err.message}`);
             }
         }
 
-        if (immediate) {
-            user.communityTier = CommunityTier.FREE;
-            user.subscriptionExpiresAt = null;
-            user.hasAutoPayEnabled = false;
-            await user.save();
-            this.logger.log(`User ${user.email} subscription cancelled immediately. Reason: ${reason || 'Not specified'}`);
-            return { message: 'Subscription cancelled immediately.' };
-        } else {
-            user.hasAutoPayEnabled = false;
-            await user.save();
-            this.logger.log(`User ${user.email} subscription scheduled for cancellation at period end. Reason: ${reason || 'Not specified'}`);
-            return {
-                message: 'Subscription will remain active until the end of your current billing period.',
-                expiresAt: user.subscriptionExpiresAt,
-            };
-        }
+        user.hasAutoPayEnabled = false;
+        await user.save();
+        this.logger.log(`User ${user.email} subscription scheduled for cancellation at period end. Reason: ${reason || 'Not specified'}`);
+        return {
+            message: 'Subscription will remain active until the end of your current billing period.',
+            expiresAt: user.subscriptionExpiresAt,
+        };
     }
 
     async getPlans() {
