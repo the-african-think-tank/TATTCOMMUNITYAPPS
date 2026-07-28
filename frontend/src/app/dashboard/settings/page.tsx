@@ -952,17 +952,16 @@ export default function SettingsPage() {
                                         {/* Header Row */}
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Plan</span>
-                                            {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? (
-                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-800 bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 rounded-full shadow-sm">
-                                                    <span className="size-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                    Cancels {user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt).toLocaleDateString() : 'at Period End'}
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-black bg-tatt-lime px-2.5 py-0.5 rounded-full shadow-sm">
-                                                    <span className="size-1.5 rounded-full bg-black animate-pulse"></span>
-                                                    Active
-                                                </span>
-                                            )}
+                                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-sm ${
+                                                user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
+                                                    ? 'bg-amber-400/20 text-amber-800 border border-amber-400/30'
+                                                    : 'bg-tatt-lime text-black'
+                                            }`}>
+                                                <span className={`size-1.5 rounded-full animate-pulse ${
+                                                    user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'bg-amber-500' : 'bg-black'
+                                                }`}></span>
+                                                {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'Canceling' : 'Active'}
+                                            </span>
                                         </div>
 
                                         {/* Body Row */}
@@ -970,16 +969,14 @@ export default function SettingsPage() {
                                             <h4 className="text-2xl font-black text-foreground tracking-tight">
                                                 {user?.communityTier || 'FREE'} Tier
                                             </h4>
-                                            {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
-                                                <p className="text-xs text-amber-700 font-medium mt-1">
-                                                    Access ends on {new Date(user.subscriptionExpiresAt).toLocaleDateString()} (Auto-renew off)
-                                                </p>
-                                            ) : (
-                                                <p className="text-xs text-tatt-gray mt-1">
-                                                    {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
-                                                    {user?.subscriptionExpiresAt && ` • Renews ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`}
-                                                </p>
-                                            )}
+                                            <p className="text-xs text-tatt-gray mt-1">
+                                                {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
+                                                {user?.subscriptionExpiresAt && (
+                                                    user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
+                                                        ? ` • Ends ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
+                                                        : ` • Renews ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
+                                                )}
+                                            </p>
                                         </div>
 
                                         {/* Footer Row: Change Plan & Cancel / Reactivate on Same Line */}
@@ -995,9 +992,9 @@ export default function SettingsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={handleReactivateAutoPay}
-                                                    className="text-xs font-bold text-black bg-tatt-lime hover:bg-black hover:text-white px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm"
+                                                    className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer"
                                                 >
-                                                    Reactivate Auto-Pay
+                                                    Reactivate
                                                 </button>
                                             ) : (
                                                 user?.communityTier && user.communityTier !== 'FREE' && (
