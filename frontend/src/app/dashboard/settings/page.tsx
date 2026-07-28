@@ -961,11 +961,6 @@ export default function SettingsPage() {
                                             </h4>
                                             <p className="text-xs text-tatt-gray mt-1">
                                                 {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
-                                                {user?.subscriptionExpiresAt && (
-                                                    user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
-                                                        ? ` • Ends on ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
-                                                        : ` • Renews on ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`
-                                                )}
                                             </p>
                                         </div>
 
