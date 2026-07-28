@@ -948,38 +948,36 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-5 bg-gradient-to-br from-[#1d1d1b] to-black text-white rounded-2xl shadow-xl flex flex-col justify-between min-h-[160px] relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 size-32 bg-tatt-lime/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-tatt-lime/20 transition-colors"></div>
-
-                                        <div className="relative z-10">
+                                    <div className="p-5 bg-surface rounded-2xl flex flex-col justify-between min-h-[160px]">
+                                        <div>
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">Current Plan</span>
-                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-tatt-lime bg-tatt-lime/10 px-2.5 py-0.5 rounded-full border border-tatt-lime/20">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-tatt-gray">Current Plan</span>
+                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-tatt-lime bg-tatt-lime/10 px-2.5 py-0.5 rounded-full">
                                                     <span className="size-1.5 rounded-full bg-tatt-lime animate-pulse"></span>
                                                     Active
                                                 </span>
                                             </div>
 
                                             <div className="flex items-baseline justify-between mt-1">
-                                                <h4 className="text-xl font-black text-white tracking-tight">
+                                                <h4 className="text-xl font-black text-foreground tracking-tight">
                                                     {user?.communityTier || 'FREE'} Tier
                                                 </h4>
                                                 <Link
                                                     href="/dashboard/upgrade"
-                                                    className="text-xs font-bold text-tatt-lime hover:underline transition-all"
+                                                    className="text-xs font-bold text-foreground hover:text-tatt-lime transition-all underline underline-offset-4"
                                                 >
                                                     Change Plan
                                                 </Link>
                                             </div>
 
-                                            <p className="text-xs text-white/60 mt-1">
+                                            <p className="text-xs text-tatt-gray mt-1">
                                                 {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
                                             </p>
                                         </div>
 
                                         {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
-                                            <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/70 relative z-10">
-                                                <span>Cancels on <strong className="text-white">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
+                                            <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-tatt-gray">
+                                                <span>Cancels on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
                                                 <button
                                                     type="button"
                                                     onClick={handleReactivateAutoPay}
@@ -990,11 +988,11 @@ export default function SettingsPage() {
                                             </div>
                                         ) : (
                                             user?.communityTier && user.communityTier !== 'FREE' && (
-                                                <div className="flex justify-end pt-2 relative z-10">
+                                                <div className="flex justify-end pt-2">
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsCancelModalOpen(true)}
-                                                        className="text-[11px] text-white/40 hover:text-red-400 transition-colors cursor-pointer"
+                                                        className="text-[11px] text-tatt-gray/50 hover:text-red-500 transition-colors cursor-pointer"
                                                     >
                                                         Cancel subscription
                                                     </button>
