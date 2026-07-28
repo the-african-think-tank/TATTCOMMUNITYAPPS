@@ -960,7 +960,9 @@ export default function SettingsPage() {
                                                 <span className={`size-1.5 rounded-full animate-pulse ${
                                                     user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'bg-amber-500' : 'bg-black'
                                                 }`}></span>
-                                                {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'Canceling' : 'Active'}
+                                                {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
+                                                    ? `Ends ${user.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt).toLocaleDateString() : ''}`
+                                                    : 'Active'}
                                             </span>
                                         </div>
 
