@@ -634,7 +634,7 @@ export default function SettingsPage() {
             <div className="flex bg-surface border border-border p-1 rounded-2xl mb-8 overflow-x-auto no-scrollbar shadow-sm w-fit max-w-full">
                 <button
                     onClick={() => setActiveTab('GENERAL')}
-                    className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'GENERAL' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
+                    className={`px-8 py-3 rounded-xl cursor-pointer text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'GENERAL' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
                 >
                     <div className="flex items-center gap-2">
                         <UserIcon size={14} /> Global Profile
@@ -642,7 +642,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                     onClick={() => setActiveTab('BILLING')}
-                    className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BILLING' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
+                    className={`px-8 py-3 rounded-xl cursor-pointer text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BILLING' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
                 >
                     <div className="flex items-center gap-2">
                         <Wallet size={14} /> Billing & Access
@@ -651,7 +651,7 @@ export default function SettingsPage() {
                 {isKiongozi && (
                     <button
                         onClick={() => setActiveTab('BUSINESS')}
-                        className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BUSINESS' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
+                        className={`px-8 py-3 rounded-xl cursor-pointer text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BUSINESS' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
                     >
                         <div className="flex items-center gap-2">
                             <Building2 size={14} /> Business Profile
@@ -912,7 +912,7 @@ export default function SettingsPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Auto-pay Toggle Block */}
-                                <div className="space-y-4">
+                                {/* <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Renewal Preference</label>
                                     <div className="flex flex-col gap-3">
                                         {[
@@ -926,7 +926,7 @@ export default function SettingsPage() {
                                                     key={item.title}
                                                     type="button"
                                                     onClick={() => setFormData(prev => ({ ...prev, hasAutoPayEnabled: item.id }))}
-                                                    className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${isSelected
+                                                    className={`flex items-start gap-4 p-4 cursor-pointer rounded-xl border text-left transition-all ${isSelected
                                                         ? 'border-tatt-lime bg-tatt-lime/5 shadow-md'
                                                         : 'border-border hover:border-tatt-lime/30'}`}
                                                 >
@@ -942,7 +942,7 @@ export default function SettingsPage() {
                                             );
                                         })}
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* Payment Method Block */}
                                 <div className="space-y-4">

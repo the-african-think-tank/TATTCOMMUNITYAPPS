@@ -29,9 +29,9 @@ export async function createSubscriptionCheckoutSession({
     throw new Error('Montant invalide.');
   }
 
-  // Création de la session Checkout (paiement unique)
+  // Création de la session Checkout (récurrente / abonnement)
   const session = await stripe.checkout.sessions.create({
-    mode: 'payment', // ← Paiement unique
+    mode: 'subscription',
     payment_method_types: ['card'],
     line_items: [
       {
@@ -41,7 +41,10 @@ export async function createSubscriptionCheckoutSession({
             name: `TATT ${tier} Membership - ${isYearly ? 'Yearly' : 'Monthly'}`,
             description: `Accès au plan ${tier}`,
           },
-          unit_amount: amount, // ← Montant en centimes
+          unit_amount: amount, // Montant en centimes
+          recurring: {
+            interval: isYearly ? 'year' : 'month',
+          },
         },
         quantity: 1,
       },

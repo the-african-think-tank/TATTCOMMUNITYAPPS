@@ -66,12 +66,19 @@ export class SystemSettingsService {
 
     async getRawValue(key: string): Promise<string | null> {
         const setting = await this.settingRepo.findOne({ where: { key } });
-        if (!setting) return process.env[key] || null;
+        if (!setting || !setting.value) return process.env[key] || null;
 
+        let val = setting.value;
         if (setting.isSecret) {
-            return this.decrypt(setting.value);
+            val = this.decrypt(setting.value);
         }
-        return setting.value;
+
+        const isPlaceholder = !val || val.includes('placeholder') || val.includes('your_') || val.includes('*****') || val.includes('dummy');
+        if (isPlaceholder && process.env[key]) {
+            return process.env[key] || null;
+        }
+
+        return val || process.env[key] || null;
     }
 
     async update(key: string, value: string, category: string = 'GENERAL', description?: string, isSecret: boolean = false) {
@@ -102,6 +109,8 @@ export class SystemSettingsService {
             this.logger.warn('STRIPE_SECRET_KEY not found in settings or env. Billing may fail.');
         }
         return new Stripe(secretKey || 'sk_test_placeholder', {
+            timeout: 8000,
+            maxNetworkRetries: 1,
             apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
         });
     }
