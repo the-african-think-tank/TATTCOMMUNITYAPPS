@@ -421,13 +421,25 @@ export class AuthService {
             if (!priceId) throw new BadRequestException('Selected membership tier is invalid or unavailable.');
 
             try {
-                const customer = await (await this.getStripe()).customers.create({
+                const stripe = await this.getStripe();
+                const customer = await stripe.customers.create({
                     email: dto.email,
                     name: `${dto.firstName} ${dto.lastName}`,
-                    payment_method: dto.paymentMethodId,
-                    invoice_settings: { default_payment_method: dto.paymentMethodId },
                 });
                 stripeCustomerId = customer.id;
+
+                if (dto.paymentMethodId) {
+                    try {
+                        await stripe.paymentMethods.attach(dto.paymentMethodId, { customer: customer.id });
+                    } catch (attachErr: any) {
+                        if (!attachErr.message?.includes('already attached to customer')) {
+                            throw attachErr;
+                        }
+                    }
+                    await stripe.customers.update(customer.id, {
+                        invoice_settings: { default_payment_method: dto.paymentMethodId },
+                    });
+                }
 
                 if (!priceId.includes('mock') && !process.env.STRIPE_SECRET_KEY?.includes('placeholder')) {
                     await (await this.getStripe()).subscriptions.create({

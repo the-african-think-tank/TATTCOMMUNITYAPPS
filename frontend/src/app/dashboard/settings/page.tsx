@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
     User as UserIcon,
@@ -27,6 +28,7 @@ import { Interest } from "@/types/interests";
 import { ChapterDetail } from "@/types/chapter";
 import { toast } from "react-hot-toast";
 import { ChevronDown, X, AlertTriangle, Globe, MapPin, Phone, Mail, Layout } from "lucide-react";
+import { CancelPlanModal } from "@/components/modals/CancelPlanModal";
 
 // --- Custom Components ---
 
@@ -332,6 +334,37 @@ export default function SettingsPage() {
     const [togglingAutoPay, setTogglingAutoPay] = useState(false);
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING' | 'BUSINESS'>('GENERAL');
 
+    // Cancellation State
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelingPlan, setCancelingPlan] = useState(false);
+
+    const handleCancelSubscription = async () => {
+        setCancelingPlan(true);
+        try {
+            await api.post("/billing/cancel", {
+                reason: cancelReason,
+            });
+            toast.success("Subscription scheduled for cancellation at period end.");
+            setIsCancelModalOpen(false);
+            window.location.reload();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to cancel subscription.");
+        } finally {
+            setCancelingPlan(false);
+        }
+    };
+
+    const handleReactivateAutoPay = async () => {
+        try {
+            await api.post("/billing/autopay/toggle", { enabled: true });
+            toast.success("Auto-pay reactivated!");
+            window.location.reload();
+        } catch (err: any) {
+            toast.error("Failed to reactivate auto-pay.");
+        }
+    };
+
     // Business Profile State
     const [businessData, setBusinessData] = useState({
         name: "",
@@ -634,7 +667,7 @@ export default function SettingsPage() {
             <div className="flex bg-surface border border-border p-1 rounded-2xl mb-8 overflow-x-auto no-scrollbar shadow-sm w-fit max-w-full">
                 <button
                     onClick={() => setActiveTab('GENERAL')}
-                    className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'GENERAL' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
+                    className={`px-8 py-3 rounded-xl cursor-pointer text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'GENERAL' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
                 >
                     <div className="flex items-center gap-2">
                         <UserIcon size={14} /> Global Profile
@@ -642,7 +675,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                     onClick={() => setActiveTab('BILLING')}
-                    className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BILLING' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
+                    className={`px-8 py-3 rounded-xl cursor-pointer text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BILLING' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
                 >
                     <div className="flex items-center gap-2">
                         <Wallet size={14} /> Billing & Access
@@ -651,7 +684,7 @@ export default function SettingsPage() {
                 {isKiongozi && (
                     <button
                         onClick={() => setActiveTab('BUSINESS')}
-                        className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BUSINESS' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
+                        className={`px-8 py-3 rounded-xl cursor-pointer text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'BUSINESS' ? 'bg-tatt-lime text-black shadow-md' : 'text-tatt-gray hover:text-foreground hover:bg-black/5'}`}
                     >
                         <div className="flex items-center gap-2">
                             <Building2 size={14} /> Business Profile
@@ -911,36 +944,59 @@ export default function SettingsPage() {
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Auto-pay Toggle Block */}
+                                {/* Active Membership Status Block */}
                                 <div className="space-y-4">
-                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Renewal Preference</label>
-                                    <div className="flex flex-col gap-3">
-                                        {[
-                                            { id: true, title: 'Full Autopay (Recommended)', desc: 'Seamlessly renew membership using your default card on file.', icon: RefreshCw },
-                                            { id: false, title: 'Manual Renewal', desc: 'Receive invoice reminders and pay manually each billing cycle.', icon: UserIcon }
-                                        ].map((item) => {
-                                            const Icon = item.icon;
-                                            const isSelected = formData.hasAutoPayEnabled === item.id;
-                                            return (
-                                                <button
-                                                    key={item.title}
-                                                    type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, hasAutoPayEnabled: item.id }))}
-                                                    className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${isSelected
-                                                        ? 'border-tatt-lime bg-tatt-lime/5 shadow-md'
-                                                        : 'border-border hover:border-tatt-lime/30'}`}
+                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
+                                    
+                                    <div className="p-6 bg-gradient-to-br mt-1 from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between gap-6 relative overflow-hidden">
+                                        {/* Header Row */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Plan</span>
+                                        </div>
+
+                                        {/* Body Row */}
+                                        <div>
+                                            <h4 className="text-2xl font-black text-foreground tracking-tight">
+                                                {user?.communityTier || 'FREE'} Tier
+                                            </h4>
+                                            <p className="text-xs text-tatt-gray mt-1">
+                                                {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
+                                            </p>
+                                        </div>
+
+                                        {/* Footer Row: Change Plan & Cancel / Reactivate on Same Line */}
+                                        <div className="pt-3 border-t border-tatt-lime/20 flex items-center justify-between">
+                                            {user?.communityTier !== 'KIONGOZI' ? (
+                                                <Link
+                                                    href="/dashboard/upgrade"
+                                                    className="text-xs font-bold text-foreground hover:text-tatt-lime transition-all underline underline-offset-4"
                                                 >
-                                                    <div className={`mt-1 p-2 rounded-lg ${isSelected ? 'bg-tatt-lime text-black' : 'bg-gray-100 text-tatt-gray'}`}>
-                                                        <Icon className="size-4" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className={`text-sm font-bold ${isSelected ? 'text-foreground' : 'text-tatt-gray'}`}>{item.title}</p>
-                                                        <p className="text-[10px] text-tatt-gray mt-1 leading-relaxed">{item.desc}</p>
-                                                    </div>
-                                                    {isSelected && <CheckCircle className="size-4 text-tatt-lime mt-1" />}
+                                                    Upgrade Plan
+                                                </Link>
+                                            ) : (
+                                                <span />
+                                            )}
+
+                                            {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleReactivateAutoPay}
+                                                    className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer"
+                                                >
+                                                    Reactivate
                                                 </button>
-                                            );
-                                        })}
+                                            ) : (
+                                                user?.communityTier && user.communityTier !== 'FREE' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsCancelModalOpen(true)}
+                                                        className="text-xs text-tatt-gray/70 hover:text-red-500 transition-colors cursor-pointer"
+                                                    >
+                                                        Cancel subscription
+                                                    </button>
+                                                )
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -949,7 +1005,7 @@ export default function SettingsPage() {
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Default Payment Method</label>
 
                                     {paymentMethod ? (
-                                        <div className="p-5 bg-gradient-to-br from-[#1d1d1b] to-black rounded-2xl shadow-xl relative overflow-hidden group">
+                                        <div className="p-5 bg-gradient-to-br from-[#1d1d1b] mt-1 to-black rounded-2xl shadow-xl relative overflow-hidden group">
                                             <div className="size-10 bg-yellow-400/20 rounded-lg mb-8 backdrop-blur-sm border border-yellow-400/10 flex items-center justify-center">
                                                 <div className="size-6 bg-yellow-400/40 rounded-sm"></div>
                                             </div>
@@ -1262,6 +1318,17 @@ export default function SettingsPage() {
                         console.error("Failed to fetch payment method", err);
                     }
                 }}
+            />
+
+            <CancelPlanModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onConfirm={handleCancelSubscription}
+                isLoading={cancelingPlan}
+                tierName={user?.communityTier || 'Membership'}
+                expiresAt={user?.subscriptionExpiresAt}
+                reason={cancelReason}
+                setReason={setCancelReason}
             />
         </div>
     );

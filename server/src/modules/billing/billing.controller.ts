@@ -79,6 +79,14 @@ export class BillingController {
         return this.billingService.toggleAutoPay(req.user.id, dto.enabled);
     }
 
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Cancel membership subscription at period end' })
+    @UseGuards(JwtAuthGuard)
+    @Post('cancel')
+    async cancelSubscription(@Req() req: any, @Body() dto: { reason?: string }) {
+        return this.billingService.cancelSubscription(req.user.id, dto.reason);
+    }
+
 
     // --- ADMIN SUBSCRIPTION VIEWS ---
 

@@ -35,6 +35,8 @@ export type User = {
     deletionRequestedAt?: string | null;
     linkedInProfileUrl?: string;
     hasAutoPayEnabled?: boolean;
+    subscriptionExpiresAt?: string | Date | null;
+    billingCycle?: string | null;
     createdAt?: string;
 };
 
