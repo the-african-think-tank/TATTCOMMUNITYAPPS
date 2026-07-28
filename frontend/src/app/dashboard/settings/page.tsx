@@ -966,12 +966,16 @@ export default function SettingsPage() {
 
                                         {/* Footer Row: Change Plan & Cancel / Reactivate on Same Line */}
                                         <div className="pt-3 border-t border-tatt-lime/20 flex items-center justify-between">
-                                            <Link
-                                                href="/dashboard/upgrade"
-                                                className="text-xs font-bold text-foreground hover:text-tatt-lime transition-all underline underline-offset-4"
-                                            >
-                                                Change Plan
-                                            </Link>
+                                            {user?.communityTier !== 'KIONGOZI' ? (
+                                                <Link
+                                                    href="/dashboard/upgrade"
+                                                    className="text-xs font-bold text-foreground hover:text-tatt-lime transition-all underline underline-offset-4"
+                                                >
+                                                    Upgrade Plan
+                                                </Link>
+                                            ) : (
+                                                <span />
+                                            )}
 
                                             {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? (
                                                 <button
