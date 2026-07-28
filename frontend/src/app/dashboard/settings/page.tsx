@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
     User as UserIcon,
@@ -947,40 +948,62 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-5 bg-background border border-border rounded-2xl space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Tier</p>
-                                                <h4 className="text-xl font-black text-foreground mt-0.5 flex items-center gap-2">
-                                                    {user?.communityTier || 'FREE'}
-                                                    <span className="text-[10px] bg-tatt-lime text-black font-black uppercase px-2 py-0.5 rounded-full">Active</span>
-                                                </h4>
+                                    <div className="p-6 bg-gradient-to-br from-surface to-background border border-border rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between gap-6 group">
+                                        <div className="absolute top-0 right-0 size-36 bg-tatt-lime/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-tatt-lime/10 transition-colors"></div>
+
+                                        <div className="flex items-center justify-between relative z-10 gap-4">
+                                            <div className="flex items-center gap-3.5">
+                                                <div className="size-11 rounded-xl bg-tatt-lime/10 border border-tatt-lime/20 flex items-center justify-center text-tatt-lime shrink-0">
+                                                    <Zap className="size-5" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="text-lg font-black tracking-tight text-foreground uppercase">
+                                                            {user?.communityTier || 'FREE'} MEMBERSHIP
+                                                        </h4>
+                                                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-tatt-lime/15 text-tatt-lime border border-tatt-lime/30">
+                                                            Active
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-tatt-gray mt-0.5">
+                                                        {user?.billingCycle === 'YEARLY' ? 'Billed Annually' : 'Billed Monthly'}
+                                                        {user?.subscriptionExpiresAt && ` • Renews ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            {user?.communityTier && user.communityTier !== 'FREE' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsCancelModalOpen(true)}
-                                                    className="px-3.5 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-bold rounded-xl transition-colors border border-red-500/20"
-                                                >
-                                                    Cancel Subscription
-                                                </button>
-                                            )}
+
+                                            <Link
+                                                href="/dashboard/upgrade"
+                                                className="px-4 py-2.5 bg-foreground text-background hover:bg-tatt-lime hover:text-black text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0 hover:scale-105"
+                                            >
+                                                Change Plan
+                                            </Link>
                                         </div>
 
                                         {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' && (
-                                            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-3">
-                                                <div className="flex items-start gap-2.5">
-                                                    <AlertTriangle className="size-4 text-yellow-500 shrink-0 mt-0.5" />
-                                                    <p className="text-xs text-tatt-gray leading-relaxed">
-                                                        Subscription scheduled to end on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong>.
-                                                    </p>
+                                            <div className="p-3.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-between gap-3 relative z-10">
+                                                <div className="flex items-center gap-2 text-xs text-tatt-gray">
+                                                    <AlertTriangle className="size-4 text-yellow-500 shrink-0" />
+                                                    <span>Cancels on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={handleReactivateAutoPay}
-                                                    className="w-full py-2 bg-tatt-lime text-black text-[10px] font-black uppercase rounded-lg hover:scale-[1.02] transition-all"
+                                                    className="px-3 py-1.5 bg-tatt-lime text-black text-[10px] font-black uppercase rounded-lg hover:scale-105 transition-all shrink-0 cursor-pointer"
                                                 >
                                                     Reactivate Auto-Pay
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {user?.communityTier && user.communityTier !== 'FREE' && user?.hasAutoPayEnabled !== false && (
+                                            <div className="pt-2 border-t border-border/40 flex justify-end relative z-10">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsCancelModalOpen(true)}
+                                                    className="text-[11px] font-medium text-tatt-gray/60 hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer"
+                                                >
+                                                    Cancel subscription
                                                 </button>
                                             </div>
                                         )}
