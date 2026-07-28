@@ -948,64 +948,56 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-6 bg-gradient-to-br from-surface to-background border border-border rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between gap-6 group">
-                                        <div className="absolute top-0 right-0 size-36 bg-tatt-lime/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-tatt-lime/10 transition-colors"></div>
-
-                                        <div className="flex items-center justify-between relative z-10 gap-4">
-                                            <div className="flex items-center gap-3.5">
-                                                <div className="size-11 rounded-xl bg-tatt-lime/10 border border-tatt-lime/20 flex items-center justify-center text-tatt-lime shrink-0">
-                                                    <Zap className="size-5" />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="text-lg font-black tracking-tight text-foreground uppercase">
-                                                            {user?.communityTier || 'FREE'} MEMBERSHIP
-                                                        </h4>
-                                                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-tatt-lime/15 text-tatt-lime border border-tatt-lime/30">
-                                                            Active
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-tatt-gray mt-0.5">
-                                                        {user?.billingCycle === 'YEARLY' ? 'Billed Annually' : 'Billed Monthly'}
-                                                        {user?.subscriptionExpiresAt && ` • Renews ${new Date(user.subscriptionExpiresAt).toLocaleDateString()}`}
-                                                    </p>
-                                                </div>
+                                    <div className="p-5 bg-surface border border-border rounded-2xl flex flex-col justify-between min-h-[160px]">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-tatt-gray">Current Plan</span>
+                                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-tatt-lime">
+                                                    <span className="size-1.5 rounded-full bg-tatt-lime animate-pulse"></span>
+                                                    Active
+                                                </span>
                                             </div>
 
-                                            <Link
-                                                href="/dashboard/upgrade"
-                                                className="px-4 py-2.5 bg-foreground text-background hover:bg-tatt-lime hover:text-black text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0 hover:scale-105"
-                                            >
-                                                Change Plan
-                                            </Link>
+                                            <div className="flex items-baseline justify-between mt-1">
+                                                <h4 className="text-xl font-extrabold text-foreground tracking-tight">
+                                                    {user?.communityTier || 'FREE'} Tier
+                                                </h4>
+                                                <Link
+                                                    href="/dashboard/upgrade"
+                                                    className="text-xs font-bold text-foreground hover:text-tatt-lime transition-colors underline underline-offset-4"
+                                                >
+                                                    Change Plan
+                                                </Link>
+                                            </div>
+
+                                            <p className="text-xs text-tatt-gray mt-1">
+                                                {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
+                                            </p>
                                         </div>
 
-                                        {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' && (
-                                            <div className="p-3.5 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex items-center justify-between gap-3 relative z-10">
-                                                <div className="flex items-center gap-2 text-xs text-tatt-gray">
-                                                    <AlertTriangle className="size-4 text-yellow-500 shrink-0" />
-                                                    <span>Cancels on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
-                                                </div>
+                                        {user?.hasAutoPayEnabled === false && user?.subscriptionExpiresAt && user?.communityTier !== 'FREE' ? (
+                                            <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-tatt-gray">
+                                                <span>Cancels on <strong className="text-foreground">{new Date(user.subscriptionExpiresAt).toLocaleDateString()}</strong></span>
                                                 <button
                                                     type="button"
                                                     onClick={handleReactivateAutoPay}
-                                                    className="px-3 py-1.5 bg-tatt-lime text-black text-[10px] font-black uppercase rounded-lg hover:scale-105 transition-all shrink-0 cursor-pointer"
+                                                    className="text-tatt-lime font-bold hover:underline cursor-pointer"
                                                 >
-                                                    Reactivate Auto-Pay
+                                                    Reactivate
                                                 </button>
                                             </div>
-                                        )}
-
-                                        {user?.communityTier && user.communityTier !== 'FREE' && user?.hasAutoPayEnabled !== false && (
-                                            <div className="pt-2 border-t border-border/40 flex justify-end relative z-10">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsCancelModalOpen(true)}
-                                                    className="text-[11px] font-medium text-tatt-gray/60 hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer"
-                                                >
-                                                    Cancel subscription
-                                                </button>
-                                            </div>
+                                        ) : (
+                                            user?.communityTier && user.communityTier !== 'FREE' && (
+                                                <div className="pt-2 flex justify-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsCancelModalOpen(true)}
+                                                        className="text-[11px] text-tatt-gray/60 hover:text-red-500 transition-colors cursor-pointer"
+                                                    >
+                                                        Cancel subscription
+                                                    </button>
+                                                </div>
+                                            )
                                         )}
                                     </div>
                                 </div>
