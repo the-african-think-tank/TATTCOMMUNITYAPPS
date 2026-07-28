@@ -952,16 +952,6 @@ export default function SettingsPage() {
                                         {/* Header Row */}
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Plan</span>
-                                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-sm ${
-                                                user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE'
-                                                    ? 'bg-amber-400/20 text-amber-800 border border-amber-400/30'
-                                                    : 'bg-tatt-lime text-black'
-                                            }`}>
-                                                <span className={`size-1.5 rounded-full animate-pulse ${
-                                                    user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'bg-amber-500' : 'bg-black'
-                                                }`}></span>
-                                                {user?.hasAutoPayEnabled === false && user?.communityTier !== 'FREE' ? 'Canceling' : 'Active'}
-                                            </span>
                                         </div>
 
                                         {/* Body Row */}
