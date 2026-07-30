@@ -123,15 +123,10 @@ export class UserSeederService implements OnApplicationBootstrap {
 
 
     private async seedDefaultAdmin() {
-        const email = this.configService.get<string>('DEFAULT_ADMIN_EMAIL');
-        const password = this.configService.get<string>('DEFAULT_ADMIN_PASS');
+        const email = this.configService.get<string>('DEFAULT_ADMIN_EMAIL', 'admin@tatt.org');
+        const password = this.configService.get<string>('DEFAULT_ADMIN_PASS', 'AdminPassword123!');
         const firstName = this.configService.get<string>('DEFAULT_ADMIN_FIRSTNAME', 'TATT');
         const lastName = this.configService.get<string>('DEFAULT_ADMIN_LASTNAME', 'Admin');
-
-        if (!email || !password) {
-            this.logger.warn('Default admin credentials not set in environment variables. Skipping seeding.');
-            return;
-        }
 
         try {
             const adminUser = await this.userRepository.findOne({
