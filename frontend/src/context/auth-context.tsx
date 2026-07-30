@@ -23,6 +23,9 @@ export type User = {
     industry?: { id: string; name: string } | null;
     companyName?: string | null;
     location?: string | null;
+    countryOfOrigin?: string | null;
+    countryOfResidence?: string | null;
+    dateOfBirth?: string | null;
     tattMemberId?: string | null;
     flags?: string[];
     connectionPreference?: string;

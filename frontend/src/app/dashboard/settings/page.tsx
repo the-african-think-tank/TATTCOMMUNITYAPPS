@@ -313,6 +313,9 @@ export default function SettingsPage() {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
+        countryOfOrigin: "",
+        countryOfResidence: "",
+        dateOfBirth: "",
         professionTitle: "",
         industryId: "",
         employer: "",
@@ -358,10 +361,10 @@ export default function SettingsPage() {
     const handleReactivateAutoPay = async () => {
         try {
             await api.post("/billing/autopay/toggle", { enabled: true });
-            toast.success("Auto-pay reactivated!");
-            window.location.reload();
+            setFormData(prev => ({ ...prev, hasAutoPayEnabled: true }));
+            toast.success("Auto-pay reactivated.");
         } catch (err: any) {
-            toast.error("Failed to reactivate auto-pay.");
+            toast.error(err?.response?.data?.message || "Failed to reactivate auto-pay.");
         }
     };
 
@@ -400,6 +403,9 @@ export default function SettingsPage() {
                     setFormData({
                         firstName: user.firstName || "",
                         lastName: user.lastName || "",
+                        countryOfOrigin: user.countryOfOrigin || "",
+                        countryOfResidence: user.countryOfResidence || "",
+                        dateOfBirth: user.dateOfBirth || "",
                         professionTitle: user.professionTitle || "",
                         industryId: user.industryId || "",
                         employer: user.companyName || "",
@@ -778,6 +784,38 @@ export default function SettingsPage() {
                                         className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
                                         placeholder="e.g. Doe"
                                         type="text"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Country of Origin</label>
+                                    <input
+                                        name="countryOfOrigin"
+                                        value={formData.countryOfOrigin}
+                                        onChange={handleInputChange}
+                                        className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
+                                        placeholder="e.g. Nigeria, Ghana, Jamaica..."
+                                        type="text"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Country of Residence</label>
+                                    <input
+                                        name="countryOfResidence"
+                                        value={formData.countryOfResidence}
+                                        onChange={handleInputChange}
+                                        className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
+                                        placeholder="e.g. United States, United Kingdom..."
+                                        type="text"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Date of Birth</label>
+                                    <input
+                                        name="dateOfBirth"
+                                        value={formData.dateOfBirth}
+                                        onChange={handleInputChange}
+                                        className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
+                                        type="date"
                                     />
                                 </div>
                                 <div className="space-y-2">
