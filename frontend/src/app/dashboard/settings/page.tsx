@@ -27,10 +27,91 @@ import {
 import { Interest } from "@/types/interests";
 import { ChapterDetail } from "@/types/chapter";
 import { toast } from "react-hot-toast";
-import { ChevronDown, X, AlertTriangle, Globe, MapPin, Phone, Mail, Layout } from "lucide-react";
+import { ChevronDown, X, AlertTriangle, Globe, MapPin, Phone, Mail, Layout, Search } from "lucide-react";
 import { CancelPlanModal } from "@/components/modals/CancelPlanModal";
+import { ALL_COUNTRIES } from "@/constants/countries";
 
 // --- Custom Components ---
+
+const CountrySelect = ({
+    label,
+    name,
+    value,
+    onChange,
+    placeholder = "Select a country"
+}: {
+    label: string,
+    name: string,
+    value: string,
+    onChange: (name: string, value: string) => void,
+    placeholder?: string
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredCountries = ALL_COUNTRIES.filter(country =>
+        country.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-2 relative">
+            <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">{label}</label>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full bg-background border-border border rounded-xl px-4 py-3 text-sm flex items-center justify-between focus:ring-2 focus:ring-tatt-lime outline-none text-left transition-all hover:border-tatt-lime/50"
+            >
+                <span className={value ? "text-foreground font-medium" : "text-tatt-gray"}>
+                    {value || placeholder}
+                </span>
+                <ChevronDown className={`size-4 text-tatt-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)}></div>
+                    <div className="absolute top-full left-0 w-full mt-2 bg-surface border border-border rounded-xl shadow-2xl z-40 max-h-72 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="p-3 border-b border-border bg-background flex items-center gap-2">
+                            <Search className="size-4 text-tatt-gray" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search country..."
+                                className="w-full bg-transparent text-sm outline-none text-foreground"
+                                autoFocus
+                            />
+                            {searchTerm && (
+                                <button type="button" onClick={() => setSearchTerm("")} className="text-xs text-tatt-gray hover:text-foreground">Clear</button>
+                            )}
+                        </div>
+                        <div className="overflow-y-auto max-h-56">
+                            {filteredCountries.length === 0 ? (
+                                <div className="px-4 py-3 text-sm text-tatt-gray text-center">No country found</div>
+                            ) : (
+                                filteredCountries.map((country) => (
+                                    <button
+                                        key={country}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(name, country);
+                                            setIsOpen(false);
+                                            setSearchTerm("");
+                                        }}
+                                        className={`w-full px-4 py-2.5 text-sm text-left hover:bg-tatt-lime/10 transition-colors flex items-center justify-between ${value === country ? 'bg-tatt-lime/5 text-tatt-lime font-bold' : 'text-foreground'}`}
+                                    >
+                                        {country}
+                                        {value === country && <CheckCircle className="size-4" />}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
 
 const CustomSelect = ({
     label,
@@ -786,28 +867,20 @@ export default function SettingsPage() {
                                         type="text"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Country of Origin</label>
-                                    <input
-                                        name="countryOfOrigin"
-                                        value={formData.countryOfOrigin}
-                                        onChange={handleInputChange}
-                                        className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                        placeholder="e.g. Nigeria, Ghana, Jamaica..."
-                                        type="text"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Country of Residence</label>
-                                    <input
-                                        name="countryOfResidence"
-                                        value={formData.countryOfResidence}
-                                        onChange={handleInputChange}
-                                        className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                        placeholder="e.g. United States, United Kingdom..."
-                                        type="text"
-                                    />
-                                </div>
+                                <CountrySelect
+                                    label="Country of Origin"
+                                    name="countryOfOrigin"
+                                    value={formData.countryOfOrigin}
+                                    onChange={handleSelectChange}
+                                    placeholder="Select your country of origin"
+                                />
+                                <CountrySelect
+                                    label="Country of Residence"
+                                    name="countryOfResidence"
+                                    value={formData.countryOfResidence}
+                                    onChange={handleSelectChange}
+                                    placeholder="Select your country of residence"
+                                />
                                 <div className="space-y-2">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Date of Birth</label>
                                     <input
