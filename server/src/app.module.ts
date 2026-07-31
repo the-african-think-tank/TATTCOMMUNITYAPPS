@@ -29,6 +29,7 @@ import { RevenueModule } from './modules/revenue/revenue.module';
 import { BusinessDirectoryModule } from './modules/business-directory/business-directory.module';
 import { SupportModule } from './modules/support/support.module';
 import { IndustriesModule } from './modules/industries/industries.module';
+import { CountriesModule } from './modules/countries/countries.module';
 
 @Module({
     imports: [
@@ -68,6 +69,7 @@ import { IndustriesModule } from './modules/industries/industries.module';
         BusinessDirectoryModule, // Business Partner Directory & Application Hub
         SupportModule,      // Support Management Domain
         IndustriesModule,   // Platform Taxonomy: Industries
+        CountriesModule,    // Platform Taxonomy: Countries & Flags
     ],
     controllers: [],
     providers: [

@@ -48,9 +48,29 @@ const CountrySelect = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [countryList, setCountryList] = useState(ALL_COUNTRIES);
 
-    const filteredCountries = ALL_COUNTRIES.filter(country =>
-        country.toLowerCase().includes(searchTerm.toLowerCase())
+    useEffect(() => {
+        const fetchBackendCountries = async () => {
+            try {
+                const res = await api.get("/countries");
+                if (Array.isArray(res.data) && res.data.length > 0) {
+                    setCountryList(res.data);
+                }
+            } catch (err) {
+                // Fallback to ALL_COUNTRIES dataset
+            }
+        };
+        fetchBackendCountries();
+    }, []);
+
+    const selectedCountryObj = countryList.find(
+        c => c.name.toLowerCase() === value?.toLowerCase() || c.code.toLowerCase() === value?.toLowerCase()
+    );
+
+    const filteredCountries = countryList.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -61,8 +81,15 @@ const CountrySelect = ({
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full bg-background border-border border rounded-xl px-4 py-3 text-sm flex items-center justify-between focus:ring-2 focus:ring-tatt-lime outline-none text-left transition-all hover:border-tatt-lime/50"
             >
-                <span className={value ? "text-foreground font-medium" : "text-tatt-gray"}>
-                    {value || placeholder}
+                <span className={value ? "text-foreground font-medium flex items-center gap-2" : "text-tatt-gray"}>
+                    {selectedCountryObj ? (
+                        <>
+                            <span className="text-base leading-none">{selectedCountryObj.flag}</span>
+                            <span>{selectedCountryObj.name}</span>
+                        </>
+                    ) : (
+                        value || placeholder
+                    )}
                 </span>
                 <ChevronDown className={`size-4 text-tatt-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -89,19 +116,22 @@ const CountrySelect = ({
                             {filteredCountries.length === 0 ? (
                                 <div className="px-4 py-3 text-sm text-tatt-gray text-center">No country found</div>
                             ) : (
-                                filteredCountries.map((country) => (
+                                filteredCountries.map((c) => (
                                     <button
-                                        key={country}
+                                        key={c.code}
                                         type="button"
                                         onClick={() => {
-                                            onChange(name, country);
+                                            onChange(name, c.name);
                                             setIsOpen(false);
                                             setSearchTerm("");
                                         }}
-                                        className={`w-full px-4 py-2.5 text-sm text-left hover:bg-tatt-lime/10 transition-colors flex items-center justify-between ${value === country ? 'bg-tatt-lime/5 text-tatt-lime font-bold' : 'text-foreground'}`}
+                                        className={`w-full px-4 py-2.5 text-sm text-left hover:bg-tatt-lime/10 transition-colors flex items-center justify-between ${value?.toLowerCase() === c.name.toLowerCase() ? 'bg-tatt-lime/5 text-tatt-lime font-bold' : 'text-foreground'}`}
                                     >
-                                        {country}
-                                        {value === country && <CheckCircle className="size-4" />}
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="text-base leading-none">{c.flag}</span>
+                                            <span>{c.name}</span>
+                                        </div>
+                                        {value?.toLowerCase() === c.name.toLowerCase() && <CheckCircle className="size-4" />}
                                     </button>
                                 ))
                             )}
