@@ -576,7 +576,7 @@ export class AuthService {
                 'isActive', 'flags', 'isTwoFactorEnabled', 'twoFactorMethod',
                 'connectionPreference', 'expertise', 'businessName', 'businessRole',
                 'businessProfileLink', 'professionalHighlight', 'location', 'deletionRequestedAt',
-                'linkedInProfileUrl', 'hasAutoPayEnabled'
+                'linkedInProfileUrl', 'hasAutoPayEnabled', 'countryOfOrigin', 'countryOfResidence', 'dateOfBirth'
             ],
 
             include: [
@@ -622,6 +622,9 @@ export class AuthService {
                 twoFactorMethod: user.twoFactorMethod ?? null,
                 deletionRequestedAt: user.deletionRequestedAt || null,
                 hasAutoPayEnabled: user.hasAutoPayEnabled,
+                countryOfOrigin: user.countryOfOrigin,
+                countryOfResidence: user.countryOfResidence,
+                dateOfBirth: user.dateOfBirth,
             },
         };
 
