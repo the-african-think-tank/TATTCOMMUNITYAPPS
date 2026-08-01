@@ -32,23 +32,61 @@ export class ChaptersService implements OnApplicationBootstrap {
     ) { }
 
     async onApplicationBootstrap() {
-        const count = await this.chapterRepository.count();
-        if (count === 0) {
-            this.logger.log('Seeding initial Regional Chapters...');
-            const regions = [
-                { name: 'Nairobi Chapter', code: '1001', country: 'Kenya', stateRegion: 'Nairobi', cities: ['Nairobi'], description: 'TATT Hub for East Africa and Kenya.' },
-                { name: 'Lagos Chapter', code: '1002', country: 'Nigeria', stateRegion: 'Lagos', cities: ['Lagos'], description: 'Strategic hub for Nigeria and West Africa.' },
-                { name: 'Johannesburg Chapter', code: '1003', country: 'South Africa', stateRegion: 'Gauteng', cities: ['Johannesburg'], description: 'Regional base for Southern African operations.' },
-                { name: 'Accra Chapter', code: '1004', country: 'Ghana', stateRegion: 'Greater Accra', cities: ['Accra'], description: 'Key West African center for development.' },
-                { name: 'London Diaspora Chapter', code: '1005', country: 'UK', stateRegion: 'London', cities: ['London'], description: 'Major Diaspora hub connect in the United Kingdom.' },
-                { name: 'Atlanta Diaspora Chapter', code: '1006', country: 'USA', stateRegion: 'Georgia', cities: ['Atlanta'], description: 'Primary Diaspora network starting point in North America.' }
-            ];
+        this.logger.log('Syncing official Regional Chapters...');
 
-            for (const chap of regions) {
-                await this.chapterRepository.create(chap as any);
+        const officialChapters = [
+            { name: 'Dallas-Fort Worth Chapter', code: '1001', country: 'USA', stateRegion: 'Texas', cities: ['Dallas', 'Fort Worth'], description: 'Strategic Diaspora Hub for Dallas-Fort Worth Metroplex.' },
+            { name: 'Houston Chapter', code: '1002', country: 'USA', stateRegion: 'Texas', cities: ['Houston'], description: 'Regional base for Houston and Gulf Coast connections.' },
+            { name: 'Atlanta Chapter', code: '1003', country: 'USA', stateRegion: 'Georgia', cities: ['Atlanta'], description: 'Primary Diaspora network hub in the Southeast.' },
+            { name: 'Washington D.C. Area Chapter', code: '1004', country: 'USA', stateRegion: 'District of Columbia', cities: ['Washington D.C.', 'DMV'], description: 'Capital region hub for policy, diaspora affairs, and global advocacy.' },
+            { name: 'Charlotte Chapter', code: '1005', country: 'USA', stateRegion: 'North Carolina', cities: ['Charlotte'], description: 'Piedmont and Carolinas regional hub.' },
+            { name: 'Accra Chapter', code: '1006', country: 'Ghana', stateRegion: 'Greater Accra', cities: ['Accra'], description: 'Key West African center for development and returnee network.' },
+            { name: 'Global Chapter', code: '1007', country: 'Global', stateRegion: 'International', cities: ['Worldwide'], description: 'Global chapter connecting TATT members around the world.' },
+        ];
+
+        const officialIds: string[] = [];
+        let globalChapterId: string | null = null;
+
+        for (const data of officialChapters) {
+            const matchConditions: any[] = [{ code: data.code }, { name: data.name }];
+            if (data.code === '1003') matchConditions.push({ name: 'Atlanta Diaspora Chapter' });
+            if (data.code === '1006') matchConditions.push({ name: 'Accra Chapter' });
+
+            let chapter = await this.chapterRepository.findOne({
+                where: { [Op.or]: matchConditions },
+            });
+
+            if (chapter) {
+                await chapter.update(data);
+            } else {
+                chapter = await this.chapterRepository.create(data as any);
             }
-            this.logger.log(`Successfully seeded ${regions.length} regional chapters.`);
+
+            officialIds.push(chapter.id);
+            if (data.code === '1007') {
+                globalChapterId = chapter.id;
+            }
         }
+
+        const extraChapters = await this.chapterRepository.findAll({
+            where: { id: { [Op.notIn]: officialIds } },
+        });
+
+        if (extraChapters.length > 0) {
+            this.logger.log(`Cleaning up ${extraChapters.length} legacy chapters...`);
+            for (const oldChap of extraChapters) {
+                if (globalChapterId) {
+                    await this.userRepository.update(
+                        { chapterId: globalChapterId },
+                        { where: { chapterId: oldChap.id } },
+                    );
+                }
+                await this.activityRepository.destroy({ where: { chapterId: oldChap.id } });
+                await oldChap.destroy();
+            }
+        }
+
+        this.logger.log(`Successfully synced ${officialChapters.length} official regional chapters.`);
     }
 
     async updateChapter(id: string, dto: UpdateChapterDto) {
