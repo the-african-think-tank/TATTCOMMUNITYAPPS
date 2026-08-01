@@ -5,8 +5,8 @@ STAGING_STRIPE_KEY ?= pk_test_51TrcC0PFrQabPyhVDEB07cQJLylaqBQgRTim936glLCu9ZlUJ
 PROD_STRIPE_KEY ?= pk_live_your_production_stripe_key
 
 .PHONY: help install-all dev dev-build down logs db-deploy infra-synth infra-diff infra-deploy clean \
-	build-staging-api build-staging-frontend push-staging build-push-staging \
-	build-prod-api build-prod-frontend push-prod build-push-prod
+	build-staging-api build-staging-frontend push-staging build-push-staging pull-staging deploy-staging \
+	build-prod-api build-prod-frontend push-prod build-push-prod pull-prod deploy-prod
 
 # Colors for help menu
 BLUE := \033[36m
@@ -25,10 +25,14 @@ help:
 	@echo "  $(BLUE)build-staging-frontend$(RESET) Build Staging Frontend Docker image"
 	@echo "  $(BLUE)push-staging$(RESET)           Push Staging API & Frontend images to Docker Hub"
 	@echo "  $(BLUE)build-push-staging$(RESET)     Build & Push both Staging images"
+	@echo "  $(BLUE)pull-staging$(RESET)           Pull Staging images from Docker Hub on VM"
+	@echo "  $(BLUE)deploy-staging$(RESET)         Pull and restart Staging containers on VM"
 	@echo "  $(BLUE)build-prod-api$(RESET)        Build Production API Docker image"
 	@echo "  $(BLUE)build-prod-frontend$(RESET)    Build Production Frontend Docker image"
 	@echo "  $(BLUE)push-prod$(RESET)              Push Production API & Frontend images to Docker Hub"
 	@echo "  $(BLUE)build-push-prod$(RESET)        Build & Push both Production images"
+	@echo "  $(BLUE)pull-prod$(RESET)              Pull Production images from Docker Hub on VM"
+	@echo "  $(BLUE)deploy-prod$(RESET)            Pull and restart Production containers on VM"
 	@echo "  $(BLUE)db-deploy$(RESET)             Run backend production database migration/sync script"
 	@echo "  $(BLUE)infra-synth$(RESET)           Synthesize AWS CDK CloudFormation template"
 	@echo "  $(BLUE)infra-diff$(RESET)            Compare local AWS CDK changes with deployed stack"
@@ -55,10 +59,10 @@ logs:
 
 # --- Staging Build & Push Targets ---
 build-staging-api:
-	docker build --platform linux/amd64 --no-cache -t $(DOCKER_USER)/tatt-api:staging -f server/Dockerfile ./server
+	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $(DOCKER_USER)/tatt-api:staging -f server/Dockerfile ./server
 
 build-staging-frontend:
-	docker build --platform linux/amd64 --no-cache \
+	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL="$(STAGING_API_URL)" \
 		--build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$(STAGING_STRIPE_KEY)" \
 		-t $(DOCKER_USER)/tatt-frontend:staging \
@@ -70,12 +74,19 @@ push-staging:
 
 build-push-staging: build-staging-api build-staging-frontend push-staging
 
+pull-staging:
+	docker pull $(DOCKER_USER)/tatt-api:staging
+	docker pull $(DOCKER_USER)/tatt-frontend:staging
+
+deploy-staging: pull-staging
+	docker compose up -d
+
 # --- Production Build & Push Targets ---
 build-prod-api:
-	docker build --platform linux/amd64 --no-cache -t $(DOCKER_USER)/tatt-api:production -f server/Dockerfile ./server
+	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $(DOCKER_USER)/tatt-api:production -f server/Dockerfile ./server
 
 build-prod-frontend:
-	docker build --platform linux/amd64 --no-cache \
+	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL="$(PROD_API_URL)" \
 		--build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$(PROD_STRIPE_KEY)" \
 		-t $(DOCKER_USER)/tatt-frontend:production \
@@ -86,6 +97,13 @@ push-prod:
 	docker push $(DOCKER_USER)/tatt-frontend:production
 
 build-push-prod: build-prod-api build-prod-frontend push-prod
+
+pull-prod:
+	docker pull $(DOCKER_USER)/tatt-api:production
+	docker pull $(DOCKER_USER)/tatt-frontend:production
+
+deploy-prod: pull-prod
+	docker compose up -d
 
 db-deploy:
 	cd server && pnpm run db:deploy
