@@ -48,15 +48,10 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 nextjs
 
-# Copy only necessary files with correct ownership
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
+# Copy only necessary files with correct ownership for standalone server
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
-
-# Optional: Copy environment files if needed
-# COPY --from=builder --chown=nextjs:nodejs /app/.env.production ./.env.production
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Switch to non-root user
 USER nextjs
@@ -70,5 +65,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Use dumb-init as entrypoint
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["npm", "run", "start"]
+# Start the standalone application
+CMD ["node", "server.js"]
