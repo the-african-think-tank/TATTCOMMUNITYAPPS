@@ -15,9 +15,6 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Prune devDependencies to keep the production image lightweight
-RUN npm prune --production --legacy-peer-deps
-
 # --- Production Stage ---
 FROM node:20-alpine AS runner
 
