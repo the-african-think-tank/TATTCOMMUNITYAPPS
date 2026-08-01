@@ -22,6 +22,7 @@ import { SecurityPolicyService } from '../../security/security-policy.service';
 import { TwoFactorService } from '../../security/two-factor.service';
 import { Chapter } from '../../chapters/entities/chapter.entity';
 import { ProfessionalInterest } from '../../interests/entities/interest.entity';
+import { CommunityIndustry } from '../../industries/entities/industry.entity';
 
 export interface AuthResponse {
     access_token: string;
@@ -572,7 +573,7 @@ export class AuthService {
         const user = await this.userRepository.findByPk(userId, {
             attributes: [
                 'id', 'firstName', 'lastName', 'email', 'systemRole', 'communityTier',
-                'chapterId', 'profilePicture', 'professionTitle', 'companyName', 'tattMemberId',
+                'chapterId', 'industryId', 'profilePicture', 'professionTitle', 'companyName', 'tattMemberId',
                 'isActive', 'flags', 'isTwoFactorEnabled', 'twoFactorMethod',
                 'connectionPreference', 'expertise', 'businessName', 'businessRole',
                 'businessProfileLink', 'professionalHighlight', 'location', 'deletionRequestedAt',
@@ -581,6 +582,7 @@ export class AuthService {
 
             include: [
                 { model: Chapter, as: 'chapter' },
+                { model: CommunityIndustry, as: 'industry', attributes: ['id', 'name'] },
                 { model: ProfessionalInterest, as: 'interests', attributes: ['id', 'name'], through: { attributes: [] } }
             ],
         });
@@ -591,6 +593,10 @@ export class AuthService {
             plain.chapterCode = (plain.chapter as any).code;
         }
         delete plain.chapter;
+        if (plain.industry) {
+            plain.industryName = (plain.industry as any).name;
+        }
+        delete plain.industry;
         return plain;
     }
 

@@ -655,7 +655,7 @@ export default function SettingsPage() {
             toast.loading("Updating profile picture...", { id: 'upload' });
 
             // 1. Upload the image
-            const response = await api.post("/uploads/media", uploadFormData);
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
             const imageUrl = response.data.files?.[0]?.url;
 
             if (!imageUrl) {
@@ -735,7 +735,7 @@ export default function SettingsPage() {
 
         try {
             toast.loading(`Uploading business ${field === 'logoUrl' ? 'logo' : 'banner'}...`, { id: 'biz-upload' });
-            const response = await api.post("/uploads/media", uploadFormData);
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
             const imageUrl = response.data.files?.[0]?.url;
 
             if (imageUrl) {

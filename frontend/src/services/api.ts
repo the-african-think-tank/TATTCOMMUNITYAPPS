@@ -4,7 +4,7 @@ import { tokenStore } from './token-store';
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://staff.theafricanthinktank.org/api',
     withCredentials: true,
-    timeout: 15000,
+    timeout: 60000, // 60 seconds to allow larger file uploads (images, videos, docs)
 });
 
 // ─── Request Interceptor ─────────────────────────────────────────────────────
