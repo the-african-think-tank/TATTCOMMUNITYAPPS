@@ -22,6 +22,7 @@ export function OnboardingSuccessPage() {
     const planId = searchParams.get("tier") || searchParams.get("plan") || "FREE";
     const sessionId = searchParams.get("session") || "";
     const isYearly = searchParams.get("yearly") === "true";
+    const isUpgrade = searchParams.get("isUpgrade") === "true";
     
     const [plans, setPlans] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -106,11 +107,28 @@ export function OnboardingSuccessPage() {
                             <Check className="h-10 w-10 text-tatt-black stroke-[4px]" />
                         </div>
                         <h1 className="text-3xl sm:text-4xl font-black mb-4 leading-tight text-foreground">
-                            Welcome to the <br />
-                            <span className="text-tatt-lime uppercase">TATT Family, {user?.firstName || "Member"}!</span>
+                            {isUpgrade ? (
+                                <>
+                                    Tier Upgraded to <br />
+                                    <span className="text-tatt-lime uppercase">{planName}, {user?.firstName || "Member"}! 🚀</span>
+                                </>
+                            ) : (
+                                <>
+                                    Welcome to the <br />
+                                    <span className="text-tatt-lime uppercase">TATT Family, {user?.firstName || "Member"}!</span>
+                                </>
+                            )}
                         </h1>
                         <p className="text-tatt-gray text-base sm:text-lg mb-10 max-w-sm">
-                            Your <strong>{planName}</strong> subscription is now active. You have been granted full access to your plan's benefits.
+                            {isUpgrade ? (
+                                <>
+                                    Your membership has been successfully elevated to <strong>{planName}</strong>. Your new privileges are active immediately.
+                                </>
+                            ) : (
+                                <>
+                                    Your <strong>{planName}</strong> subscription is now active. You have been granted full access to your plan's benefits.
+                                </>
+                            )}
                             {sessionId && (
                                 <span className="block text-xs text-tatt-gray/50 mt-2 font-mono">
                                     Session: {sessionId.slice(0, 20)}...
@@ -124,7 +142,7 @@ export function OnboardingSuccessPage() {
                                 className="w-full py-5 bg-tatt-lime text-tatt-black font-black uppercase tracking-widest text-sm rounded-xl hover:brightness-105 transition-all flex items-center justify-center gap-3 shadow-xl shadow-tatt-lime/20 group"
                             >
                                 <LayoutDashboard className="h-5 w-5 group-hover:rotate-12 transition-transform" />
-                                Go to My Dashboard
+                                {isUpgrade ? "Explore My Upgraded Benefits" : "Go to My Dashboard"}
                             </button>
                         </div>
                     </div>
@@ -134,7 +152,9 @@ export function OnboardingSuccessPage() {
                         {/* Decorative element */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-tatt-lime/5 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
 
-                        <h2 className="text-xs font-black text-tatt-gray uppercase tracking-widest mb-8 border-b border-border pb-4">Membership Activation</h2>
+                        <h2 className="text-xs font-black text-tatt-gray uppercase tracking-widest mb-8 border-b border-border pb-4">
+                            {isUpgrade ? "Membership Elevation" : "Membership Activation"}
+                        </h2>
                         
                         <div className="bg-white p-5 rounded-2xl mb-10 flex items-center gap-5 shadow-sm border border-border">
                             <div className="size-14 bg-tatt-lime rounded-xl flex items-center justify-center text-tatt-black">
@@ -143,7 +163,7 @@ export function OnboardingSuccessPage() {
                             <div>
                                 <div className="font-extrabold text-xl text-foreground">{planName}</div>
                                 <div className="text-tatt-lime text-xs font-black uppercase tracking-tighter">
-                                    {planId === 'FREE' ? 'Free Plan Active' : 'Paid Plan Active'}
+                                    {isUpgrade ? 'Tier Upgrade Active' : (planId === 'FREE' ? 'Free Plan Active' : 'Paid Plan Active')}
                                 </div>
                                 {isYearly && planId !== 'FREE' && (
                                     <div className="text-[10px] text-tatt-gray font-bold uppercase tracking-wider">
@@ -154,7 +174,9 @@ export function OnboardingSuccessPage() {
                         </div>
 
                         <div className="space-y-5 mb-10">
-                            <h3 className="text-[10px] font-black text-tatt-gray uppercase tracking-[0.2em] mb-4">Benefits Now Active</h3>
+                            <h3 className="text-[10px] font-black text-tatt-gray uppercase tracking-[0.2em] mb-4">
+                                {isUpgrade ? "Newly Unlocked Privileges" : "Benefits Now Active"}
+                            </h3>
                             {benefits.map((benefit: string, idx: number) => (
                                 <div key={idx} className="flex items-start gap-3 group">
                                     <div className="mt-1 flex-shrink-0 size-5 bg-tatt-lime/20 rounded-full flex items-center justify-center group-hover:bg-tatt-lime/40 transition-colors">
@@ -170,7 +192,7 @@ export function OnboardingSuccessPage() {
                             <div className="flex justify-between items-center text-sm mb-2">
                                 <span className="text-tatt-gray font-bold uppercase tracking-tight text-[10px]">Status:</span>
                                 <span className={`font-black tracking-widest uppercase text-xs px-3 py-1 rounded-full ${planId === 'FREE' ? 'bg-gray-200 text-gray-600' : 'bg-tatt-lime/20 text-tatt-black'}`}>
-                                    {planId === 'FREE' ? 'Free & Active' : 'Paid & Active'}
+                                    {isUpgrade ? 'Upgraded & Active' : (planId === 'FREE' ? 'Free & Active' : 'Paid & Active')}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 text-[10px] text-tatt-gray font-bold uppercase tracking-widest">

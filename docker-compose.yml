@@ -67,7 +67,13 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
       UPLOAD_DIR: /app/uploads
-      UPLOAD_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      UPLOAD_BASE_URL: ${UPLOAD_BASE_URL:-http://localhost:3000}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      S3_ENDPOINT: ${S3_ENDPOINT}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001,https://community.theafricanthinktank.com}
       DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL}
       DEFAULT_ADMIN_PASS: ${DEFAULT_ADMIN_PASS}

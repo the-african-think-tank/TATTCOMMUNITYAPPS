@@ -33,6 +33,21 @@ export class UpdateUserDto {
     @IsOptional()
     location?: string;
 
+    @ApiProperty({ required: false })
+    @IsString()
+    @IsOptional()
+    countryOfOrigin?: string;
+
+    @ApiProperty({ required: false })
+    @IsString()
+    @IsOptional()
+    countryOfResidence?: string;
+
+    @ApiProperty({ required: false })
+    @IsString()
+    @IsOptional()
+    dateOfBirth?: string;
+
     @ApiProperty({ description: 'The new system role for the user', enum: SystemRole, required: false })
     @IsEnum(SystemRole)
     @IsOptional()
@@ -63,6 +78,18 @@ export class UpdateProfileDto {
     @ApiProperty({ required: false })
     @IsString() @IsOptional()
     lastName?: string;
+
+    @ApiProperty({ required: false })
+    @IsString() @IsOptional()
+    countryOfOrigin?: string;
+
+    @ApiProperty({ required: false })
+    @IsString() @IsOptional()
+    countryOfResidence?: string;
+
+    @ApiProperty({ required: false })
+    @IsString() @IsOptional()
+    dateOfBirth?: string;
 
     @ApiProperty({ required: false })
     @IsString() @IsOptional()

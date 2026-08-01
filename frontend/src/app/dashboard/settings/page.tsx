@@ -27,10 +27,121 @@ import {
 import { Interest } from "@/types/interests";
 import { ChapterDetail } from "@/types/chapter";
 import { toast } from "react-hot-toast";
-import { ChevronDown, X, AlertTriangle, Globe, MapPin, Phone, Mail, Layout } from "lucide-react";
+import { ChevronDown, X, AlertTriangle, Globe, MapPin, Phone, Mail, Layout, Search } from "lucide-react";
 import { CancelPlanModal } from "@/components/modals/CancelPlanModal";
+import { ALL_COUNTRIES } from "@/constants/countries";
 
 // --- Custom Components ---
+
+const CountrySelect = ({
+    label,
+    name,
+    value,
+    onChange,
+    placeholder = "Select a country"
+}: {
+    label: string,
+    name: string,
+    value: string,
+    onChange: (name: string, value: string) => void,
+    placeholder?: string
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [countryList, setCountryList] = useState(ALL_COUNTRIES);
+
+    useEffect(() => {
+        const fetchBackendCountries = async () => {
+            try {
+                const res = await api.get("/countries");
+                if (Array.isArray(res.data) && res.data.length > 0) {
+                    setCountryList(res.data);
+                }
+            } catch (err) {
+                // Fallback to ALL_COUNTRIES dataset
+            }
+        };
+        fetchBackendCountries();
+    }, []);
+
+    const selectedCountryObj = countryList.find(
+        c => c.name.toLowerCase() === value?.toLowerCase() || c.code.toLowerCase() === value?.toLowerCase()
+    );
+
+    const filteredCountries = countryList.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.code.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-2 relative">
+            <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">{label}</label>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full bg-background border-border border rounded-xl px-4 py-3 text-sm flex items-center justify-between focus:ring-2 focus:ring-tatt-lime outline-none text-left transition-all hover:border-tatt-lime/50"
+            >
+                <span className={value ? "text-foreground font-medium flex items-center gap-2" : "text-tatt-gray"}>
+                    {selectedCountryObj ? (
+                        <>
+                            <span className="text-base leading-none">{selectedCountryObj.flag}</span>
+                            <span>{selectedCountryObj.name}</span>
+                        </>
+                    ) : (
+                        value || placeholder
+                    )}
+                </span>
+                <ChevronDown className={`size-4 text-tatt-gray transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)}></div>
+                    <div className="absolute top-full left-0 w-full mt-2 bg-surface border border-border rounded-xl shadow-2xl z-40 max-h-72 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="p-3 border-b border-border bg-background flex items-center gap-2">
+                            <Search className="size-4 text-tatt-gray" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search country..."
+                                className="w-full bg-transparent text-sm outline-none text-foreground"
+                                autoFocus
+                            />
+                            {searchTerm && (
+                                <button type="button" onClick={() => setSearchTerm("")} className="text-xs text-tatt-gray hover:text-foreground">Clear</button>
+                            )}
+                        </div>
+                        <div className="overflow-y-auto max-h-56">
+                            {filteredCountries.length === 0 ? (
+                                <div className="px-4 py-3 text-sm text-tatt-gray text-center">No country found</div>
+                            ) : (
+                                filteredCountries.map((c) => (
+                                    <button
+                                        key={c.code}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(name, c.name);
+                                            setIsOpen(false);
+                                            setSearchTerm("");
+                                        }}
+                                        className={`w-full px-4 py-2.5 text-sm text-left hover:bg-tatt-lime/10 transition-colors flex items-center justify-between ${value?.toLowerCase() === c.name.toLowerCase() ? 'bg-tatt-lime/5 text-tatt-lime font-bold' : 'text-foreground'}`}
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="text-base leading-none">{c.flag}</span>
+                                            <span>{c.name}</span>
+                                        </div>
+                                        {value?.toLowerCase() === c.name.toLowerCase() && <CheckCircle className="size-4" />}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
 
 const CustomSelect = ({
     label,
@@ -313,6 +424,9 @@ export default function SettingsPage() {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
+        countryOfOrigin: "",
+        countryOfResidence: "",
+        dateOfBirth: "",
         professionTitle: "",
         industryId: "",
         employer: "",
@@ -358,10 +472,10 @@ export default function SettingsPage() {
     const handleReactivateAutoPay = async () => {
         try {
             await api.post("/billing/autopay/toggle", { enabled: true });
-            toast.success("Auto-pay reactivated!");
-            window.location.reload();
+            setFormData(prev => ({ ...prev, hasAutoPayEnabled: true }));
+            toast.success("Auto-pay reactivated.");
         } catch (err: any) {
-            toast.error("Failed to reactivate auto-pay.");
+            toast.error(err?.response?.data?.message || "Failed to reactivate auto-pay.");
         }
     };
 
@@ -400,6 +514,9 @@ export default function SettingsPage() {
                     setFormData({
                         firstName: user.firstName || "",
                         lastName: user.lastName || "",
+                        countryOfOrigin: user.countryOfOrigin || "",
+                        countryOfResidence: user.countryOfResidence || "",
+                        dateOfBirth: user.dateOfBirth || "",
                         professionTitle: user.professionTitle || "",
                         industryId: user.industryId || "",
                         employer: user.companyName || "",
@@ -538,7 +655,7 @@ export default function SettingsPage() {
             toast.loading("Updating profile picture...", { id: 'upload' });
 
             // 1. Upload the image
-            const response = await api.post("/uploads/media", uploadFormData);
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
             const imageUrl = response.data.files?.[0]?.url;
 
             if (!imageUrl) {
@@ -618,7 +735,7 @@ export default function SettingsPage() {
 
         try {
             toast.loading(`Uploading business ${field === 'logoUrl' ? 'logo' : 'banner'}...`, { id: 'biz-upload' });
-            const response = await api.post("/uploads/media", uploadFormData);
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
             const imageUrl = response.data.files?.[0]?.url;
 
             if (imageUrl) {
@@ -778,6 +895,30 @@ export default function SettingsPage() {
                                         className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
                                         placeholder="e.g. Doe"
                                         type="text"
+                                    />
+                                </div>
+                                <CountrySelect
+                                    label="Country of Origin"
+                                    name="countryOfOrigin"
+                                    value={formData.countryOfOrigin}
+                                    onChange={handleSelectChange}
+                                    placeholder="Select your country of origin"
+                                />
+                                <CountrySelect
+                                    label="Country of Residence"
+                                    name="countryOfResidence"
+                                    value={formData.countryOfResidence}
+                                    onChange={handleSelectChange}
+                                    placeholder="Select your country of residence"
+                                />
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Date of Birth</label>
+                                    <input
+                                        name="dateOfBirth"
+                                        value={formData.dateOfBirth}
+                                        onChange={handleInputChange}
+                                        className="w-full bg-background border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
+                                        type="date"
                                     />
                                 </div>
                                 <div className="space-y-2">

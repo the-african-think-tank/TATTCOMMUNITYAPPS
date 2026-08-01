@@ -107,6 +107,15 @@ export class User extends Model<User> {
     @Column(DataType.STRING)
     location?: string;
 
+    @Column(DataType.STRING)
+    countryOfOrigin?: string;
+
+    @Column(DataType.STRING)
+    countryOfResidence?: string;
+
+    @Column(DataType.DATEONLY)
+    dateOfBirth?: string;
+
     @ForeignKey(() => CommunityIndustry)
     @Column({
         type: DataType.UUID,

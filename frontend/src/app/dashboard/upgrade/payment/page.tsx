@@ -4,16 +4,15 @@ import React, { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
     CreditCard,
-    MapPin,
     Lock,
     ArrowLeft,
     ShieldCheck,
     CheckCircle,
-    Calendar,
-    User,
     Loader2,
 } from "lucide-react";
 import api from "@/services/api";
+import { useAuth } from "@/context/auth-context";
+import SubscriptionCheckout from "@/components/SubscriptionCheckout";
 
 // Format price cleanly — no floating-point artifacts
 const fmt = (n: number) => {
@@ -24,29 +23,21 @@ const fmt = (n: number) => {
 function DashboardPaymentContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { user, updateUser } = useAuth();
 
     const planId = searchParams.get("plan") || "IMANI";
     const isYearly = searchParams.get("yearly") === "true";
 
     const [plans, setPlans] = useState<any[]>([]);
-    const [paymentMethod, setPaymentMethod] = useState<{ last4: string, brand: string, exp_month: number, exp_year: number } | null>(null);
-    const [useSavedCard, setUseSavedCard] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showCheckout, setShowCheckout] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [plansRes, pmRes] = await Promise.all([
-                    api.get("/billing/plans"),
-                    api.get("/billing/payment-method").catch(() => ({ data: null }))
-                ]);
+                const plansRes = await api.get("/billing/plans");
                 setPlans(plansRes.data);
-                if (pmRes.data && pmRes.data.last4) {
-                    setPaymentMethod(pmRes.data);
-                    setUseSavedCard(true);
-                }
             } catch (err) {
                 console.error("Failed to fetch checkout data", err);
             } finally {
@@ -78,23 +69,31 @@ function DashboardPaymentContent() {
         };
     }, [plans, planId, isYearly]);
 
-    const handleCompletePayment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setSubmitError(null);
+    const fetchUpdatedUser = async () => {
         try {
-            await api.post("/billing/subscribe", {
-                communityTier: planId,
-                billingCycle: isYearly ? "YEARLY" : "MONTHLY",
-                paymentMethodId: useSavedCard ? "saved" : "pm_card_visa",
-            });
-            router.push(`/onboarding/success?plan=${planId}`);
-        } catch (err: any) {
-            console.error("Payment failed", err);
-            setSubmitError(err?.response?.data?.message || "Payment failed. Please try again.");
-        } finally {
-            setIsSubmitting(false);
+            const { data } = await api.get("/auth/me");
+            updateUser(data);
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch updated user:", error);
+            throw error;
         }
+    };
+
+    const handleCheckoutSuccess = async (sessionId: string) => {
+        console.log("✅ Payment successful, session:", sessionId);
+        try {
+            await fetchUpdatedUser();
+        } catch (err) {
+            updateUser({ ...user, communityTier: planId });
+        }
+        router.push(`/onboarding/success?plan=${planId}&session=${sessionId}&tier=${planId}&yearly=${isYearly}&isUpgrade=true`);
+    };
+
+    const handleCheckoutError = (err: any) => {
+        console.error("Payment error:", err);
+        setSubmitError(err?.message || "Payment failed. Please try again.");
+        setShowCheckout(false);
     };
 
     if (isLoading) {
@@ -117,222 +116,64 @@ function DashboardPaymentContent() {
             </button>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* ── Left: Forms ── */}
+                {/* ── Left: Stripe Checkout ── */}
                 <div className="lg:col-span-7 space-y-8">
                     <div>
                         <h1 className="text-3xl font-black text-foreground mb-1">Checkout</h1>
                         <p className="text-tatt-gray text-sm">
-                            Complete your TATT <strong>{planDetails.name}</strong> subscription and unlock premium access.
+                            Complete your TATT <strong>{planDetails.name}</strong> subscription upgrade with Stripe.
                         </p>
                     </div>
 
-                    <form onSubmit={handleCompletePayment} className="space-y-8">
-                        {/* Payment Method */}
-                        <section className="space-y-5">
-                            <div className="flex items-center gap-3">
-                                <span className="text-tatt-lime bg-tatt-lime/10 p-2 rounded-lg">
-                                    <CreditCard className="h-5 w-5" />
-                                </span>
-                                <h2 className="text-lg font-bold text-foreground">Payment Method</h2>
-                            </div>
-
-                            {paymentMethod ? (
-                                <div className="space-y-4">
-                                    {/* Saved Card Option */}
-                                    <div
-                                        onClick={() => setUseSavedCard(true)}
-                                        className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                                            useSavedCard
-                                                ? "border-tatt-lime bg-tatt-lime/10 shadow-md"
-                                                : "border-border hover:border-tatt-lime/50 bg-background"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="size-10 rounded-xl bg-gradient-to-br from-[#1d1d1b] to-black flex items-center justify-center text-white shrink-0">
-                                                <CreditCard className="size-5 text-tatt-lime" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                                                    {paymentMethod.brand.toUpperCase()} ending in {paymentMethod.last4}
-                                                    <span className="text-[10px] bg-tatt-lime text-black font-black uppercase px-2 py-0.5 rounded-full">Default</span>
-                                                </p>
-                                                <p className="text-xs text-tatt-gray mt-0.5">
-                                                    Expires {String(paymentMethod.exp_month).padStart(2, '0')}/{String(paymentMethod.exp_year).slice(-2)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className={`size-5 rounded-full border-2 flex items-center justify-center ${useSavedCard ? "border-tatt-lime bg-tatt-lime" : "border-tatt-gray"}`}>
-                                            {useSavedCard && <CheckCircle className="size-3 text-black" />}
-                                        </div>
-                                    </div>
-
-                                    {/* New Card Option Toggle */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setUseSavedCard(!useSavedCard)}
-                                        className="text-xs font-bold text-tatt-lime hover:underline flex items-center gap-1.5"
-                                    >
-                                        {useSavedCard ? "+ Use a different card" : "← Use saved card on file"}
-                                    </button>
-
-                                    {!useSavedCard && (
-                                        <div className="space-y-4 p-5 border-2 border-tatt-lime rounded-2xl bg-tatt-lime/5 animate-in fade-in duration-200">
-                                            <label className="text-sm font-bold text-foreground">Enter New Credit or Debit Card</label>
-                                            <div className="space-y-3">
-                                                <div className="relative">
-                                                    <input
-                                                        className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime focus:border-transparent outline-none transition-all bg-background text-foreground placeholder:text-tatt-gray"
-                                                        placeholder="Card number"
-                                                        type="text"
-                                                        required={!useSavedCard}
-                                                    />
-                                                    <CreditCard className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="relative">
-                                                        <input
-                                                            className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                                            placeholder="MM / YY"
-                                                            type="text"
-                                                            required={!useSavedCard}
-                                                        />
-                                                        <Calendar className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                                    </div>
-                                                    <div className="relative">
-                                                        <input
-                                                            className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                                            placeholder="CVC"
-                                                            type="text"
-                                                            required={!useSavedCard}
-                                                        />
-                                                        <Lock className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                                    </div>
-                                                </div>
-                                                <div className="relative">
-                                                    <input
-                                                        className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                                        placeholder="Name on card"
-                                                        type="text"
-                                                        required={!useSavedCard}
-                                                    />
-                                                    <User className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="space-y-4 p-5 border-2 border-tatt-lime rounded-2xl bg-tatt-lime/5">
-                                    <label className="text-sm font-bold text-foreground">Credit or Debit Card</label>
-
-                                    <div className="space-y-3">
-                                        <div className="relative">
-                                            <input
-                                                className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime focus:border-transparent outline-none transition-all bg-background text-foreground placeholder:text-tatt-gray"
-                                                placeholder="Card number"
-                                                type="text"
-                                                required
-                                            />
-                                            <CreditCard className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="relative">
-                                                <input
-                                                    className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                                    placeholder="MM / YY"
-                                                    type="text"
-                                                    required
-                                                />
-                                                <Calendar className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                            </div>
-                                            <div className="relative">
-                                                <input
-                                                    className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                                    placeholder="CVC"
-                                                    type="text"
-                                                    required
-                                                />
-                                                <Lock className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                            </div>
-                                        </div>
-                                        <div className="relative">
-                                            <input
-                                                className="w-full p-3 pl-10 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                                placeholder="Name on card"
-                                                type="text"
-                                                required
-                                            />
-                                            <User className="absolute left-3 top-3.5 text-tatt-gray h-4 w-4" />
-                                        </div>
-                                    </div>
+                    {!showCheckout ? (
+                        <div className="space-y-6">
+                            {submitError && (
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium">
+                                    {submitError}
                                 </div>
                             )}
-                        </section>
 
-                        {/* Billing Address */}
-                        <section className="space-y-5">
-                            <div className="flex items-center gap-3">
-                                <span className="text-tatt-lime bg-tatt-lime/10 p-2 rounded-lg">
-                                    <MapPin className="h-5 w-5" />
-                                </span>
-                                <h2 className="text-lg font-bold text-foreground">Billing Address</h2>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="md:col-span-2">
-                                    <input
-                                        className="w-full p-3 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray"
-                                        placeholder="Street address"
-                                        type="text"
-                                        required
-                                    />
+                            <div className="p-6 border-2 border-tatt-lime rounded-2xl bg-tatt-lime/5 shadow-sm space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <span className="font-black text-xl text-foreground block">TATT {planDetails.name}</span>
+                                        <span className="text-xs text-tatt-gray font-medium uppercase tracking-wider">Tier Upgrade</span>
+                                    </div>
+                                    <span className="text-tatt-lime font-black text-2xl">
+                                        ${fmt(planDetails.price)}
+                                        <span className="text-sm font-normal text-tatt-gray">
+                                            {" "}
+                                            / {planDetails.period}
+                                        </span>
+                                    </span>
                                 </div>
-                                <input className="w-full p-3 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray" placeholder="City" type="text" required />
-                                <input className="w-full p-3 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray" placeholder="State / Province" type="text" required />
-                                <input className="w-full p-3 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground placeholder:text-tatt-gray" placeholder="Postal code" type="text" required />
-                                <select className="w-full p-3 border border-border rounded-xl focus:ring-2 focus:ring-tatt-lime outline-none bg-background text-foreground">
-                                    <option>United States</option>
-                                    <option>Canada</option>
-                                    <option>United Kingdom</option>
-                                    <option>Nigeria</option>
-                                    <option>Ghana</option>
-                                    <option>South Africa</option>
-                                    <option>Kenya</option>
-                                </select>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                                <input defaultChecked className="w-4 h-4 rounded accent-tatt-lime" type="checkbox" id="same-billing" />
-                                <label htmlFor="same-billing" className="text-sm font-medium text-tatt-gray">Same as shipping address</label>
-                            </div>
-                        </section>
+                                <button
+                                    onClick={() => setShowCheckout(true)}
+                                    className="w-full bg-tatt-lime hover:brightness-105 text-tatt-black font-black py-4 px-6 rounded-2xl transition-all shadow-md flex items-center justify-center gap-3 group uppercase tracking-widest text-sm"
+                                >
+                                    <ShieldCheck className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                                    Pay with Stripe
+                                </button>
 
-                        {/* Error */}
-                        {submitError && (
-                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium">
-                                {submitError}
+                                <p className="text-center text-xs text-tatt-gray flex items-center justify-center gap-1">
+                                    <Lock className="h-3.5 w-3.5" />
+                                    Encrypted 256-Bit Stripe Payment
+                                </p>
                             </div>
-                        )}
-
-                        {/* Submit */}
-                        <div className="pt-2">
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="w-full bg-tatt-lime hover:brightness-105 text-tatt-black font-black py-4 px-6 rounded-2xl transition-all shadow-md flex items-center justify-center gap-3 group disabled:opacity-60 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
-                            >
-                                {isSubmitting
-                                    ? <Loader2 className="h-5 w-5 animate-spin" />
-                                    : <ShieldCheck className="h-5 w-5 group-hover:scale-110 transition-transform" />
-                                }
-                                {isSubmitting ? "Processing..." : "Complete Payment"}
-                            </button>
-                            <p className="text-center text-xs text-tatt-gray mt-3 flex items-center justify-center gap-1">
-                                <Lock className="h-3 w-3" />
-                                Secure SSL Encrypted Payment
-                            </p>
                         </div>
-                    </form>
+                    ) : (
+                        <SubscriptionCheckout
+                            tier={planId}
+                            isYearly={isYearly}
+                            amount={Math.round(planDetails.price * 100)}
+                            currency="usd"
+                            userEmail={user?.email || ""}
+                            userId={user?.id || ""}
+                            onSuccess={handleCheckoutSuccess}
+                            onError={handleCheckoutError}
+                        />
+                    )}
                 </div>
 
                 {/* ── Right: Order Summary ── */}
@@ -445,3 +286,4 @@ export default function DashboardPaymentPage() {
         </Suspense>
     );
 }
+

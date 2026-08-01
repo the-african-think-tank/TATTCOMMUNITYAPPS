@@ -145,9 +145,9 @@ export class UploadsController {
         @UploadedFiles() files: Express.Multer.File[],
     ) {
         const uploadDir = process.env.UPLOAD_DIR ?? './uploads';
-        const baseUrl = process.env.UPLOAD_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+        const baseUrl = process.env.UPLOAD_BASE_URL ?? process.env.API_BASE_URL ?? 'http://localhost:3000';
 
-        const accepted = this.uploadsService.processUploads(files, uploadDir, baseUrl);
+        const accepted = await this.uploadsService.processUploads(files, uploadDir, baseUrl);
 
         return {
             uploaded: accepted.length,

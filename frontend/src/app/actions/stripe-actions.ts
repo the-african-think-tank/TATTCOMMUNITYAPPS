@@ -2,9 +2,7 @@
 
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-06-24.dahlia',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function createSubscriptionCheckoutSession({
   tier,
@@ -29,6 +27,18 @@ export async function createSubscriptionCheckoutSession({
     throw new Error('Montant invalide.');
   }
 
+  // Look up existing Stripe Customer by email to reuse saved payment methods
+  let customerId: string | undefined;
+  try {
+    const existingCustomers = await stripe.customers.list({ email: userEmail, limit: 1 });
+    const firstCustomer = existingCustomers.data[0];
+    if (firstCustomer) {
+      customerId = firstCustomer.id;
+    }
+  } catch (err) {
+    console.warn('Could not list Stripe customers:', err);
+  }
+
   // Création de la session Checkout (récurrente / abonnement)
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -51,7 +61,10 @@ export async function createSubscriptionCheckoutSession({
     ],
     ui_mode: 'embedded_page',
     redirect_on_completion: 'never',
-    customer_email: userEmail,
+    ...(customerId ? { customer: customerId } : { customer_email: userEmail }),
+    saved_payment_method_options: {
+      payment_method_save: 'enabled',
+    },
     metadata: {
       userId,
       tier,

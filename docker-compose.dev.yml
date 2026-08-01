@@ -41,6 +41,13 @@ services:
       FRONTEND_URL: http://localhost:3001
       API_BASE_URL: http://localhost:3000
       UPLOAD_DIR: /app/uploads
+      UPLOAD_BASE_URL: ${UPLOAD_BASE_URL:-http://localhost:3000}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      S3_ENDPOINT: ${S3_ENDPOINT}
       CORS_ORIGINS: "http://localhost:3001,http://127.0.0.1:3001,http://localhost:3000"
       RESEND_API_KEY: ${RESEND_API_KEY:-re_dev_dummy_key}
       RESEND_FROM_EMAIL: noreply@theafricanthinktank.com
