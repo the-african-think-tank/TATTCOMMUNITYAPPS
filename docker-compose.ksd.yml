@@ -1,0 +1,90 @@
+name: tatt-production
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tatt-postgres-production
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-tatt_db_production}
+    ports:
+      - "5433:5432"
+    volumes:
+      - /data/postgres-production:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tatt-network-production
+
+  api:
+    image: yayamamoudou/tatt-api:production
+    container_name: tatt-api-production
+    restart: always
+    ports:
+      - "5001:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_NAME: ${DB_NAME:-tatt_db_production}
+      DB_SYNC: "true"
+      JWT_SECRET: ${JWT_SECRET}
+      APP_SECRET: ${APP_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      API_BASE_URL: ${API_BASE_URL}
+      UPLOAD_DIR: /app/uploads
+      UPLOAD_BASE_URL: ${UPLOAD_BASE_URL:-http://localhost:3000}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: noreply@theafricanthinktank.com
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+    volumes:
+      - /data/uploads-production:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tatt-network-production
+
+  frontend:
+    image: yayamamoudou/tatt-frontend:production
+    container_name: tatt-frontend-production
+    restart: always
+    ports:
+      - "3002:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+    depends_on:
+      - api
+    networks:
+      - tatt-network-production
+
+  adminer:
+    image: adminer
+    container_name: tatt-adminer-production
+    restart: always
+    ports:
+      - "8081:8080"
+    networks:
+      - tatt-network-production
+
+networks:
+  tatt-network-production:
+    driver: bridge

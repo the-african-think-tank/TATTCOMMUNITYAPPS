@@ -79,7 +79,7 @@ pull-staging:
 	docker pull $(DOCKER_USER)/tatt-frontend:staging
 
 deploy-staging: pull-staging
-	docker compose up -d
+	docker compose --env-file .env -p tatt-staging -f docker-compose.ec2.yml up -d
 
 # --- Production Build & Push Targets ---
 build-prod-api:
@@ -103,7 +103,7 @@ pull-prod:
 	docker pull $(DOCKER_USER)/tatt-frontend:production
 
 deploy-prod: pull-prod
-	docker compose up -d
+	docker compose --env-file .env.production -p tatt-production -f docker-compose.ksd.yml up -d
 
 db-deploy:
 	cd server && pnpm run db:deploy
