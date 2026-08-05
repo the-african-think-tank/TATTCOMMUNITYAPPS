@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import api from "@/services/api";
 import Link from "next/link";
 import {
@@ -58,15 +58,32 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
         createdAt: string;
         replies?: Array<{ id: string; content: string; author: { firstName: string; lastName: string }; createdAt: string }>;
     }>>([]);
+    const commentInputRef = useRef<HTMLInputElement>(null);
+    const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
+    const [collapsedReplies, setCollapsedReplies] = useState<Record<string, boolean>>({});
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState("");
+    const [submittingComment, setSubmittingComment] = useState(false);
+
+    const toggleRepliesVisibility = (commentId: string) => {
+        setCollapsedReplies(prev => ({
+            ...prev,
+            [commentId]: !prev[commentId]
+        }));
+    };
+
+    const handleStartReply = (commentId: string, authorName: string) => {
+        setReplyingTo({ id: commentId, authorName });
+        setTimeout(() => {
+            commentInputRef.current?.focus();
+        }, 50);
+    };
     const [submittingComment, setSubmittingComment] = useState(false);
 
     const authorName = `${post.author.firstName} ${post.author.lastName}`;
     const authorInitials = `${post.author.firstName.charAt(0)}${post.author.lastName.charAt(0)}`;
 
     const loadComments = async () => {
-        if (comments.length > 0) return;
         setCommentsLoading(true);
         try {
             const { data } = await api.get<{ data: typeof comments }>(`/feed/${post.id}/comments`, { params: { limit: 20 } });
@@ -98,18 +115,14 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
 
         setSubmittingComment(true);
         try {
-            await api.post(`/feed/${post.id}/comments`, { content: trimmed });
+            await api.post(`/feed/${post.id}/comments`, {
+                content: trimmed,
+                parentId: replyingTo ? replyingTo.id : undefined,
+            });
             setNewComment("");
+            setReplyingTo(null);
             onCommentAdded();
-            setComments((prev) => [
-                ...prev,
-                {
-                    id: `new-${Date.now()}`,
-                    content: trimmed,
-                    author: { firstName: "", lastName: "", profilePicture: null },
-                    createdAt: new Date().toISOString(),
-                },
-            ]);
+            loadComments();
         } finally {
             setSubmittingComment(false);
         }
@@ -279,62 +292,171 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
                         </div>
                     )}
 
-                    {/* Comments section — form stacks on mobile */}
+                    {/* Comments section */}
                     {showComments && !isLocked && (
                         <div className="mt-4 sm:mt-6 pt-4 border-t border-border space-y-4">
+                            {/* Header with Close Option */}
+                            <div className="flex items-center justify-between pb-2 border-b border-border">
+                                <span className="text-xs font-black uppercase tracking-widest text-tatt-gray">
+                                    {post.commentsCount} {post.commentsCount === 1 ? "Comment" : "Comments"}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowComments(false);
+                                        setReplyingTo(null);
+                                    }}
+                                    className="text-xs font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 transition-colors"
+                                >
+                                    <ChevronUp className="h-4 w-4" /> Close Comments
+                                </button>
+                            </div>
+
+                            {/* Top Comment Input */}
+                            {!replyingTo && (
+                                <form onSubmit={handleSubmitComment} className="flex gap-3 items-center">
+                                    <div className="flex-1 relative">
+                                        <input
+                                            ref={commentInputRef}
+                                            type="text"
+                                            placeholder={!isProfileComplete ? "Setup profile to comment..." : "Write a comment..."}
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            disabled={!isProfileComplete || submittingComment}
+                                            className={`w-full bg-black/5 border border-border rounded-xl pl-4 pr-16 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-tatt-lime text-foreground ${!isProfileComplete ? "cursor-not-allowed opacity-60" : ""}`}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!isProfileComplete || !newComment.trim() || submittingComment}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-tatt-black font-bold text-xs px-3 py-1.5 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all"
+                                        >
+                                            Post
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
                             {commentsLoading ? (
                                 <div className="flex justify-center py-4">
                                     <Loader2 className="h-5 w-5 animate-spin text-tatt-lime" />
                                 </div>
                             ) : (
-                                <ul className="space-y-3">
+                                <ul className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar">
                                     {comments.map((c) => (
-                                        <li key={c.id} className="flex gap-2 sm:gap-3">
-                                            <div className="shrink-0 size-7 sm:size-8 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-xs font-bold">
-                                                {c.author.firstName?.charAt(0) || "?"}
+                                        <li key={c.id} className="space-y-2">
+                                            <div className="flex gap-2 sm:gap-3">
+                                                <div className="shrink-0 size-7 sm:size-8 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-xs font-bold">
+                                                    {c.author.firstName?.charAt(0) || "?"}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs sm:text-sm font-bold text-foreground">
+                                                        {c.author.firstName} {c.author.lastName}
+                                                    </p>
+                                                    <p className="text-xs sm:text-sm text-foreground/90 break-words">{c.content}</p>
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span className="text-[10px] sm:text-xs text-tatt-gray">
+                                                            {formatDate(c.createdAt)}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (replyingTo?.id === c.id) {
+                                                                    setReplyingTo(null);
+                                                                    setNewComment("");
+                                                                } else {
+                                                                    handleStartReply(c.id, `${c.author.firstName} ${c.author.lastName}`);
+                                                                }
+                                                            }}
+                                                            className="text-[11px] font-bold text-tatt-lime hover:underline"
+                                                        >
+                                                            {replyingTo?.id === c.id ? "Cancel Reply" : "Reply"}
+                                                        </button>
+
+                                                        {c.replies && c.replies.length > 0 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleRepliesVisibility(c.id)}
+                                                                className="text-[10px] font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 uppercase tracking-wider"
+                                                            >
+                                                                {collapsedReplies[c.id] ? (
+                                                                    <>
+                                                                        <ChevronDown className="h-3 w-3" />
+                                                                        Show {c.replies.length} {c.replies.length === 1 ? "Reply" : "Replies"}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <ChevronUp className="h-3 w-3" />
+                                                                        Hide {c.replies.length} {c.replies.length === 1 ? "Reply" : "Replies"}
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs sm:text-sm font-bold text-foreground">
-                                                    {c.author.firstName} {c.author.lastName}
-                                                </p>
-                                                <p className="text-xs sm:text-sm text-foreground/90 break-words">{c.content}</p>
-                                                <p className="text-[10px] sm:text-xs text-tatt-gray mt-0.5">
-                                                    {formatDate(c.createdAt)}
-                                                </p>
-                                            </div>
+
+                                            {/* Inline Reply Input directly under comment */}
+                                            {replyingTo?.id === c.id && (
+                                                <div className="mt-2 ml-8 sm:ml-10 border-l-2 border-tatt-lime pl-3">
+                                                    <form onSubmit={handleSubmitComment} className="flex gap-2 items-center">
+                                                        <div className="flex-1 relative">
+                                                            <input
+                                                                ref={commentInputRef}
+                                                                type="text"
+                                                                placeholder={`Reply to @${replyingTo.authorName}...`}
+                                                                value={newComment}
+                                                                onChange={(e) => setNewComment(e.target.value)}
+                                                                disabled={submittingComment}
+                                                                className="w-full bg-black/5 border border-tatt-lime/40 rounded-xl pl-4 pr-16 py-2.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
+                                                            />
+                                                            <button
+                                                                type="submit"
+                                                                disabled={!newComment.trim() || submittingComment}
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-tatt-black font-bold text-xs px-3 py-1.5 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all"
+                                                            >
+                                                                Reply
+                                                            </button>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setReplyingTo(null);
+                                                                setNewComment("");
+                                                            }}
+                                                            className="text-tatt-gray hover:text-foreground text-xs font-bold px-1"
+                                                            title="Close reply"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            )}
+
+                                            {/* Render Nested Replies when NOT collapsed */}
+                                            {c.replies && c.replies.length > 0 && !collapsedReplies[c.id] && (
+                                                <ul className="pl-8 sm:pl-10 space-y-2 border-l-2 border-border ml-3 mt-2">
+                                                    {c.replies.map((reply) => (
+                                                        <li key={reply.id} className="flex gap-2">
+                                                            <div className="shrink-0 size-6 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-[10px] font-bold">
+                                                                {reply.author?.firstName?.charAt(0) || "?"}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-bold text-foreground">
+                                                                    {reply.author?.firstName} {reply.author?.lastName}
+                                                                </p>
+                                                                <p className="text-xs text-foreground/90 break-words">{reply.content}</p>
+                                                                <span className="text-[10px] text-tatt-gray">
+                                                                    {formatDate(reply.createdAt)}
+                                                                </span>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
                             )}
-                            <form onSubmit={handleSubmitComment} className="flex flex-col sm:flex-row gap-2">
-                                <div className="flex-1 relative group">
-                                    <input
-                                        type="text"
-                                        placeholder={isProfileComplete ? "Write a comment..." : "Setup profile to comment..."}
-                                        value={newComment}
-                                        onChange={(e) => setNewComment(e.target.value)}
-                                        disabled={!isProfileComplete}
-                                        className={`w-full px-3 py-2.5 sm:py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-tatt-gray focus:outline-none focus:ring-2 focus:ring-tatt-lime ${!isProfileComplete ? "cursor-not-allowed opacity-60" : ""}`}
-                                    />
-                                    {!isProfileComplete && (
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-tatt-gray">
-                                            <AlertCircle className="h-4 w-4" />
-                                        </div>
-                                    )}
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={!newComment.trim() || submittingComment || !isProfileComplete}
-                                    className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 bg-tatt-lime text-tatt-black font-bold rounded-lg text-sm hover:brightness-95 disabled:opacity-50 flex items-center justify-center gap-1 touch-manipulation"
-                                >
-                                    {submittingComment ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Send className="h-4 w-4" />
-                                    )}
-                                    Reply
-                                </button>
-                            </form>
                             {!isProfileComplete && (
                                 <p className="text-[10px] text-tatt-gray flex items-center gap-1.5 px-1 font-medium italic">
                                     <AlertCircle className="size-3 text-tatt-lime" />

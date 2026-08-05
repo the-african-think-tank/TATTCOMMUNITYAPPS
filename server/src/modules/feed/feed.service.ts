@@ -571,7 +571,6 @@ export class FeedService {
         const post = await this.postRepo.findByPk(postId);
 
         if (!post || !post.isPublished) throw new NotFoundException('Post not found.');
-        if (post.authorId === author.id) throw new BadRequestException('You cannot comment on your own post.');
 
         if (post.isPremium && !canSeePremium(author)) throw new ForbiddenException('Upgrade required.');
 

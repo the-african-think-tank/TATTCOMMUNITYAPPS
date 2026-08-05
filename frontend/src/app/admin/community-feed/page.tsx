@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
     ShieldCheck, MessageSquare, AlertCircle, Trash2, CheckCircle2,
     Ban, ExternalLink, RefreshCcw, Zap, TrendingUp, Calendar, Clock,
     Megaphone, Rocket, X, Loader2, Search, Settings, Pin, MoreVertical, Image as ImageIcon,
-    Plus, Heart
+    Plus, Heart, ChevronUp, ChevronDown
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
@@ -109,8 +109,10 @@ export default function CommunityFeedPage() {
             const finalPost = {
                 ...res.data,
                 id: res.data?.id || `admin-post-${Date.now()}`,
+                authorId: res.data?.authorId || user?.id,
                 createdAt: res.data?.createdAt || new Date().toISOString(),
                 author: res.data?.author || {
+                    id: user?.id,
                     firstName: user?.firstName || "TATT",
                     lastName: user?.lastName || "Admin",
                     profilePicture: user?.profilePicture || null,
@@ -352,16 +354,9 @@ export default function CommunityFeedPage() {
                                     <div className="text-foreground leading-relaxed text-sm mb-6 whitespace-pre-wrap">
                                         {post.content}
                                     </div>
-                                    <div className="flex items-center justify-between pt-6 border-t border-border -mx-6 -mb-6 px-6 pb-6 bg-background rounded-b-xl">
-                                        <div className="flex gap-4">
-                                            <span className="text-[10px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray">
-                                                <Heart className="size-3" /> {post._count?.likes || 0}
-                                            </span>
-                                            <span className="text-[10px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray">
-                                                <MessageSquare className="size-3" /> {post._count?.comments || 0}
-                                            </span>
-                                        </div>
-                                    </div>
+
+                                    {/* Interactive Actions & Comments */}
+                                    <AdminPostCardActions post={post} currentUser={user} canModerate={canModerate} onDeletePost={handleDeletePost} onShadowBanPost={handleShadowBanPost} />
                                 </div>
                             </article>
                         ))}
@@ -545,4 +540,278 @@ export default function CommunityFeedPage() {
         </div>
     );
 }
+
+function AdminPostCardActions({ post, currentUser }: { post: any; currentUser?: any; canModerate: boolean; onDeletePost: any; onShadowBanPost: any }) {
+    const postAuthorId = post.authorId || post.author?.id;
+    const isOwnPost = Boolean(currentUser?.id && postAuthorId && currentUser.id === postAuthorId);
+    const commentInputRef = useRef<HTMLInputElement>(null);
+    const [liked, setLiked] = useState(!!post.isLikedByMe);
+    const [likesCount, setLikesCount] = useState(post.likesCount ?? post._count?.likes ?? 0);
+    const [commentsCount, setCommentsCount] = useState(post.commentsCount ?? post._count?.comments ?? 0);
+    const [liking, setLiking] = useState(false);
+    const [showComments, setShowComments] = useState(false);
+    const [comments, setComments] = useState<any[]>([]);
+    const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
+    const [commentsLoading, setCommentsLoading] = useState(false);
+
+    const handleStartReply = (commentId: string, authorName: string) => {
+        setReplyingTo({ id: commentId, authorName });
+        setTimeout(() => {
+            commentInputRef.current?.focus();
+        }, 50);
+    };
+    const [newComment, setNewComment] = useState("");
+    const [submittingComment, setSubmittingComment] = useState(false);
+
+    const handleLikeClick = async () => {
+        if (liking || isOwnPost) return;
+        setLiking(true);
+        try {
+            await api.post(`/feed/${post.id}/like`);
+            setLiked(!liked);
+            setLikesCount((prev: number) => (liked ? Math.max(0, prev - 1) : prev + 1));
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to update reaction.");
+        } finally {
+            setLiking(false);
+        }
+    };
+
+    const loadComments = async () => {
+        setCommentsLoading(true);
+        try {
+            const { data } = await api.get<{ data: any[] }>(`/feed/${post.id}/comments`, { params: { limit: 20 } });
+            setComments(data.data ?? []);
+        } catch {
+            setComments([]);
+        } finally {
+            setCommentsLoading(false);
+        }
+    };
+
+    const handleToggleComments = () => {
+        const next = !showComments;
+        setShowComments(next);
+        if (next && comments.length === 0) {
+            loadComments();
+        }
+    };
+
+    const handleSubmitComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = newComment.trim();
+        if (!trimmed || submittingComment) return;
+
+        setSubmittingComment(true);
+        try {
+            await api.post(`/feed/${post.id}/comments`, {
+                content: trimmed,
+                parentId: replyingTo ? replyingTo.id : undefined,
+            });
+            setNewComment("");
+            setReplyingTo(null);
+            setCommentsCount((prev: number) => prev + 1);
+            toast.success(replyingTo ? "Reply posted." : "Comment posted.");
+            loadComments();
+        } catch {
+            toast.error("Failed to post comment.");
+        } finally {
+            setSubmittingComment(false);
+        }
+    };
+
+    return (
+        <div className="pt-4 border-t border-border -mx-6 -mb-6 px-6 pb-6 bg-background rounded-b-xl">
+            <div className="flex gap-6 items-center">
+                <button
+                    type="button"
+                    onClick={handleLikeClick}
+                    disabled={liking || isOwnPost}
+                    title={isOwnPost ? "You cannot like your own post" : undefined}
+                    className={`text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 transition-colors ${
+                        isOwnPost
+                            ? "opacity-50 cursor-not-allowed text-tatt-gray"
+                            : liked
+                            ? "text-tatt-lime"
+                            : "text-tatt-gray hover:text-tatt-lime"
+                    }`}
+                >
+                    {liking ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                        <Heart className={`size-3.5 ${liked ? "fill-current" : ""}`} />
+                    )}
+                    {likesCount} {likesCount === 1 ? "Reaction" : "Reactions"}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={handleToggleComments}
+                    className="text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray hover:text-tatt-lime transition-colors"
+                >
+                    <MessageSquare className="size-3.5" />
+                    {commentsCount} {commentsCount === 1 ? "Comment" : "Comments"}
+                </button>
+            </div>
+
+            {showComments && (
+                <div className="mt-4 pt-4 border-t border-border space-y-4">
+                    {/* Header with Close option */}
+                    <div className="flex items-center justify-between pb-1 border-b border-border">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-tatt-gray">
+                            {commentsCount} {commentsCount === 1 ? "Comment" : "Comments"}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setShowComments(false);
+                                setReplyingTo(null);
+                            }}
+                            className="text-[11px] font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 transition-colors"
+                        >
+                            <ChevronUp className="size-3.5" /> Close Comments
+                        </button>
+                    </div>
+
+                    {/* Top Comment Input */}
+                    {!replyingTo && (
+                        <form onSubmit={handleSubmitComment} className="flex gap-2">
+                            <div className="flex-1 relative">
+                                <input
+                                    ref={commentInputRef}
+                                    type="text"
+                                    placeholder="Write an admin comment..."
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    className="w-full bg-black/5 border border-border rounded-xl pl-4 pr-16 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-tatt-lime text-foreground"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!newComment.trim() || submittingComment}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-black font-bold text-xs px-3 py-1.5 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all flex items-center gap-1"
+                                >
+                                    {submittingComment ? (
+                                        <Loader2 className="size-3.5 animate-spin" />
+                                    ) : (
+                                        <Rocket className="size-3.5" />
+                                    )}
+                                    Comment
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    {commentsLoading ? (
+                        <div className="flex justify-center py-4">
+                            <Loader2 className="size-5 animate-spin text-tatt-lime" />
+                        </div>
+                    ) : (
+                        <ul className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                            {comments.length === 0 && (
+                                <p className="text-xs text-tatt-gray italic">No comments yet. Be the first to comment!</p>
+                            )}
+                            {comments.map((c) => (
+                                <li key={c.id} className="space-y-2 bg-surface p-3 rounded-lg border border-border">
+                                    <div className="flex gap-3">
+                                        <div className="shrink-0 size-7 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-xs font-bold">
+                                            {c.author?.firstName?.charAt(0) || "?"}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-foreground">
+                                                {c.author?.firstName} {c.author?.lastName}
+                                            </p>
+                                            <p className="text-xs text-foreground/90 break-words mt-0.5">{c.content}</p>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className="text-[10px] text-tatt-gray">
+                                                    {c.createdAt && !isNaN(new Date(c.createdAt).getTime())
+                                                        ? formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })
+                                                        : "just now"}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (replyingTo?.id === c.id) {
+                                                            setReplyingTo(null);
+                                                            setNewComment("");
+                                                        } else {
+                                                            handleStartReply(c.id, `${c.author?.firstName || "User"} ${c.author?.lastName || ""}`.trim());
+                                                        }
+                                                    }}
+                                                    className="text-[10px] font-bold text-tatt-lime hover:underline uppercase tracking-wider"
+                                                >
+                                                    {replyingTo?.id === c.id ? "Cancel Reply" : "Reply"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Inline Reply Input under comment */}
+                                    {replyingTo?.id === c.id && (
+                                        <div className="mt-2 ml-7 border-l-2 border-tatt-lime pl-3">
+                                            <form onSubmit={handleSubmitComment} className="flex gap-2 items-center">
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        ref={commentInputRef}
+                                                        type="text"
+                                                        placeholder={`Reply to @${replyingTo.authorName}...`}
+                                                        value={newComment}
+                                                        onChange={(e) => setNewComment(e.target.value)}
+                                                        className="w-full bg-black/5 border border-tatt-lime/40 rounded-xl pl-4 pr-16 py-2.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
+                                                    />
+                                                    <button
+                                                        type="submit"
+                                                        disabled={!newComment.trim() || submittingComment}
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-black font-bold text-xs px-3 py-1 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all"
+                                                    >
+                                                        Reply
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setReplyingTo(null);
+                                                        setNewComment("");
+                                                    }}
+                                                    className="text-tatt-gray hover:text-foreground text-xs font-bold px-1"
+                                                    title="Close reply"
+                                                >
+                                                    <X className="size-4" />
+                                                </button>
+                                            </form>
+                                        </div>
+                                    )}
+
+                                    {/* Nested replies in Admin view */}
+                                    {c.replies && c.replies.length > 0 && (
+                                        <ul className="pl-6 space-y-2 border-l-2 border-border ml-2 pt-1">
+                                            {c.replies.map((reply: any) => (
+                                                <li key={reply.id} className="flex gap-2">
+                                                    <div className="shrink-0 size-6 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-[10px] font-bold">
+                                                        {reply.author?.firstName?.charAt(0) || "?"}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[11px] font-bold text-foreground">
+                                                            {reply.author?.firstName} {reply.author?.lastName}
+                                                        </p>
+                                                        <p className="text-xs text-foreground/90 break-words">{reply.content}</p>
+                                                        <span className="text-[10px] text-tatt-gray">
+                                                            {reply.createdAt && !isNaN(new Date(reply.createdAt).getTime())
+                                                                ? formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })
+                                                                : "just now"}
+                                                        </span>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 

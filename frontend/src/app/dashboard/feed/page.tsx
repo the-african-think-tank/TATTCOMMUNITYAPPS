@@ -1209,8 +1209,11 @@ export default function FeedPage() {
 
 function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, onLike: () => void, onPostDeleted: () => void, onSelectTopic: (topicId: string) => void }) {
     const { user } = useAuth();
+    const commentInputRef = useRef<HTMLInputElement>(null);
     const [showComments, setShowComments] = useState(false);
     const [comments, setComments] = useState<Comment[]>([]);
+    const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
+    const [collapsedReplies, setCollapsedReplies] = useState<Record<string, boolean>>({});
     const [newComment, setNewComment] = useState("");
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
     const [isLoadingComments, setIsLoadingComments] = useState(false);
@@ -1223,6 +1226,19 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
     const [isUpvoted, setIsUpvoted] = useState(post.isUpvotedByMe);
     const [localUpvotesCount, setLocalUpvotesCount] = useState(post.upvotesCount);
 
+    const toggleRepliesVisibility = (commentId: string) => {
+        setCollapsedReplies(prev => ({
+            ...prev,
+            [commentId]: !prev[commentId]
+        }));
+    };
+
+    const handleStartReply = (commentId: string, authorName: string) => {
+        setReplyingTo({ id: commentId, authorName });
+        setTimeout(() => {
+            commentInputRef.current?.focus();
+        }, 50);
+    };
 
     const handleBookmark = async () => {
         try {
@@ -1286,8 +1302,6 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
         setShowOptions(false);
     };
 
-
-
     const toggleComments = async () => {
         if (!showComments && comments.length === 0) {
             fetchComments();
@@ -1315,8 +1329,12 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
 
         setIsSubmittingComment(true);
         try {
-            await api.post(`/feed/${post.id}/comments`, { content: newComment });
+            await api.post(`/feed/${post.id}/comments`, {
+                content: newComment,
+                parentId: replyingTo ? replyingTo.id : undefined,
+            });
             setNewComment("");
+            setReplyingTo(null);
             fetchComments();
             // Optimistically update count if desired, though fetchComments will do it
             setLocalCommentsCount(prev => prev + 1);
@@ -1769,36 +1787,56 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                 {/* Comments Section */}
                 {showComments && (
                     <div className="mt-6 pt-6 border-t border-border space-y-6">
-                        {/* New Comment Input */}
-                        <form onSubmit={handleAddComment} className="flex gap-4">
-                            <div className="size-8 rounded-full bg-tatt-lime/10 border border-tatt-lime/20 flex items-center justify-center font-bold text-tatt-lime text-[10px] shrink-0 overflow-hidden relative">
-                                {user?.profilePicture ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span>{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span>
-                                )}
-                            </div>
-                            <div className="flex-1 relative">
-                                <input
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    placeholder={post.author.id === user?.id ? "You cannot comment on your own post" : "Add a Strategic perspective..."}
-                                    disabled={post.author.id === user?.id || isSubmittingComment}
-                                    className={`w-full bg-black/5 border border-border rounded-xl pl-4 pr-12 py-2 text-sm focus:ring-1 focus:ring-tatt-lime outline-none ${post.author.id === user?.id ? 'opacity-50 cursor-not-allowed italic' : ''}`}
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={isSubmittingComment || !newComment.trim() || post.author.id === user?.id}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-tatt-lime hover:scale-110 disabled:opacity-50 disabled:grayscale transition-all font-bold text-xs px-2"
-                                >
-                                    Post
-                                </button>
-                            </div>
-                        </form>
+                        {/* Comments Header with Close Option */}
+                        <div className="flex items-center justify-between pb-2 border-b border-border">
+                            <span className="text-xs font-black uppercase tracking-widest text-tatt-gray">
+                                {localCommentsCount} {localCommentsCount === 1 ? "Perspective" : "Perspectives"}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowComments(false);
+                                    setReplyingTo(null);
+                                }}
+                                className="text-xs font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 transition-colors"
+                            >
+                                <ChevronUp className="size-4" /> Close Comments
+                            </button>
+                        </div>
+
+                        {/* Top Comment Input */}
+                        {!replyingTo && (
+                            <form onSubmit={handleAddComment} className="flex gap-4">
+                                <div className="size-8 rounded-full bg-tatt-lime/10 border border-tatt-lime/20 flex items-center justify-center font-bold text-tatt-lime text-[10px] shrink-0 overflow-hidden relative">
+                                    {user?.profilePicture ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span>{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span>
+                                    )}
+                                </div>
+                                <div className="flex-1 relative">
+                                    <input
+                                        ref={commentInputRef}
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder="Add a Strategic perspective..."
+                                        disabled={isSubmittingComment}
+                                        className="w-full bg-black/5 border border-border rounded-xl pl-4 pr-16 py-2.5 text-sm focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingComment || !newComment.trim()}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-black font-bold text-xs px-3 py-1.5 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all"
+                                    >
+                                        Post
+                                    </button>
+                                </div>
+                            </form>
+                        )}
 
                         {/* List of Comments */}
-                        <div className="space-y-5 px-1 max-h-[400px] overflow-y-auto no-scrollbar">
+                        <div className="space-y-5 px-1 max-h-[450px] overflow-y-auto custom-scrollbar">
                             {isLoadingComments ? (
                                 <div className="flex justify-center py-4">
                                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-tatt-lime"></div>
@@ -1817,7 +1855,7 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                                             )}
                                         </div>
                                         <div className="flex-1">
-                                            <div className="bg-black/5  rounded-2xl p-4 border border-border">
+                                            <div className="bg-black/5 rounded-2xl p-4 border border-border">
                                                 <div className="flex justify-between items-start mb-1">
                                                     <div>
                                                         <span className="font-bold text-sm">{comment.author.firstName} {comment.author.lastName}</span>
@@ -1827,9 +1865,101 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                                                 <p className="text-sm text-foreground/80 leading-relaxed">{comment.content}</p>
                                             </div>
                                             <div className="flex items-center gap-4 mt-2 ml-4">
-                                                <button className="text-[10px] font-black text-tatt-gray hover:text-tatt-lime uppercase tracking-widest">Reply</button>
-                                                <button className="text-[10px] font-black text-tatt-gray hover:text-tatt-lime uppercase tracking-widest">Like</button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (replyingTo?.id === comment.id) {
+                                                            setReplyingTo(null);
+                                                            setNewComment("");
+                                                        } else {
+                                                            handleStartReply(comment.id, `${comment.author.firstName} ${comment.author.lastName}`);
+                                                        }
+                                                    }}
+                                                    className="text-[10px] font-black text-tatt-lime hover:underline uppercase tracking-widest"
+                                                >
+                                                    {replyingTo?.id === comment.id ? "Cancel Reply" : "Reply"}
+                                                </button>
+
+                                                {comment.replies && comment.replies.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleRepliesVisibility(comment.id)}
+                                                        className="text-[10px] font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 uppercase tracking-wider"
+                                                    >
+                                                        {collapsedReplies[comment.id] ? (
+                                                            <>
+                                                                <ChevronDown className="size-3" />
+                                                                Show {comment.replies.length} {comment.replies.length === 1 ? "Reply" : "Replies"}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <ChevronUp className="size-3" />
+                                                                Hide {comment.replies.length} {comment.replies.length === 1 ? "Reply" : "Replies"}
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
                                             </div>
+
+                                            {/* Inline Reply Input directly underneath target comment */}
+                                            {replyingTo?.id === comment.id && (
+                                                <div className="mt-3 ml-4 border-l-2 border-tatt-lime pl-4">
+                                                    <form onSubmit={handleAddComment} className="flex gap-2 items-center">
+                                                        <div className="flex-1 relative">
+                                                            <input
+                                                                ref={commentInputRef}
+                                                                value={newComment}
+                                                                onChange={(e) => setNewComment(e.target.value)}
+                                                                placeholder={`Reply to @${replyingTo.authorName}...`}
+                                                                disabled={isSubmittingComment}
+                                                                className="w-full bg-black/5 border border-tatt-lime/40 rounded-xl pl-4 pr-16 py-2.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
+                                                            />
+                                                            <button
+                                                                type="submit"
+                                                                disabled={isSubmittingComment || !newComment.trim()}
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-black font-bold text-xs px-3 py-1 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all"
+                                                            >
+                                                                Reply
+                                                            </button>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setReplyingTo(null);
+                                                                setNewComment("");
+                                                            }}
+                                                            className="text-tatt-gray hover:text-foreground text-xs font-bold px-1"
+                                                            title="Close reply"
+                                                        >
+                                                            <X className="size-4" />
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            )}
+
+                                            {/* Render Nested Replies when NOT collapsed */}
+                                            {comment.replies && comment.replies.length > 0 && !collapsedReplies[comment.id] && (
+                                                <div className="mt-3 ml-4 pl-4 border-l-2 border-border space-y-3">
+                                                    {comment.replies.map((reply: any) => (
+                                                        <div key={reply.id} className="flex gap-3">
+                                                            <div className="size-7 rounded-full border border-border overflow-hidden bg-background shrink-0">
+                                                                {reply.author?.profilePicture ? (
+                                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                                    <img src={reply.author.profilePicture} alt={reply.author.firstName} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="size-full flex items-center justify-center font-bold text-tatt-lime text-[9px]">
+                                                                        {reply.author?.firstName?.charAt(0)}{reply.author?.lastName?.charAt(0)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="bg-black/5 rounded-2xl p-3 border border-border flex-1">
+                                                                <span className="font-bold text-xs">{reply.author?.firstName} {reply.author?.lastName}</span>
+                                                                <p className="text-xs text-foreground/80 mt-0.5">{reply.content}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))
