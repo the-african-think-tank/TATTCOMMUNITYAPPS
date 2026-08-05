@@ -17,7 +17,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (!isLoading) {
             if (!isAuthenticated) {
                 router.push('/');
-            } else if (user && user.systemRole !== 'COMMUNITY_MEMBER' && !window.location.pathname.includes('/volunteers')) {
+            } else if (
+                user && 
+                user.systemRole !== 'COMMUNITY_MEMBER' && 
+                !window.location.pathname.includes('/volunteers') &&
+                !window.location.pathname.includes('/dashboard/network')
+            ) {
                 router.push('/admin');
             } else if (user && user.systemRole === 'COMMUNITY_MEMBER' && !user.flags?.includes('ONBOARDING_COMPLETED')) {
                 // If they are a member but haven't finished the plans selection,
@@ -37,7 +42,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         );
     }
 
-    if (!isAuthenticated || (user && user.systemRole !== 'COMMUNITY_MEMBER' && !window.location.pathname.includes('/volunteers'))) {
+    if (
+        !isAuthenticated || 
+        (
+            user && 
+            user.systemRole !== 'COMMUNITY_MEMBER' && 
+            !window.location.pathname.includes('/volunteers') &&
+            !window.location.pathname.includes('/dashboard/network')
+        )
+    ) {
         return null;
     }
 
