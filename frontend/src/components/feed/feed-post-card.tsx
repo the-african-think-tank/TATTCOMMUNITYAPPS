@@ -24,22 +24,10 @@ type FeedPostCardProps = {
     onDelete?: () => void;
 };
 
+import { formatTimeAgo } from "@/utils/date";
+
 function formatDate(iso: string) {
-    try {
-        const d = new Date(iso);
-        const now = new Date();
-        const diffMs = now.getTime() - d.getTime();
-        const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-        if (diffDays === 0) {
-            const diffMins = Math.floor(diffMs / (60 * 1000));
-            if (diffMins < 60) return `${diffMins}m ago`;
-            return `${Math.floor(diffMins / 60)}h ago`;
-        }
-        if (diffDays < 7) return `${diffDays}d ago`;
-        return d.toLocaleDateString();
-    } catch {
-        return "";
-    }
+    return formatTimeAgo(iso);
 }
 
 export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: FeedPostCardProps) {

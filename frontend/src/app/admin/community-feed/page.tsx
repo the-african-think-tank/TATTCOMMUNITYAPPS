@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
-import { formatDistanceToNow } from "date-fns";
+import { formatTimeAgo } from "@/utils/date";
 import { useAuth } from "@/context/auth-context";
 
 export default function CommunityFeedPage() {
@@ -723,9 +723,7 @@ function AdminPostCardActions({ post, currentUser }: { post: any; currentUser?: 
                                             <p className="text-xs text-foreground/90 break-words mt-0.5">{c.content}</p>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <span className="text-[10px] text-tatt-gray">
-                                                    {c.createdAt && !isNaN(new Date(c.createdAt).getTime())
-                                                        ? formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })
-                                                        : "just now"}
+                                                    {c.createdAt ? formatTimeAgo(c.createdAt) : "just now"}
                                                 </span>
                                                 <button
                                                     type="button"
@@ -795,9 +793,7 @@ function AdminPostCardActions({ post, currentUser }: { post: any; currentUser?: 
                                                         </p>
                                                         <p className="text-xs text-foreground/90 break-words">{reply.content}</p>
                                                         <span className="text-[10px] text-tatt-gray">
-                                                            {reply.createdAt && !isNaN(new Date(reply.createdAt).getTime())
-                                                                ? formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })
-                                                                : "just now"}
+                                                            {reply.createdAt ? formatTimeAgo(reply.createdAt) : "just now"}
                                                         </span>
                                                     </div>
                                                 </li>

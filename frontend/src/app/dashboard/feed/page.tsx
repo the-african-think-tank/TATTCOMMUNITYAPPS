@@ -47,7 +47,7 @@ import { useTermsModal } from "@/context/terms-context";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 import toast, { Toaster } from "react-hot-toast";
-import { formatDistanceToNow } from "date-fns";
+import { formatTimeAgo } from "@/utils/date";
 import { initiateFeedSocket, disconnectFeedSocket } from "@/services/feed-socket";
 
 // --- Types ---
@@ -1455,7 +1455,7 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                                 )}
                             </div>
                             <p className="text-[10px] text-tatt-gray font-bold uppercase tracking-widest mt-1">
-                                {(post.chapter?.name || 'Global').replace(/\s*Chapter\s*$/i, '')} Chapter • {formatDistanceToNow(new Date(post.createdAt))} ago
+                                {(post.chapter?.name || 'Global').replace(/\s*Chapter\s*$/i, '')} Chapter • {formatTimeAgo(post.createdAt)}
                             </p>
                         </div>
                     </div>
@@ -1859,7 +1859,7 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                                                 <div className="flex justify-between items-start mb-1">
                                                     <div>
                                                         <span className="font-bold text-sm">{comment.author.firstName} {comment.author.lastName}</span>
-                                                        <span className="text-[10px] text-tatt-gray ml-2 font-medium">{formatDistanceToNow(new Date(comment.createdAt))} ago</span>
+                                                        <span className="text-[10px] text-tatt-gray ml-2 font-medium">{formatTimeAgo(comment.createdAt)}</span>
                                                     </div>
                                                 </div>
                                                 <p className="text-sm text-foreground/80 leading-relaxed">{comment.content}</p>
