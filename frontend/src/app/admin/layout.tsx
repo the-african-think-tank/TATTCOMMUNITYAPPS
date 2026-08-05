@@ -401,7 +401,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 {dropdownOpen && (
                                     <div className="absolute right-0 mt-3 w-48 bg-white  rounded-lg shadow-xl border border-border py-2 z-50 animate-in fade-in slide-in-from-top-2">
                                         <Link
-                                            href="#"
+                                            href={user?.id ? `/dashboard/network/${user.id}` : "/dashboard/feed"}
                                             className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-black/5  transition-colors"
                                             onClick={() => setDropdownOpen(false)}
                                         >
