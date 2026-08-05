@@ -42,7 +42,7 @@ interface MemberProfile {
     location: string | null;
     tattMemberId: string;
     communityTier: string;
-    industry: string | null;
+    industry: string | { id: string; name: string } | null;
     chapterId: string | null;
     professionalHighlight: string | null;
     chapter: {
@@ -287,7 +287,7 @@ export default function MemberProfilePage() {
                                     <div className="space-y-1">
                                         <h2 className="text-3xl font-bold tracking-tight text-foreground">{member.firstName} {member.lastName}</h2>
                                         <p className="text-tatt-gray font-medium">
-                                            {member.professionTitle || "Professional Member"} {member.industry && `• ${member.industry}`}
+                                            {member.professionTitle || "Professional Member"} {member.industry && `• ${typeof member.industry === 'object' ? member.industry.name : member.industry}`}
                                         </p>
                                         <div className="flex items-center gap-2 pt-2">
                                             <div className="size-5 rounded-full overflow-hidden border border-border bg-surface flex items-center justify-center text-[10px] font-bold text-tatt-gray">
