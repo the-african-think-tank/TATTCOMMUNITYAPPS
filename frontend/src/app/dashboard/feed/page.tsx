@@ -1694,7 +1694,7 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                                     </div>
                                     <span className="text-xs font-black text-foreground">{post.parentPost.author.firstName} {post.parentPost.author.lastName}</span>
                                 </Link>
-                                <span className="text-[10px] text-tatt-gray">• {formatDistanceToNow(new Date(post.parentPost.createdAt))} ago</span>
+                                <span className="text-[10px] text-tatt-gray">• {formatTimeAgo(post.parentPost.createdAt)}</span>
                             </div>
                             <div className="text-sm line-clamp-3 text-tatt-gray italic relative z-10">
                                 {post.parentPost.isPremiumLocked ? "Elite Strategic Insight (Locked)" : (post.parentPost.content || "").replace(/<[^>]*>?/gm, '').substring(0, 200) + '...'}
