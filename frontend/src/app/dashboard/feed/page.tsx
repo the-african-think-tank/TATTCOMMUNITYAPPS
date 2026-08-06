@@ -1264,8 +1264,15 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
 
     const handleShare = () => {
         const shareUrl = `${window.location.origin}/share/${post.id}`;
-        navigator.clipboard.writeText(shareUrl);
-        toast.success("Strategic insight link copied! Ready to share.");
+        if (navigator.share) {
+            navigator.share({ title: post.title || "TATT Strategic Insight", url: shareUrl }).catch(() => {
+                navigator.clipboard.writeText(shareUrl);
+                toast.success("Strategic insight link copied! Ready to share.");
+            });
+        } else {
+            navigator.clipboard.writeText(shareUrl);
+            toast.success("Strategic insight link copied! Ready to share.");
+        }
     };
 
     const handleUpvote = async () => {
@@ -1758,7 +1765,7 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                             <Eye className="h-3 w-3" />
                             {post.viewsCount || 0}
                         </div>
-                        <button onClick={handleShare} className="flex items-center gap-2.5 px-3 py-2 text-tatt-gray hover:text-tatt-lime hover:bg-tatt-lime/10 rounded-xl transition-all border border-border/50">
+                        <button onClick={handleShare} className="flex items-center gap-2.5 px-3 py-2 text-tatt-gray hover:text-tatt-lime hover:bg-tatt-lime/10 rounded-xl transition-all border border-border/50 cursor-pointer">
                             <Share2 className="h-4.5 w-4.5" />
                             <span className="text-xs font-black hidden sm:inline uppercase tracking-widest text-[10px]">Share Insight</span>
                         </button>

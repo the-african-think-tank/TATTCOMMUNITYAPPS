@@ -6,7 +6,7 @@ import {
     ShieldCheck, MessageSquare, AlertCircle, Trash2, CheckCircle2,
     Ban, ExternalLink, RefreshCcw, Zap, TrendingUp, Calendar, Clock,
     Megaphone, Rocket, X, Loader2, Search, Settings, Pin, MoreVertical, Image as ImageIcon,
-    Plus, Heart, ChevronUp, ChevronDown
+    Plus, Heart, ChevronUp, ChevronDown, Share2
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
@@ -332,9 +332,7 @@ export default function CommunityFeedPage() {
                                                 <p className="font-bold text-sm tracking-tight">{post.author?.firstName || "Unknown"} {post.author?.lastName || "User"}</p>
                                                 <p className="text-[10px] tracking-[0.15em] uppercase font-bold text-tatt-gray flex gap-2">
                                                     <span>
-                                                        {post.createdAt && !isNaN(new Date(post.createdAt).getTime()) 
-                                                            ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) 
-                                                            : "just now"}
+                                                        {post.createdAt ? formatTimeAgo(post.createdAt) : "just now"}
                                                     </span>
                                                     {post.author?.chapterId && <span>• {post.author.chapter?.name || "Chapter Member"}</span>}
                                                 </p>
@@ -647,10 +645,30 @@ function AdminPostCardActions({ post, currentUser }: { post: any; currentUser?: 
                 <button
                     type="button"
                     onClick={handleToggleComments}
-                    className="text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray hover:text-tatt-lime transition-colors"
+                    className="text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray hover:text-tatt-lime transition-colors cursor-pointer"
                 >
                     <MessageSquare className="size-3.5" />
                     {commentsCount} {commentsCount === 1 ? "Comment" : "Comments"}
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        const shareUrl = `${window.location.origin}/share/${post.id}`;
+                        if (navigator.share) {
+                            navigator.share({ title: post.title || "TATT Strategic Insight", url: shareUrl }).catch(() => {
+                                navigator.clipboard.writeText(shareUrl);
+                                toast.success("Share link copied!");
+                            });
+                        } else {
+                            navigator.clipboard.writeText(shareUrl);
+                            toast.success("Share link copied!");
+                        }
+                    }}
+                    className="text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray hover:text-tatt-lime transition-colors cursor-pointer"
+                >
+                    <Share2 className="size-3.5" />
+                    Share
                 </button>
             </div>
 
