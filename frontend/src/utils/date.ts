@@ -1,13 +1,18 @@
-import { formatDistanceToNow, parseISO } from "date-fns";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+
+// Initialize plugins
+dayjs.extend(relativeTime);
+dayjs.extend(utc);
 
 /**
  * Format ISO date strings into relative time (e.g., "21 minutes ago").
- * Ensures strict UTC parsing across all browser engines (iOS Safari, Chrome, etc.)
+ * Uses dayjs + utc plugin to ensure strict UTC parsing across all browser engines.
  */
 export function formatTimeAgo(dateString?: string | null): string {
     if (!dateString) return "";
     try {
-        // Ensure string is ISO 8601 UTC compliant
         let str = String(dateString).trim();
         if (!str.includes("T")) {
             str = str.replace(" ", "T");
@@ -15,9 +20,9 @@ export function formatTimeAgo(dateString?: string | null): string {
         if (!str.endsWith("Z") && !str.includes("+") && !str.includes("-", 10)) {
             str += "Z";
         }
-        const parsedDate = parseISO(str);
-        if (isNaN(parsedDate.getTime())) return "";
-        return formatDistanceToNow(parsedDate, { addSuffix: true });
+        const d = dayjs.utc(str);
+        if (!d.isValid()) return "";
+        return d.fromNow();
     } catch {
         return "";
     }
