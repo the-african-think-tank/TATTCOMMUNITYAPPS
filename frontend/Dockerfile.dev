@@ -2,16 +2,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY package-lock.json* ./
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
-RUN npm install --legacy-peer-deps
+COPY package.json pnpm-lock.yaml* ./
 
-# ✅ Forcer l'installation de Stripe (même si non présent dans le lockfile)
-RUN npm install @stripe/stripe-js @stripe/react-stripe-js stripe --legacy-peer-deps
+RUN pnpm install
 
 COPY . .
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "dev"]

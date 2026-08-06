@@ -10,11 +10,12 @@ ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 # Copy package files
-COPY package*.json ./
-COPY package-lock.json* ./
+COPY package.json pnpm-lock.yaml* ./
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 # Install dependencies
-RUN npm install @stripe/react-stripe-js @stripe/stripe-js stripe --legacy-peer-deps
+RUN pnpm install
 
 # Copy source code
 COPY . .

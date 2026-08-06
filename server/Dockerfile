@@ -3,17 +3,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files for better caching
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Install dependencies (including devDependencies for build)
-RUN npm install @stripe/react-stripe-js @stripe/stripe-js stripe --legacy-peer-deps
+COPY package.json pnpm-lock.yaml* ./
 
-# Copy source code
+RUN pnpm install
+
 COPY . .
 
-# Build the application
-RUN npm run build
+RUN pnpm build
 
 # --- Production Stage ---
 FROM node:20-alpine AS runner
