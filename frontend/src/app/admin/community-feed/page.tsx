@@ -769,7 +769,7 @@ function AdminPostCardActions({ post, currentUser }: { post: any; currentUser?: 
                                                     <input
                                                         ref={commentInputRef}
                                                         type="text"
-                                                        placeholder={`Reply to @${replyingTo.authorName}...`}
+                                                        placeholder={`Reply to @${replyingTo?.authorName}...`}
                                                         value={newComment}
                                                         onChange={(e) => setNewComment(e.target.value)}
                                                         className="w-full bg-black/5 border border-tatt-lime/40 rounded-xl pl-4 pr-16 py-2.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"

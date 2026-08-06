@@ -11,7 +11,10 @@ import {
     Loader2,
     MoreVertical,
     Trash2,
-    AlertCircle
+    AlertCircle,
+    ChevronUp,
+    ChevronDown,
+    X
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 
@@ -66,7 +69,6 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
             commentInputRef.current?.focus();
         }, 50);
     };
-    const [submittingComment, setSubmittingComment] = useState(false);
 
     const authorName = `${post.author.firstName} ${post.author.lastName}`;
     const authorInitials = `${post.author.firstName.charAt(0)}${post.author.lastName.charAt(0)}`;
