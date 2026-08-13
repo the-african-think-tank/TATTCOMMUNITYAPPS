@@ -44,7 +44,11 @@ function isContentAdmin(user: User): boolean {
 /** For view/read/activate: user must meet minTier and (if resource has chapterId) belong to that chapter */
 function canAccessResource(user: User, resource: Resource): boolean {
     if (resource.allowedTiers && resource.allowedTiers.length > 0) {
-        if (!resource.allowedTiers.includes(user.communityTier)) {
+        const lowestAllowedTier = resource.allowedTiers.reduce((lowest, current) => {
+            return tierOrder(current as CommunityTier) < tierOrder(lowest as CommunityTier) ? current : lowest;
+        }, resource.allowedTiers[0]);
+
+        if (tierOrder(user.communityTier) < tierOrder(lowestAllowedTier as CommunityTier)) {
             return false;
         }
     } else {
@@ -148,7 +152,7 @@ export class ResourcesService {
                                     {
                                         [Op.or]: [
                                             { minTier: { [Op.in]: allowedMinTiers } },
-                                            { allowedTiers: { [Op.overlap]: [user.communityTier] } },
+                                            { allowedTiers: { [Op.overlap]: allowedMinTiers } },
                                         ],
                                     },
                                     {
@@ -167,7 +171,7 @@ export class ResourcesService {
                                     {
                                         [Op.or]: [
                                             { minTier: { [Op.in]: allowedMinTiers } },
-                                            { allowedTiers: { [Op.overlap]: [user.communityTier] } },
+                                            { allowedTiers: { [Op.overlap]: allowedMinTiers } },
                                         ],
                                     },
                                     {
