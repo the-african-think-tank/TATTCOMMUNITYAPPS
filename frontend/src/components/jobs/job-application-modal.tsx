@@ -5,6 +5,7 @@ import api from "@/services/api";
 import { X, Upload, Loader2, ArrowRight, Star, Briefcase } from "lucide-react";
 import type { JobListing, ApplyJobPayload } from "@/types/jobs";
 import type { User } from "@/context/auth-context";
+import toast from "react-hot-toast";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [".pdf", ".doc", ".docx"];
@@ -95,6 +96,7 @@ export function JobApplicationModal({
       setError("Full name and email are required.");
       return;
     }
+    setSubmitting(true);
     let finalResumeUrl = resumeUrl;
     if (resumeFile && !resumeUrl) {
       const formData = new FormData();
@@ -106,10 +108,10 @@ export function JobApplicationModal({
         finalResumeUrl = data.files?.[0]?.url ?? null;
       } catch (err) {
         setError("Failed to upload resume. Try again.");
+        setSubmitting(false);
         return;
       }
     }
-    setSubmitting(true);
     try {
       const payload: ApplyJobPayload = {
         fullName: fullName.trim(),
@@ -119,6 +121,7 @@ export function JobApplicationModal({
         coverLetter: coverLetter.trim() || undefined,
       };
       await api.post(`/jobs/${job.id}/apply`, payload);
+      toast.success("Application submitted successfully!");
       onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -126,7 +129,9 @@ export function JobApplicationModal({
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response
           : undefined;
-      setError(res?.data?.message ?? "Failed to submit application.");
+      const errMsg = res?.data?.message ?? "Failed to submit application.";
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setSubmitting(false);
     }
