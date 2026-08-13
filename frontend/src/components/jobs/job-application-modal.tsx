@@ -106,8 +106,11 @@ export function JobApplicationModal({
           headers: { "Content-Type": "multipart/form-data" },
         });
         finalResumeUrl = data.files?.[0]?.url ?? null;
-      } catch (err) {
-        setError("Failed to upload resume. Try again.");
+      } catch (err: any) {
+        const res = err?.response;
+        const errMsg = res?.data?.message ?? (res?.data?.errors?.[0] ? String(res.data.errors[0]) : "Failed to upload resume. Try again.");
+        setError(errMsg);
+        toast.error(errMsg);
         setSubmitting(false);
         return;
       }
