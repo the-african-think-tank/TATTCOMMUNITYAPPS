@@ -36,9 +36,8 @@ export default function CreateResourcePage() {
         type: "GUIDE",
         category: "General",
         contentUrl: "",
-        minTier: "FREE",
     });
-    const [selectedTiers, setSelectedTiers] = useState<string[]>(["FREE"]);
+    const [minTier, setMinTier] = useState<string>("FREE");
     const [existingCategories, setExistingCategories] = useState<string[]>(["General", "Strategic", "Community", "Leadership"]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
@@ -63,13 +62,7 @@ export default function CreateResourcePage() {
         cat.toLowerCase().includes(categorySearch.toLowerCase())
     );
 
-    const handleTierChange = (tier: string) => {
-        if (selectedTiers.includes(tier)) {
-            setSelectedTiers(selectedTiers.filter(t => t !== tier));
-        } else {
-            setSelectedTiers([...selectedTiers, tier]);
-        }
-    };
+
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -101,16 +94,6 @@ export default function CreateResourcePage() {
 
         setIsSubmitting(true);
         try {
-            // Determine the highest selected tier as the minTier requirement
-            // Hierarchy: FREE < UBUNTU < IMANI < KIONGOZI
-            const tiers = ["FREE", "UBUNTU", "IMANI", "KIONGOZI"];
-            let minTier = "FREE";
-            for (const tier of tiers) {
-                if (selectedTiers.includes(tier)) {
-                    minTier = tier;
-                }
-            }
-
             await api.post("/resources", {
                 ...formData,
                 minTier,
@@ -330,24 +313,25 @@ export default function CreateResourcePage() {
                                 <label 
                                     key={tier.id}
                                     className={`group relative flex flex-col items-center justify-center p-8 border-2 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${
-                                        selectedTiers.includes(tier.id) 
+                                        minTier === tier.id 
                                             ? 'bg-tatt-lime/10 border-tatt-lime shadow-lg shadow-tatt-lime/10' 
                                             : 'bg-slate-50 border-slate-200 hover:border-tatt-lime/50'
                                     }`}
                                 >
                                     <input 
-                                        type="checkbox"
+                                        type="radio"
+                                        name="minTier"
                                         className="hidden"
-                                        checked={selectedTiers.includes(tier.id)}
-                                        onChange={() => handleTierChange(tier.id)}
+                                        checked={minTier === tier.id}
+                                        onChange={() => setMinTier(tier.id)}
                                     />
-                                    <div className={`mb-4 transition-transform duration-300 group-hover:scale-110 ${selectedTiers.includes(tier.id) ? 'text-tatt-lime-dark' : 'text-slate-400'}`}>
+                                    <div className={`mb-4 transition-transform duration-300 group-hover:scale-110 ${minTier === tier.id ? 'text-tatt-lime-dark' : 'text-slate-400'}`}>
                                         {tier.icon}
                                     </div>
                                     <span className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{tier.label}</span>
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{tier.sub}</span>
                                     
-                                    {selectedTiers.includes(tier.id) && (
+                                    {minTier === tier.id && (
                                         <div className="absolute top-4 right-4 text-tatt-lime">
                                             <CheckCircle2 size={24} />
                                         </div>
