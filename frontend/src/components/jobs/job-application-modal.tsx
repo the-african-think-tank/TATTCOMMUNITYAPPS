@@ -100,10 +100,10 @@ export function JobApplicationModal({
       const formData = new FormData();
       formData.append("files", resumeFile);
       try {
-        const { data } = await api.post<{ urls: string[] }>("/uploads/media", formData, {
+        const { data } = await api.post<{ files: { url: string }[] }>("/uploads/media", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        finalResumeUrl = data.urls?.[0] ?? null;
+        finalResumeUrl = data.files?.[0]?.url ?? null;
       } catch (err) {
         setError("Failed to upload resume. Try again.");
         return;
