@@ -38,6 +38,7 @@ export default function CreateResourcePage() {
         contentUrl: "",
     });
     const [selectedTiers, setSelectedTiers] = useState<string[]>(["FREE"]);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [existingCategories, setExistingCategories] = useState<string[]>(["General", "Strategic", "Community", "Leadership"]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
@@ -70,35 +71,43 @@ export default function CreateResourcePage() {
         cat.toLowerCase().includes(categorySearch.toLowerCase())
     );
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        setUploading(true);
-        const uploadFormData = new FormData();
-        uploadFormData.append("files", file);
-
-        try {
-            const res = await api.post("/uploads/media", uploadFormData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
-            const url = res.data.files[0].url;
-            setFormData({ ...formData, contentUrl: url });
-            toast.success("File uploaded successfully!");
-        } catch (error) {
-            console.error("Upload failed", error);
-            toast.error("Failed to upload file");
-        } finally {
-            setUploading(false);
-        }
+        setSelectedFile(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title) return toast.error("Please provide a title");
-        if (!formData.contentUrl) return toast.error("Please provide a content URL or upload a file");
+        if (!formData.contentUrl && !selectedFile) return toast.error("Please provide a content URL or upload a file");
 
         setIsSubmitting(true);
+        let finalContentUrl = formData.contentUrl;
+
+        if (selectedFile) {
+            setUploading(true);
+            const uploadFormData = new FormData();
+            uploadFormData.append("files", selectedFile);
+            try {
+                const res = await api.post("/uploads/media", uploadFormData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                finalContentUrl = res.data.files[0].url;
+                toast.success("File uploaded successfully!");
+            } catch (error: any) {
+                console.error("Upload failed", error);
+                const res = error?.response;
+                const errMsg = res?.data?.message ?? (res?.data?.errors?.[0] ? String(res.data.errors[0]) : "Failed to upload file");
+                toast.error(errMsg);
+                setIsSubmitting(false);
+                setUploading(false);
+                return;
+            } finally {
+                setUploading(false);
+            }
+        }
+
         try {
             // Determine hierarchical minTier as the highest selected tier
             const tiers = ["FREE", "UBUNTU", "IMANI", "KIONGOZI"];
@@ -111,6 +120,7 @@ export default function CreateResourcePage() {
 
             await api.post("/resources", {
                 ...formData,
+                contentUrl: finalContentUrl,
                 minTier,
                 allowedTiers: selectedTiers,
                 tags: formData.category ? [formData.category] : [],
@@ -272,13 +282,13 @@ export default function CreateResourcePage() {
                                 >
                                     {uploading ? (
                                         <Loader2 size={48} className="animate-spin text-tatt-lime mb-4" />
-                                    ) : formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo') ? (
+                                    ) : selectedFile || (formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo')) ? (
                                         <CheckCircle2 size={48} className="text-tatt-lime mb-4" />
                                     ) : (
                                         <UploadCloud size={48} className="text-slate-300 group-hover:text-tatt-lime transition-colors mb-4" />
                                     )}
                                     <p className="text-xl font-black text-slate-900 uppercase italic tracking-tighter mb-2">
-                                        {formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo') ? 'File Ready' : 'Upload Strategic Document'}
+                                        {selectedFile ? selectedFile.name : (formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo') ? 'File Ready' : 'Upload Strategic Document')}
                                     </p>
                                     <p className="text-sm font-medium text-slate-500">PDF, DOCX, or Media up to 25MB (Deployment Cap)</p>
                                 </label>
