@@ -8,6 +8,7 @@ import type { JobListing } from "@/types/jobs";
 type JobCardProps = {
   job: JobListing;
   saved?: boolean;
+  applied?: boolean;
   onSaveToggle?: (jobId: string, saved: boolean) => void;
   onApplyClick: (job: JobListing) => void;
 };
@@ -21,7 +22,7 @@ function companyInitials(name: string) {
     .toUpperCase();
 }
 
-export function JobCard({ job, saved = false, onSaveToggle, onApplyClick }: JobCardProps) {
+export function JobCard({ job, saved = false, applied = false, onSaveToggle, onApplyClick }: JobCardProps) {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (e: React.MouseEvent) => {
@@ -103,10 +104,15 @@ export function JobCard({ job, saved = false, onSaveToggle, onApplyClick }: JobC
         </button>
         <button
           type="button"
-          onClick={() => onApplyClick(job)}
-          className="min-h-[40px] px-4 py-2 rounded-lg text-sm font-bold bg-tatt-lime text-tatt-black hover:brightness-95 transition-colors"
+          onClick={() => !applied && onApplyClick(job)}
+          disabled={applied}
+          className={`min-h-[40px] px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+            applied 
+              ? "bg-border text-tatt-gray cursor-not-allowed" 
+              : "bg-tatt-lime text-tatt-black hover:brightness-95"
+          }`}
         >
-          Apply Now
+          {applied ? "Applied" : "Apply Now"}
         </button>
       </div>
     </article>

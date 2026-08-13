@@ -183,6 +183,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [meta, setMeta] = useState<JobsResponse["meta"] | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -232,6 +233,16 @@ export default function JobsPage() {
     }
   }, [user?.id]);
 
+  const fetchAppliedIds = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data } = await api.get<string[]>("/jobs/applied-ids");
+      setAppliedIds(new Set(Array.isArray(data) ? data : []));
+    } catch {
+      setAppliedIds(new Set());
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     if (!isPaidMember(user.communityTier)) { setLoading(false); return; }
@@ -239,8 +250,11 @@ export default function JobsPage() {
   }, [fetchJobs, user]);
 
   useEffect(() => {
-    if (user && isPaidMember(user.communityTier)) fetchSavedIds();
-  }, [fetchSavedIds, user]);
+    if (user && isPaidMember(user.communityTier)) {
+      fetchSavedIds();
+      fetchAppliedIds();
+    }
+  }, [fetchSavedIds, fetchAppliedIds, user]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,6 +408,7 @@ export default function JobsPage() {
                       <JobCard
                         job={job}
                         saved={savedIds.has(job.id)}
+                        applied={appliedIds.has(job.id)}
                         onSaveToggle={handleSaveToggle}
                         onApplyClick={setApplyModalJob}
                       />
@@ -469,7 +484,13 @@ export default function JobsPage() {
           job={applyModalJob}
           user={user}
           onClose={() => setApplyModalJob(null)}
-          onSuccess={() => {}}
+          onSuccess={() => {
+            setAppliedIds(prev => {
+              const next = new Set(prev);
+              next.add(applyModalJob.id);
+              return next;
+            });
+          }}
         />
       )}
     </div>

@@ -15,6 +15,7 @@ export default function SavedJobsPage() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [applyModalJob, setApplyModalJob] = useState<JobListing | null>(null);
 
@@ -27,12 +28,17 @@ export default function SavedJobsPage() {
     }
     const fetchSaved = async () => {
       try {
-        const { data } = await api.get<JobListing[]>("/jobs/saved");
-        setJobs(Array.isArray(data) ? data : []);
-        setSavedIds(new Set((Array.isArray(data) ? data : []).map((j) => j.id)));
+        const [savedRes, appliedRes] = await Promise.all([
+          api.get<JobListing[]>("/jobs/saved"),
+          api.get<string[]>("/jobs/applied-ids")
+        ]);
+        setJobs(Array.isArray(savedRes.data) ? savedRes.data : []);
+        setSavedIds(new Set((Array.isArray(savedRes.data) ? savedRes.data : []).map((j) => j.id)));
+        setAppliedIds(new Set(Array.isArray(appliedRes.data) ? appliedRes.data : []));
       } catch {
         setJobs([]);
         setSavedIds(new Set());
+        setAppliedIds(new Set());
       } finally {
         setLoading(false);
       }
@@ -101,6 +107,7 @@ export default function SavedJobsPage() {
                 <JobCard
                   job={job}
                   saved={savedIds.has(job.id)}
+                  applied={appliedIds.has(job.id)}
                   onSaveToggle={handleSaveToggle}
                   onApplyClick={setApplyModalJob}
                 />
@@ -114,7 +121,13 @@ export default function SavedJobsPage() {
           job={applyModalJob}
           user={user}
           onClose={() => setApplyModalJob(null)}
-          onSuccess={() => {}}
+          onSuccess={() => {
+            setAppliedIds(prev => {
+              const next = new Set(prev);
+              next.add(applyModalJob.id);
+              return next;
+            });
+          }}
         />
       )}
     </div>

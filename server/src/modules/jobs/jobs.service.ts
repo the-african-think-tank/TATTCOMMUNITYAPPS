@@ -112,6 +112,11 @@ export class JobsService {
         return saved.map((s) => s.jobId);
     }
 
+    async getAppliedJobIds(userId: string): Promise<string[]> {
+        const apps = await this.applicationRepo.findAll({ where: { userId }, attributes: ['jobId'] });
+        return apps.map((a) => a.jobId);
+    }
+
     async toggleSaved(userId: string, jobId: string) {
         await this.getListingById(jobId);
         const existing = await this.savedRepo.findOne({ where: { userId, jobId } });

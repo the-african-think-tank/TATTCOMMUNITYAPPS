@@ -69,6 +69,14 @@ export class JobsController {
         return this.jobsService.getSavedJobIds(req.user.id);
     }
 
+    @Get('applied-ids')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get applied job IDs only' })
+    async getAppliedIds(@Request() req: any) {
+        return this.jobsService.getAppliedJobIds(req.user.id);
+    }
+
     @Get('alerts')
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
