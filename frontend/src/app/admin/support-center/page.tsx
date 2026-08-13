@@ -222,9 +222,9 @@ export default function SupportCenterOverview() {
                                     <p className="text-sm text-tatt-gray font-medium mb-4">No topics configured yet.</p>
                                     <button 
                                         onClick={() => router.push('/admin/support-center/faqs')} 
-                                        className="text-[10px] bg-tatt-lime/10 px-3 py-2 rounded-lg font-bold uppercase tracking-widest text-tatt-lime hover:bg-tatt-lime/20 transition-colors"
+                                        className="text-[10px] bg-tatt-lime/10 px-3 py-2 cursor-pointer rounded-lg font-bold uppercase tracking-widest text-tatt-lime hover:bg-tatt-lime/20 transition-colors"
                                     >
-                                        Create First Topic
+                                        Create First FAQ Topic
                                     </button>
                                 </div>
                             )}

@@ -4,6 +4,7 @@ import { NotificationType } from '../notifications/entities/notification.entity'
 import { InjectModel } from '@nestjs/sequelize';
 import { SupportTicket, TicketStatus } from './entities/support-ticket.entity';
 import { SupportFaq } from './entities/support-faq.entity';
+import { SupportFaqCategory } from './entities/support-faq-category.entity';
 import { CreateTicketDto, ResolveTicketDto, CreateFaqDto } from './dto/support.dto';
 import { User } from '../iam/entities/user.entity';
 import { SupportMessage } from './entities/support-message.entity';
@@ -14,6 +15,7 @@ export class SupportService {
     constructor(
         @InjectModel(SupportTicket) private ticketRepo: typeof SupportTicket,
         @InjectModel(SupportFaq) private faqRepo: typeof SupportFaq,
+        @InjectModel(SupportFaqCategory) private categoryRepo: typeof SupportFaqCategory,
         @InjectModel(User) private userRepo: typeof User,
         @InjectModel(SupportMessage) private messageRepo: typeof SupportMessage,
         private notificationsService: NotificationsService,
@@ -38,10 +40,18 @@ export class SupportService {
                 include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'profilePicture'] }]
             });
 
-            const faqs = await this.faqRepo.findAll({
-                attributes: ['category', [this.faqRepo.sequelize.fn('COUNT', this.faqRepo.sequelize.col('id')), 'count']],
-                group: ['category']
+            const categories = await this.categoryRepo.findAll({
+                include: [{
+                    model: SupportFaq,
+                    where: { isActive: true },
+                    required: false
+                }]
             });
+
+            const faqs = categories.map(cat => ({
+                category: cat.category,
+                count: cat.questions ? cat.questions.length : 0
+            }));
 
             return {
                 openTickets,
@@ -237,13 +247,72 @@ export class SupportService {
 
     // --- FAQS ---
     async createFaq(dto: CreateFaqDto) {
-        return this.faqRepo.create({ ...dto } as any);
+        const formattedCategory = dto.category.toUpperCase().trim();
+        const [categoryRecord] = await this.categoryRepo.findOrCreate({
+            where: { category: formattedCategory }
+        });
+        return this.faqRepo.create({
+            question: dto.question,
+            answer: dto.answer,
+            isActive: dto.isActive !== undefined ? dto.isActive : true,
+            categoryId: categoryRecord.id
+        } as any);
     }
 
     async getFaqs() {
-        return this.faqRepo.findAll({
-            where: { isActive: true },
+        const categories = await this.categoryRepo.findAll({
+            include: [{
+                model: SupportFaq,
+                where: { isActive: true },
+                required: false
+            }],
             order: [['category', 'ASC']]
         });
+        return categories.map(cat => ({
+            id: cat.id,
+            category: cat.category,
+            questions: (cat.questions || []).map(q => ({
+                id: q.id,
+                question: q.question,
+                answer: q.answer,
+                category: cat.category,
+                isActive: q.isActive
+            }))
+        }));
+    }
+
+    async updateFaq(id: string, dto: Partial<CreateFaqDto>) {
+        const faq = await this.faqRepo.findByPk(id);
+        if (!faq) throw new Error('FAQ not found');
+        
+        const updateData: any = { ...dto };
+        if (dto.category) {
+            const formattedCategory = dto.category.toUpperCase().trim();
+            const [categoryRecord] = await this.categoryRepo.findOrCreate({
+                where: { category: formattedCategory }
+            });
+            updateData.categoryId = categoryRecord.id;
+            delete updateData.category;
+        }
+        return faq.update(updateData);
+    }
+
+    async deleteFaq(id: string) {
+        const faq = await this.faqRepo.findByPk(id);
+        if (!faq) throw new Error('FAQ not found');
+        await faq.destroy();
+        return { message: 'FAQ deleted successfully' };
+    }
+
+    async deleteCategory(id: string) {
+        const category = await this.categoryRepo.findByPk(id);
+        if (!category) throw new Error('Category not found');
+        
+        await this.faqRepo.destroy({
+            where: { categoryId: id }
+        });
+        
+        await category.destroy();
+        return { message: 'Category and all associated FAQs deleted successfully' };
     }
 }

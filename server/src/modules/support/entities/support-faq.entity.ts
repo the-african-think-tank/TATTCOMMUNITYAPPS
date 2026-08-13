@@ -1,4 +1,5 @@
-import { Table, Column, Model, DataType, Default } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, Default, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { SupportFaqCategory } from './support-faq-category.entity';
 
 export enum FaqCategory {
     MEMBERSHIP = 'MEMBERSHIP',
@@ -18,9 +19,12 @@ export class SupportFaq extends Model<SupportFaq> {
     @Column({ type: DataType.TEXT, allowNull: false })
     answer: string;
 
-    @Default('GENERAL')
-    @Column({ type: DataType.STRING })
-    category: string;
+    @ForeignKey(() => SupportFaqCategory)
+    @Column({ type: DataType.UUID, allowNull: true })
+    categoryId: string;
+
+    @BelongsTo(() => SupportFaqCategory)
+    category: SupportFaqCategory;
 
     @Default(true)
     @Column({ type: DataType.BOOLEAN })

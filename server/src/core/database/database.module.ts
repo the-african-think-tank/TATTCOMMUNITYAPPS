@@ -48,6 +48,7 @@ import { OrderItem } from '../../modules/store/entities/order-item.entity';
 import { Partnership } from '../../modules/partnerships/entities/partnership.entity';
 import { SupportTicket } from '../../modules/support/entities/support-ticket.entity';
 import { SupportFaq } from '../../modules/support/entities/support-faq.entity';
+import { SupportFaqCategory } from '../../modules/support/entities/support-faq-category.entity';
 import { SupportMessage } from '../../modules/support/entities/support-message.entity';
 
 @Module({
@@ -73,7 +74,7 @@ import { SupportMessage } from '../../modules/support/entities/support-message.e
                     JobListing, JobApplication, SavedJob,
                     VolunteerRole, VolunteerActivity, VolunteerApplication, VolunteerStat, VolunteerTrainingResource,
                     Product, ProductVariant, Order, OrderItem, Partnership,
-                    SupportMessage, SupportTicket, SupportFaq,
+                    SupportMessage, SupportTicket, SupportFaqCategory, SupportFaq,
                     CommunityIndustry, SystemSetting, PlatformTerms,
                 ],
                 synchronize: config.get<string | boolean>('DB_SYNC') !== 'false' && config.get<string | boolean>('DB_SYNC') !== false && config.get<string | boolean>('DB_SYNC') !== '0',

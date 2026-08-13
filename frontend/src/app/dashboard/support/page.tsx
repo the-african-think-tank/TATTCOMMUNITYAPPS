@@ -15,17 +15,22 @@ import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 
-interface FAQ {
+interface FAQQuestion {
     id: string;
     question: string;
     answer: string;
+}
+
+interface FAQCategory {
+    id: string;
     category: string;
+    questions: FAQQuestion[];
 }
 
 export default function SupportCenterPage() {
     const { user } = useAuth();
     const router = useRouter();
-    const [faqs, setFaqs] = useState<FAQ[]>([]);
+    const [faqs, setFaqs] = useState<FAQCategory[]>([]);
     const [loadingFaqs, setLoadingFaqs] = useState(true);
     const [tickets, setTickets] = useState<any[]>([]);
     const [loadingTickets, setLoadingTickets] = useState(true);
@@ -59,19 +64,26 @@ export default function SupportCenterPage() {
         fetchTickets();
     }, []);
 
-    const filteredFaqs = faqs.filter(faq => 
-        faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        faq.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        faq.category.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredFaqs = searchQuery.trim() === "" ? faqs : faqs.map(cat => {
+        const matchesCategory = cat.category.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchedQuestions = cat.questions.filter(faq => 
+            faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        
+        if (matchesCategory) {
+            return cat;
+        } else if (matchedQuestions.length > 0) {
+            return { ...cat, questions: matchedQuestions };
+        }
+        return null;
+    }).filter(Boolean) as FAQCategory[];
 
     const filteredTickets = tickets.filter(ticket => 
         ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.ticketNumber?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    const faqCategories = Array.from(new Set(filteredFaqs.map(f => f.category)));
 
     return (
         <div className="flex flex-col min-h-screen bg-background animate-in fade-in duration-500">
@@ -199,14 +211,14 @@ export default function SupportCenterPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {faqCategories.map(category => (
-                                    <div key={category} className="space-y-4">
+                                {filteredFaqs.map(cat => (
+                                    <div key={cat.id || cat.category} className="space-y-4">
                                         <div className="flex items-center gap-3 px-2">
                                             <div className="h-1 w-1 rounded-full bg-tatt-lime" />
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">{category}</h4>
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">{cat.category}</h4>
                                         </div>
                                         <div className="grid gap-3">
-                                            {filteredFaqs.filter(f => f.category === category).map((faq) => (
+                                            {cat.questions.map((faq) => (
                                                 <div 
                                                     key={faq.id} 
                                                     className={`bg-surface border border-border rounded-2xl transition-all hover:border-tatt-lime/30 overflow-hidden ${expandedFaq === faq.id ? 'ring-1 ring-tatt-lime/20 shadow-sm' : ''}`}
