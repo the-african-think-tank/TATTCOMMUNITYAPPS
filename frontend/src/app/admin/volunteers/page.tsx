@@ -356,8 +356,8 @@ export default function VolunteerCenterPage() {
 
             {activeTab === 'registry' ? (
                 /* Agent Registry Content */
-                <div className="bg-surface border border-border rounded-[2.5rem] shadow-xl shadow-black/5 overflow-hidden animate-in fade-in duration-500">
-                    <div className="p-8 border-b border-border flex flex-wrap gap-6 items-center justify-between bg-surface/50 backdrop-blur-sm">
+                <div className="bg-surface border border-border rounded-[2.5rem] shadow-xl shadow-black/5 animate-in fade-in duration-500">
+                    <div className="p-8 border-b border-border flex flex-wrap gap-6 items-center justify-between bg-surface/50 backdrop-blur-sm rounded-t-[2.5rem]">
                         <div className="flex items-center gap-4">
                             <h5 className="text-xl font-black uppercase italic tracking-tighter text-foreground">Active Agent Registry</h5>
                             <div className="px-3 py-1 rounded-full bg-tatt-lime/10 text-tatt-lime text-[10px] font-black border border-tatt-lime/20 tracking-widest uppercase">SECURE DATA</div>
@@ -404,7 +404,7 @@ export default function VolunteerCenterPage() {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-b-[2.5rem]">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-border bg-background/30">
@@ -559,8 +559,8 @@ export default function VolunteerCenterPage() {
                 </div>
             ) : activeTab === 'roles' ? (
                 /* Volunteer Roles Section */
-                <div className="bg-surface border border-border rounded-[2.5rem] shadow-xl shadow-black/5 overflow-hidden animate-in fade-in duration-500">
-                    <div className="p-8 border-b border-border flex flex-wrap gap-6 items-center justify-between bg-surface/50 backdrop-blur-sm">
+                <div className="bg-surface border border-border rounded-[2.5rem] shadow-xl shadow-black/5 animate-in fade-in duration-500">
+                    <div className="p-8 border-b border-border flex flex-wrap gap-6 items-center justify-between bg-surface/50 backdrop-blur-sm rounded-t-[2.5rem]">
                         <div className="flex items-center gap-4">
                             <h5 className="text-xl font-black uppercase italic tracking-tighter text-foreground">Volunteer Role Management</h5>
                             <div className="px-3 py-1 rounded-full bg-tatt-lime/10 text-tatt-lime text-[10px] font-black border border-tatt-lime/20 tracking-widest uppercase">Pipeline</div>
@@ -585,7 +585,7 @@ export default function VolunteerCenterPage() {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-b-[2.5rem]">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-border bg-background/30">
@@ -648,15 +648,15 @@ export default function VolunteerCenterPage() {
                 </div>
             ) : (
                 /* Application Queue Section */
-                <div className="bg-surface border border-border rounded-[2.5rem] shadow-xl shadow-black/5 overflow-hidden animate-in fade-in duration-500">
-                    <div className="p-8 border-b border-border flex flex-wrap gap-6 items-center justify-between bg-surface/50 backdrop-blur-sm">
+                <div className="bg-surface border border-border rounded-[2.5rem] shadow-xl shadow-black/5 animate-in fade-in duration-500">
+                    <div className="p-8 border-b border-border flex flex-wrap gap-6 items-center justify-between bg-surface/50 backdrop-blur-sm rounded-t-[2.5rem]">
                         <div className="flex items-center gap-4">
                             <h5 className="text-xl font-black uppercase italic tracking-tighter text-foreground">Recruitment Pipeline</h5>
                             <div className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-black border border-amber-500/20 tracking-widest uppercase">Awaiting Action</div>
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-b-[2.5rem]">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-border bg-background/30">
