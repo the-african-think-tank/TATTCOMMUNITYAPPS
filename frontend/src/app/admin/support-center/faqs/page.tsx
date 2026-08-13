@@ -212,7 +212,7 @@ export default function FaqsManagementPage() {
                         <Search className="size-4 text-tatt-gray mr-2" />
                         <input 
                             type="text" 
-                            placeholder="Search questions or topics..." 
+                            placeholder="Search FAQs" 
                             className="bg-transparent border-none focus:ring-0 text-sm text-foreground placeholder:text-tatt-gray w-64 p-0 outline-none"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}

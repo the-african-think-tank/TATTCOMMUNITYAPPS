@@ -193,7 +193,7 @@ export default function RevenueCenterPage() {
     );
   }
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-tatt-lime selection:text-tatt-black">
