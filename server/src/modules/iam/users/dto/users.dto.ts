@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsArray, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { SystemRole, AccountFlags, ConnectionPreference } from '../../enums/roles.enum';
+import { SystemRole, AccountFlags, ConnectionPreference, CommunityTier } from '../../enums/roles.enum';
 
 export class UpdateUserDto {
     @ApiProperty({ required: false })
@@ -52,6 +52,11 @@ export class UpdateUserDto {
     @IsEnum(SystemRole)
     @IsOptional()
     systemRole?: SystemRole;
+
+    @ApiProperty({ description: 'The community membership tier', enum: CommunityTier, required: false })
+    @IsEnum(CommunityTier)
+    @IsOptional()
+    communityTier?: CommunityTier;
 
     @ApiProperty({ description: 'Array of account flags/permissions', enum: [AccountFlags], isArray: true, required: false })
     @IsArray()

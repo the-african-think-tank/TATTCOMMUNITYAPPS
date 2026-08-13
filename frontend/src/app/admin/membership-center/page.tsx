@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
 import {
     IdCard,
     Users,
@@ -35,8 +36,23 @@ import toast from "react-hot-toast";
 
 type TabType = "OVERVIEW" | "PLANS" | "DISCOUNTS" | "MEMBERS";
 
+const TIER_OPTIONS = [
+    'FREE',
+    'UBUNTU',
+    'IMANI',
+    'KIONGOZI',
+] as const;
+
+const TIER_LABELS: Record<string, string> = {
+    FREE: 'Free',
+    UBUNTU: 'Ubuntu',
+    IMANI: 'Imani',
+    KIONGOZI: 'Kiongozi',
+};
+
 export default function MembershipCenterPage() {
     const router = useRouter();
+    const { user: currentUser } = useAuth();
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabType>("OVERVIEW");
 
@@ -68,6 +84,7 @@ export default function MembershipCenterPage() {
         chapterId: "",
         billingCycle: "",
         search: "",
+        role: "",
         page: 1,
         limit: 10
     });
@@ -81,6 +98,9 @@ export default function MembershipCenterPage() {
     const [isCreatingPromo, setIsCreatingPromo] = useState(false);
     const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [reassignTarget, setReassignTarget] = useState<{ id: string; name: string; currentTier: string } | null>(null);
+    const [reassignTier, setReassignTier] = useState<string>('');
+    const [reassigning, setReassigning] = useState(false);
 
     const fetchAllData = useCallback(async () => {
         setLoading(true);
@@ -196,6 +216,23 @@ export default function MembershipCenterPage() {
             fetchAllData();
         } catch (err) {
             toast.error(`Failed to perform bulk ${action}`);
+        }
+    };
+
+    // --- Reassign Membership Tier ---
+    const handleReassignTier = async () => {
+        if (!reassignTarget || !reassignTier) return;
+        setReassigning(true);
+        try {
+            await api.patch(`/users/${reassignTarget.id}`, { communityTier: reassignTier });
+            toast.success(`${reassignTarget.name} reassigned to ${TIER_LABELS[reassignTier]} Tier`);
+            setReassignTarget(null);
+            setReassignTier('');
+            fetchAllData();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || 'Failed to reassign tier');
+        } finally {
+            setReassigning(false);
         }
     };
 
@@ -625,6 +662,15 @@ export default function MembershipCenterPage() {
                             </div>
                             <div className="flex gap-4 w-full md:w-auto overflow-x-auto pb-1">
                                 <FilterSelect 
+                                    value={filters.role} 
+                                    onChange={(v) => handleFilterChange("role", v)}
+                                    options={[
+                                        { label: "All Account Types", value: "" },
+                                        { label: "Community Members", value: "COMMUNITY_MEMBER" },
+                                        { label: "Staff Accounts", value: "STAFF" },
+                                    ]}
+                                />
+                                <FilterSelect 
                                     value={filters.tier} 
                                     onChange={(v) => handleFilterChange("tier", v)}
                                     options={[
@@ -738,10 +784,14 @@ export default function MembershipCenterPage() {
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
                                                         <button 
-                                                            onClick={() => { router.push(`/admin/membership-center/members/${member.id}`); setOpenMenuId(null); }}
+                                                            onClick={() => { 
+                                                                setReassignTarget({ id: member.id, name: `${member.firstName} ${member.lastName}`, currentTier: member.communityTier || 'FREE' });
+                                                                setReassignTier(member.communityTier || 'FREE');
+                                                                setOpenMenuId(null); 
+                                                            }}
                                                             className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:bg-background hover:text-foreground rounded-xl transition-all flex items-center gap-3"
                                                         >
-                                                            <Edit2 size={14} /> Edit Member
+                                                            <IdCard size={14} /> Reassign Tier
                                                         </button>
                                                         <button 
                                                             onClick={() => { handleBulkAction('archive'); setOpenMenuId(null); }}
@@ -791,6 +841,67 @@ export default function MembershipCenterPage() {
 
             {/* Spacing for layout */}
             <div className="h-12"></div>
+
+            {/* ── Reassign Tier Modal ── */}
+            {reassignTarget && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => { setReassignTarget(null); setReassignTier(''); }}>
+                    <div 
+                        className="bg-surface border border-border rounded-[2rem] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-8 border-b border-border">
+                            <h3 className="text-lg font-black text-foreground tracking-tight">Reassign Tier</h3>
+                            <p className="text-[11px] text-tatt-gray font-bold mt-1 tracking-wide">
+                                Change membership tier for <span className="text-foreground">{reassignTarget.name}</span>
+                            </p>
+                        </div>
+                        <div className="p-8 space-y-5">
+                            <div>
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-tatt-gray block mb-2">Current Tier</label>
+                                <div className="px-4 py-3 bg-background rounded-xl border border-border text-[11px] font-black uppercase tracking-widest text-tatt-gray">
+                                    {TIER_LABELS[reassignTarget.currentTier] || reassignTarget.currentTier}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-tatt-gray block mb-2">New Tier</label>
+                                <select
+                                    value={reassignTier}
+                                    onChange={(e) => setReassignTier(e.target.value)}
+                                    className="w-full px-4 py-3 bg-background rounded-xl border border-border text-[11px] font-black uppercase tracking-widest text-foreground focus:outline-none focus:border-tatt-lime transition-colors cursor-pointer appearance-none"
+                                >
+                                    {TIER_OPTIONS.map(tier => (
+                                        <option key={tier} value={tier}>{TIER_LABELS[tier]}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {reassignTier !== reassignTarget.currentTier && (
+                                <div className="p-3 rounded-xl bg-tatt-lime/5 border border-tatt-lime/20">
+                                    <p className="text-[10px] font-bold text-tatt-lime-dark">
+                                        <IdCard size={12} className="inline mr-1.5 -mt-0.5" />
+                                        This will change {reassignTarget.name.split(' ')[0]}&apos;s tier from <strong>{TIER_LABELS[reassignTarget.currentTier]}</strong> to <strong>{TIER_LABELS[reassignTier]}</strong>.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-8 border-t border-border flex gap-3 justify-end">
+                            <button
+                                onClick={() => { setReassignTarget(null); setReassignTier(''); }}
+                                className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:text-foreground rounded-xl border border-border hover:bg-background transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleReassignTier}
+                                disabled={reassigning || reassignTier === reassignTarget.currentTier}
+                                className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest bg-tatt-lime text-tatt-black rounded-xl hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {reassigning && <Loader2 size={12} className="animate-spin" />}
+                                {reassigning ? 'Saving...' : 'Confirm'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

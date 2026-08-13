@@ -6,7 +6,7 @@ import { MembershipTier } from './entities/membership-tier.entity';
 import { MembershipPlan } from './entities/membership-plan.entity';
 import { Discount, DiscountType, DiscountDuration } from './entities/discount.entity';
 import { User } from '../iam/entities/user.entity';
-import { CommunityTier } from '../iam/enums/roles.enum';
+import { CommunityTier, SystemRole } from '../iam/enums/roles.enum';
 import { Chapter } from '../chapters/entities/chapter.entity';
 import { Sequelize } from 'sequelize-typescript';
 import Stripe from 'stripe';
@@ -269,7 +269,7 @@ export class MembershipService implements OnApplicationBootstrap {
     // --- Members Management ---
 
     async getSubscribedMembers(filters: any) {
-        const { chapterId, tier, billingCycle, search, page = 1, limit = 10 } = filters;
+        const { chapterId, tier, billingCycle, search, role, page = 1, limit = 10 } = filters;
         const where: any = {};
         const offset = (page - 1) * limit;
 
@@ -283,6 +283,14 @@ export class MembershipService implements OnApplicationBootstrap {
 
         if (billingCycle) {
             where.billingCycle = billingCycle;
+        }
+
+        if (role) {
+            if (role === 'COMMUNITY_MEMBER') {
+                where.systemRole = SystemRole.COMMUNITY_MEMBER;
+            } else if (role === 'STAFF') {
+                where.systemRole = { [Op.ne]: SystemRole.COMMUNITY_MEMBER };
+            }
         }
 
         if (search) {
