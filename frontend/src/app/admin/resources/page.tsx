@@ -16,7 +16,8 @@ import {
     Loader2,
     X,
     ExternalLink,
-    AlertCircle
+    AlertCircle,
+    Pencil
 } from "lucide-react";
 import api from "@/services/api";
 import { toast, Toaster } from "react-hot-toast";
@@ -231,6 +232,13 @@ export default function ResourcesAdminPage() {
                                                             <ExternalLink size={18} />
                                                         </a>
                                                     )}
+                                                    <button 
+                                                        onClick={() => router.push(`/admin/resources/edit/${resource.id}`)}
+                                                        className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" 
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil size={18} />
+                                                    </button>
                                                     <button onClick={() => handleDeleteResource(resource.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Archive">
                                                         <X size={18} />
                                                     </button>
