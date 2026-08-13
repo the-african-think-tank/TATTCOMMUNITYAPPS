@@ -58,6 +58,12 @@ export class CreateResourceDto {
     @IsEnum(CommunityTier)
     minTier?: CommunityTier = CommunityTier.FREE;
 
+    @ApiPropertyOptional({ type: [String], description: 'Specific allowed membership tiers' })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    allowedTiers?: string[];
+
     @ApiPropertyOptional({ type: [String], description: 'Topics for categorization', example: ['Legal', 'Tech', 'Deals'], maxItems: 20 })
     @IsOptional()
     @IsArray()
@@ -114,6 +120,12 @@ export class UpdateResourceDto {
     @IsOptional()
     @IsEnum(CommunityTier)
     minTier?: CommunityTier;
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    allowedTiers?: string[];
 
     @ApiPropertyOptional({ type: [String], maxItems: 20 })
     @IsOptional()

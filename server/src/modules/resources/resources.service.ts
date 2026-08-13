@@ -43,8 +43,14 @@ function isContentAdmin(user: User): boolean {
 
 /** For view/read/activate: user must meet minTier and (if resource has chapterId) belong to that chapter */
 function canAccessResource(user: User, resource: Resource): boolean {
-    if (!meetsTierRequirement(user.communityTier, resource.minTier)) {
-        return false;
+    if (resource.allowedTiers && resource.allowedTiers.length > 0) {
+        if (!resource.allowedTiers.includes(user.communityTier)) {
+            return false;
+        }
+    } else {
+        if (!meetsTierRequirement(user.communityTier, resource.minTier)) {
+            return false;
+        }
     }
     if (resource.chapterId != null) {
         return user.chapterId === resource.chapterId;
@@ -72,6 +78,7 @@ export class ResourcesService {
                 chapterId: dto.chapterId ?? undefined,
                 visibility: dto.visibility ?? ResourceVisibility.PUBLIC,
                 minTier: dto.minTier ?? CommunityTier.FREE,
+                allowedTiers: dto.allowedTiers ?? [],
                 tags: dto.tags ?? [],
                 metadata: dto.metadata,
             });
@@ -93,6 +100,7 @@ export class ResourcesService {
             ...(dto.chapterId !== undefined && { chapterId: dto.chapterId || null }),
             ...(dto.visibility !== undefined && { visibility: dto.visibility }),
             ...(dto.minTier !== undefined && { minTier: dto.minTier }),
+            ...(dto.allowedTiers !== undefined && { allowedTiers: dto.allowedTiers }),
             ...(dto.tags !== undefined && { tags: dto.tags }),
             ...(dto.metadata !== undefined && { metadata: dto.metadata }),
         });
@@ -133,25 +141,39 @@ export class ResourcesService {
                 const visibilityCondition = user.chapterId
                     ? {
                         [Op.or]: [
-                            // Always show PUBLIC resources (regardless of minTier)
                             { visibility: ResourceVisibility.PUBLIC },
-                            // Show RESTRICTED resources only if user's tier qualifies
                             {
                                 visibility: ResourceVisibility.RESTRICTED,
-                                minTier: { [Op.in]: allowedMinTiers },
-                                [Op.or]: [{ chapterId: null }, { chapterId: user.chapterId }],
+                                [Op.and]: [
+                                    {
+                                        [Op.or]: [
+                                            { minTier: { [Op.in]: allowedMinTiers } },
+                                            { allowedTiers: { [Op.overlap]: [user.communityTier] } },
+                                        ],
+                                    },
+                                    {
+                                        [Op.or]: [{ chapterId: null }, { chapterId: user.chapterId }],
+                                    }
+                                ]
                             },
                         ],
                     }
                     : {
                         [Op.or]: [
-                            // Always show PUBLIC resources (regardless of minTier)
                             { visibility: ResourceVisibility.PUBLIC },
-                            // Show RESTRICTED resources only if user's tier qualifies
                             {
                                 visibility: ResourceVisibility.RESTRICTED,
-                                minTier: { [Op.in]: allowedMinTiers },
-                                chapterId: null,
+                                [Op.and]: [
+                                    {
+                                        [Op.or]: [
+                                            { minTier: { [Op.in]: allowedMinTiers } },
+                                            { allowedTiers: { [Op.overlap]: [user.communityTier] } },
+                                        ],
+                                    },
+                                    {
+                                        chapterId: null,
+                                    }
+                                ]
                             },
                         ],
                     };
@@ -218,7 +240,7 @@ export class ResourcesService {
 
     private toCardSchema(resource: Resource, user?: User) {
         const isLocked = user
-            ? !meetsTierRequirement(user.communityTier, resource.minTier)
+            ? !canAccessResource(user, resource)
             : false;
         return {
             id: resource.id,
@@ -229,6 +251,7 @@ export class ResourcesService {
             chapterId: resource.chapterId ?? null,
             visibility: resource.visibility,
             minTier: resource.minTier,
+            allowedTiers: resource.allowedTiers ?? [],
             tags: resource.tags ?? [],
             isLocked,
             createdAt: resource.createdAt?.toISOString(),

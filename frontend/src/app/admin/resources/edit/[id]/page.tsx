@@ -33,7 +33,7 @@ export default function EditResourcePage() {
         category: "General",
         contentUrl: "",
     });
-    const [minTier, setMinTier] = useState<string>("FREE");
+    const [selectedTiers, setSelectedTiers] = useState<string[]>(["FREE"]);
     const [existingCategories, setExistingCategories] = useState<string[]>(["General", "Strategic", "Community", "Leadership"]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
@@ -56,7 +56,8 @@ export default function EditResourcePage() {
                         category: resource.tags?.[0] || "General",
                         contentUrl: resource.contentUrl || "",
                     });
-                    setMinTier(resource.minTier || "FREE");
+                    // Set selectedTiers directly
+                    setSelectedTiers(resource.allowedTiers || [resource.minTier || "FREE"]);
                 }
 
                 const tags = new Set<string>(["General", "Strategic", "Community", "Leadership"]);
@@ -79,6 +80,14 @@ export default function EditResourcePage() {
     );
 
 
+
+    const handleTierChange = (tier: string) => {
+        if (selectedTiers.includes(tier)) {
+            setSelectedTiers(selectedTiers.filter(t => t !== tier));
+        } else {
+            setSelectedTiers([...selectedTiers, tier]);
+        }
+    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -110,9 +119,19 @@ export default function EditResourcePage() {
 
         setIsSubmitting(true);
         try {
+            // Determine hierarchical minTier as the highest selected tier
+            const tiers = ["FREE", "UBUNTU", "IMANI", "KIONGOZI"];
+            let minTier = "FREE";
+            for (const tier of tiers) {
+                if (selectedTiers.includes(tier)) {
+                    minTier = tier;
+                }
+            }
+
             await api.patch(`/resources/${id}`, {
                 ...formData,
                 minTier,
+                allowedTiers: selectedTiers,
                 tags: formData.category ? [formData.category] : [],
                 visibility: "PUBLIC"
             });
@@ -345,25 +364,24 @@ export default function EditResourcePage() {
                                 <label 
                                     key={tier.id}
                                     className={`group relative flex flex-col items-center justify-center p-8 border-2 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${
-                                        minTier === tier.id 
+                                        selectedTiers.includes(tier.id) 
                                             ? 'bg-tatt-lime/10 border-tatt-lime shadow-lg shadow-tatt-lime/10' 
                                             : 'bg-slate-50 border-slate-200 hover:border-tatt-lime/50'
                                     }`}
                                 >
                                     <input 
-                                        type="radio"
-                                        name="minTier"
+                                        type="checkbox"
                                         className="hidden"
-                                        checked={minTier === tier.id}
-                                        onChange={() => setMinTier(tier.id)}
+                                        checked={selectedTiers.includes(tier.id)}
+                                        onChange={() => handleTierChange(tier.id)}
                                     />
-                                    <div className={`mb-4 transition-transform duration-300 group-hover:scale-110 ${minTier === tier.id ? 'text-tatt-lime-dark' : 'text-slate-400'}`}>
+                                    <div className={`mb-4 transition-transform duration-300 group-hover:scale-110 ${selectedTiers.includes(tier.id) ? 'text-tatt-lime-dark' : 'text-slate-400'}`}>
                                         {tier.icon}
                                     </div>
                                     <span className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{tier.label}</span>
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{tier.sub}</span>
                                     
-                                    {minTier === tier.id && (
+                                    {selectedTiers.includes(tier.id) && (
                                         <div className="absolute top-4 right-4 text-tatt-lime">
                                             <CheckCircle2 size={24} />
                                         </div>

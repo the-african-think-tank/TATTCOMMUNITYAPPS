@@ -87,6 +87,13 @@ export class Resource extends Model<Resource> {
 
     @Column({
         type: DataType.ARRAY(DataType.STRING),
+        allowNull: true,
+        defaultValue: [],
+    })
+    allowedTiers?: string[];
+
+    @Column({
+        type: DataType.ARRAY(DataType.STRING),
         allowNull: false,
         defaultValue: [],
     })
