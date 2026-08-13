@@ -568,7 +568,6 @@ export default function RevenueCenterPage() {
                         <div className={`size-8 rounded-lg flex items-center justify-center border ${tx.type === 'SUBSCRIPTION' ? 'bg-tatt-lime/10 text-tatt-lime border-tatt-lime/10' : 'bg-tatt-bronze/10 text-tatt-bronze border-tatt-bronze/10'}`}>
                           {tx.type === 'SUBSCRIPTION' ? <MaterialIcon icon="subscriptions" /> : <MaterialIcon icon="shopping_bag" />}
                         </div>
-                        <span className="text-xs font-bold uppercase tracking-widest text-foreground">{tx.type}</span>
                       </span>
                     </td>
                     <td className="px-6 py-6">
