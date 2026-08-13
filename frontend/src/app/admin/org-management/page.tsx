@@ -19,12 +19,14 @@ import {
     AlertCircle,
     Trash2,
     X,
-    Mail
+    Mail,
+    KeyRound
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/auth-context";
 import { useSearchParams, useRouter } from "next/navigation";
+import { UserCreationModal } from "@/components/admin/user-creation-modal";
 
 interface Member {
     id: string;
@@ -54,6 +56,7 @@ function OrgManagementContent() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [showCreateModal, setShowCreateModal] = useState(false);
     const { user } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -151,13 +154,24 @@ function OrgManagementContent() {
                     <h2 className="text-2xl font-black tracking-tight text-foreground">Organization Management</h2>
                     <p className="text-tatt-gray text-sm">Control administrative roles and regional chapter staff.</p>
                 </div>
-                <Link
-                    href="/admin/org-management/add"
-                    className="bg-tatt-lime text-tatt-black px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:brightness-95 transition-all shadow-sm uppercase tracking-widest"
-                >
-                    <UserPlus size={18} />
-                    Add Team Member
-                </Link>
+                <div className="flex items-center gap-3">
+                    {user?.systemRole === "SUPERADMIN" && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="bg-foreground text-background px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:brightness-90 transition-all shadow-sm uppercase tracking-widest"
+                        >
+                            <KeyRound size={18} />
+                            Create Account
+                        </button>
+                    )}
+                    <Link
+                        href="/admin/org-management/add"
+                        className="bg-tatt-lime text-tatt-black px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:brightness-95 transition-all shadow-sm uppercase tracking-widest"
+                    >
+                        <UserPlus size={18} />
+                        Add Team Member
+                    </Link>
+                </div>
             </div>
 
             {activeRoleFilter && (
@@ -338,6 +352,13 @@ function OrgManagementContent() {
                     </div>
                 </div>
             </div>
+
+            {/* User Creation Modal (Superadmin Only) */}
+            <UserCreationModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onCreated={fetchData}
+            />
         </div>
     );
 }

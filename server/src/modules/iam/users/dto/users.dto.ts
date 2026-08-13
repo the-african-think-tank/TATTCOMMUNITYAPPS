@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsArray, IsBoolean, IsEmail, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SystemRole, AccountFlags, ConnectionPreference, CommunityTier } from '../../enums/roles.enum';
 
@@ -153,4 +153,50 @@ export class UpdateProfileDto {
     @ApiProperty({ required: false })
     @IsBoolean() @IsOptional()
     hasAutoPayEnabled?: boolean;
+}
+
+export class CreateUserWithPasswordDto {
+    @ApiProperty()
+    @IsEmail()
+    email: string;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    firstName: string;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    lastName: string;
+
+    @ApiProperty({ required: false, enum: SystemRole })
+    @IsOptional()
+    @IsEnum(SystemRole)
+    systemRole?: SystemRole;
+
+    @ApiProperty({ required: false, enum: CommunityTier })
+    @IsOptional()
+    @IsEnum(CommunityTier)
+    communityTier?: CommunityTier;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    phoneNumber?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    professionTitle?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    location?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    chapterId?: string;
 }
