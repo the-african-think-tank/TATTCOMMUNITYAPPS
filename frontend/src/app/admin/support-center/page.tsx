@@ -108,7 +108,7 @@ export default function SupportCenterOverview() {
                 <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm border-l-4 border-l-tatt-error">
                     <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-tatt-gray mb-4">Unresolved Urgent</p>
                     <div className="flex items-baseline gap-3">
-                        <span className="text-4xl font-black tracking-tighter text-tatt-error">{String(overview.unresolvedUrgent).padStart(2, '0')}</span>
+                        <span className="text-4xl font-black tracking-tighter text-tatt-error">{overview.unresolvedUrgent}</span>
                         <span className="text-tatt-gray text-[10px] uppercase font-bold tracking-widest">Requires Action</span>
                     </div>
                     <div className="mt-4 flex gap-1">
