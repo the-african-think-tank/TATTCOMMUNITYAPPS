@@ -668,7 +668,8 @@ export default function AdminJobsCenterPage() {
 
                             {selectedApp.resumeUrl && (
                                 <a
-                                    href={selectedApp.resumeUrl} target="_blank" rel="noreferrer"
+                                    href={selectedApp.resumeUrl.startsWith("http") ? selectedApp.resumeUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api$/, "")}${selectedApp.resumeUrl.startsWith("/") ? "" : "/"}${selectedApp.resumeUrl}`}
+                                    target="_blank" rel="noreferrer"
                                     className="block w-full py-4 rounded-2xl bg-foreground text-background font-black uppercase tracking-[0.2em] text-[10px] text-center hover:opacity-90 transition-all shadow-lg"
                                 >
                                     View / Download Resume
