@@ -13,7 +13,7 @@ import { SystemRole } from '../iam/enums/roles.enum';
 
 @ApiTags('Admin / Feed Moderation')
 @ApiBearerAuth()
-@Roles(SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.MODERATOR)
+@Roles(SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.MODERATOR, SystemRole.CONTENT_ADMIN)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('admin/feed')
 export class FeedAdminController {
