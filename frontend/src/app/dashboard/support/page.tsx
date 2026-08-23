@@ -7,8 +7,7 @@ import {
     ChevronDown, 
     Loader2, 
     Plus, 
-    MessageSquare, 
-    HelpCircle
+    MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -191,61 +190,58 @@ export default function SupportCenterPage() {
                     </div>
 
                     {/* FAQ Section */}
-                    <div className="space-y-8 pt-8 border-t border-border">
-                        <div className="flex items-end justify-between pb-6">
-                            <div>
-                                <h3 className="text-3xl font-black tracking-tighter">Common FAQs</h3>
+                    {(loadingFaqs || filteredFaqs.length > 0) && (
+                        <div className="space-y-8 pt-8 border-t border-border">
+                            <div className="flex items-end justify-between pb-6">
+                                <div>
+                                    <h3 className="text-3xl font-black tracking-tighter">Common FAQs</h3>
+                                </div>
+                                <Link href="#" className="text-xs font-bold text-tatt-lime hover:underline transition-all underline-offset-4">Browse All</Link>
                             </div>
-                            <Link href="#" className="text-xs font-bold text-tatt-lime hover:underline transition-all underline-offset-4">Browse All</Link>
-                        </div>
 
-                        {loadingFaqs ? (
-                            <div className="py-12 flex flex-col items-center justify-center gap-4">
-                                <Loader2 className="h-8 w-8 animate-spin text-tatt-lime" />
-                                <p className="text-xs font-bold text-tatt-gray uppercase tracking-widest animate-pulse">Syncing Repository Data...</p>
-                            </div>
-                        ) : filteredFaqs.length === 0 ? (
-                            <div className="py-20 text-center space-y-4">
-                                <HelpCircle className="h-12 w-12 text-tatt-gray/20 mx-auto" />
-                                <p className="text-tatt-gray italic">No archives found matching your query.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {filteredFaqs.map(cat => (
-                                    <div key={cat.id || cat.category} className="space-y-4">
-                                        <div className="flex items-center gap-3 px-2">
-                                            <div className="h-1 w-1 rounded-full bg-tatt-lime" />
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">{cat.category}</h4>
-                                        </div>
-                                        <div className="grid gap-3">
-                                            {cat.questions.map((faq) => (
-                                                <div 
-                                                    key={faq.id} 
-                                                    className={`bg-surface border border-border rounded-2xl transition-all hover:border-tatt-lime/30 overflow-hidden ${expandedFaq === faq.id ? 'ring-1 ring-tatt-lime/20 shadow-sm' : ''}`}
-                                                >
-                                                    <button 
-                                                        onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
-                                                        className="w-full text-left p-6 flex justify-between items-center gap-4"
+                            {loadingFaqs ? (
+                                <div className="py-12 flex flex-col items-center justify-center gap-4">
+                                    <Loader2 className="h-8 w-8 animate-spin text-tatt-lime" />
+                                    <p className="text-xs font-bold text-tatt-gray uppercase tracking-widest animate-pulse">Syncing Repository Data...</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {filteredFaqs.map(cat => (
+                                        <div key={cat.id || cat.category} className="space-y-4">
+                                            <div className="flex items-center gap-3 px-2">
+                                                <div className="h-1 w-1 rounded-full bg-tatt-lime" />
+                                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">{cat.category}</h4>
+                                            </div>
+                                            <div className="grid gap-3">
+                                                {cat.questions.map((faq) => (
+                                                    <div 
+                                                        key={faq.id} 
+                                                        className={`bg-surface border border-border rounded-2xl transition-all hover:border-tatt-lime/30 overflow-hidden ${expandedFaq === faq.id ? 'ring-1 ring-tatt-lime/20 shadow-sm' : ''}`}
                                                     >
-                                                        <span className="font-bold text-foreground">{faq.question}</span>
-                                                        <ChevronDown className={`h-5 w-5 text-tatt-gray transition-transform duration-300 ${expandedFaq === faq.id ? 'rotate-180 text-tatt-lime' : ''}`} />
-                                                    </button>
-                                                    {expandedFaq === faq.id && (
-                                                        <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
-                                                            <div className="h-px bg-border mb-6" />
-                                                            <p className="text-tatt-gray text-sm leading-relaxed whitespace-pre-wrap">
-                                                                {faq.answer}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                        <button 
+                                                            onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+                                                            className="w-full text-left p-6 flex justify-between items-center gap-4"
+                                                        >
+                                                            <span className="font-bold text-foreground">{faq.question}</span>
+                                                            <ChevronDown className={`h-5 w-5 text-tatt-gray transition-transform duration-300 ${expandedFaq === faq.id ? 'rotate-180 text-tatt-lime' : ''}`} />
+                                                        </button>
+                                                        {expandedFaq === faq.id && (
+                                                            <div className="px-6 pb-6 animate-in slide-in-from-top-2 duration-300">
+                                                                <div className="h-px bg-border mb-6" />
+                                                                <p className="text-tatt-gray text-sm leading-relaxed whitespace-pre-wrap">
+                                                                    {faq.answer}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
