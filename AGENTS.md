@@ -52,17 +52,21 @@ This monorepo consists of three core packages:
 
 ## 🛡️ Strict AI Code Guidelines & Best Practices
 
-1. **Modern Syntax & Readability**:
+1. **UX Standards & Cursor Feedback**:
+   - Always include `cursor-pointer` on interactive elements (`<button>`, `<Link>`, clickable cards, tab triggers, dropdown items, close icons, overlays).
+   - Use `disabled:cursor-not-allowed disabled:opacity-50` for disabled buttons/inputs.
+   - Include tactile press feedback (`active:scale-95`), hover transitions (`hover:... transition-all` / `transition-colors`), and accessible focus states (`focus:outline-none focus:ring-2`).
+2. **Modern Syntax & Readability**:
    - Always use modern ECMAScript/TypeScript syntax (e.g. optional chaining `?.`, nullish coalescing `??`, modern array methods, async/await).
    - Write clear, intuitive, and modern code. Prioritize readability and legibility over overly dense or obscure expressions.
-2. **Clean Code & Modularity**:
+3. **Clean Code & Modularity**:
    - Keep files small, focused, and clean. Never allow files or components to grow too large or bloated.
    - Break large components and handlers into modular, composable functions, custom hooks, or sub-components.
-3. **Check Before Creating**:
+4. **Check Before Creating**:
    - ALWAYS search the codebase to verify if a utility, hook, component, DTO, or model already exists before creating a new one. Reuse existing implementations.
-4. **No Unrequested Git Commits or Pushes**:
+5. **No Unrequested Git Commits or Pushes**:
    - **NEVER** run `git commit` or `git push` commands unless explicitly requested by the user in the prompt.
-5. **Strict Type Safety**: Write strict TypeScript types; avoid `any` when defining API contracts, models, or state objects.
-6. **NestJS & Next.js Architecture**: Follow modern NestJS module standards (`module`, `controller`, `service`, `dto`, `model`) and Next.js 16 App Router conventions.
-7. **Conditional UI Rendering**: When lists or sections are empty or optional (e.g. FAQs, search results), handle loading states gracefully and hide empty containers completely when appropriate.
-8. **No Blind Symptom Patching**: Read full error logs and trace upstream logic before making fixes.
+6. **Strict Type Safety**: Write strict TypeScript types; avoid `any` when defining API contracts, models, or state objects.
+7. **NestJS & Next.js Architecture**: Follow modern NestJS module standards (`module`, `controller`, `service`, `dto`, `model`) and Next.js 16 App Router conventions.
+8. **Conditional UI Rendering**: When lists or sections are empty or optional (e.g. FAQs, search results), handle loading states gracefully and hide empty containers completely when appropriate.
+9. **No Blind Symptom Patching**: Read full error logs and trace upstream logic before making fixes.

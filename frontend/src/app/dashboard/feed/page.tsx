@@ -395,7 +395,7 @@ export default function FeedPage() {
             return;
         }
         setConnectModal({ open: true, member });
-        setConnectMessage(`Hi ${member.firstName}, I saw your profile in my elite recommendations and would love to connect and share strategic insights.`);
+        setConnectMessage("");
     };
 
     const submitConnect = async () => {
@@ -1094,26 +1094,32 @@ export default function FeedPage() {
             {/* Connection Modal */}
             {connectModal.open && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setConnectModal({ open: false, member: null })} />
-                    <div className="relative bg-white  w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer" onClick={() => setConnectModal({ open: false, member: null })} />
+                    <div className="relative bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-white/10">
                         <div className="p-6 border-b border-border flex items-center justify-between bg-black/5">
                             <h3 className="font-bold">Connect with {connectModal.member?.firstName}</h3>
-                            <button onClick={() => setConnectModal({ open: false, member: null })} className="p-2 hover:bg-black/5 rounded-full transition-colors">
+                            <button onClick={() => setConnectModal({ open: false, member: null })} className="p-2 hover:bg-black/5 rounded-full transition-colors cursor-pointer">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
-                            <p className="text-sm text-tatt-gray">Add a personalized message to your connection request.</p>
+                            <div>
+                                <label className="block text-xs font-bold text-foreground mb-1">
+                                    Personalized Message <span className="text-red-500 font-bold">*</span>
+                                </label>
+                                <p className="text-xs text-tatt-gray">Please write a brief message to accompany your connection request.</p>
+                            </div>
                             <textarea
                                 value={connectMessage}
                                 onChange={(e) => setConnectMessage(e.target.value)}
-                                className="w-full bg-black/5  border border-border rounded-xl p-4 text-sm focus:ring-1 focus:ring-tatt-lime outline-none min-h-[120px]"
-                                placeholder="Write your message..."
+                                required
+                                className="w-full bg-black/5 border border-border rounded-xl p-4 text-sm focus:ring-1 focus:ring-tatt-lime outline-none min-h-[100px]"
+                                placeholder="Write your message... (Required)"
                             />
                             <button
                                 onClick={submitConnect}
-                                disabled={isSendingConnect}
-                                className="w-full bg-tatt-lime text-black font-black py-3 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                                disabled={isSendingConnect || !connectMessage.trim()}
+                                className="w-full bg-tatt-lime text-black font-black py-3 rounded-xl uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {isSendingConnect ? <div className="size-4 border-2 border-black border-t-transparent animate-spin rounded-full" /> : <Send className="h-4 w-4" />}
                                 Send Request
@@ -1126,7 +1132,7 @@ export default function FeedPage() {
             {/* Profile Required Modal */}
             {isProfilePromptOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsProfilePromptOpen(false)} />
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer" onClick={() => setIsProfilePromptOpen(false)} />
                     <div className="relative bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-white/10 text-center p-8 sm:p-10">
                         <div className="size-20 bg-tatt-lime/10 rounded-[24px] flex items-center justify-center mx-auto mb-6">
                             <Briefcase className="h-10 w-10 text-tatt-lime" />
@@ -1157,13 +1163,13 @@ export default function FeedPage() {
                         <div className="flex flex-col gap-3">
                             <Link 
                                 href="/dashboard/settings"
-                                className="w-full bg-tatt-lime text-black font-black py-4 rounded-2xl uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20"
+                                className="w-full bg-tatt-lime text-black font-black py-4 rounded-2xl uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 cursor-pointer block text-center"
                             >
                                 Go to Settings
                             </Link>
                             <button 
                                 onClick={() => setIsProfilePromptOpen(false)}
-                                className="w-full py-4 text-xs font-black uppercase tracking-widest text-tatt-gray hover:text-foreground transition-colors"
+                                className="w-full py-4 text-xs font-black uppercase tracking-widest text-tatt-gray hover:text-foreground transition-colors cursor-pointer"
                             >
                                 Maybe Later
                             </button>
@@ -1175,7 +1181,7 @@ export default function FeedPage() {
             {/* Upgrade Required Modal */}
             {isUpgradePromptOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsUpgradePromptOpen(false)} />
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md cursor-pointer" onClick={() => setIsUpgradePromptOpen(false)} />
                     <div className="relative bg-tatt-black w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl border border-white/10 text-center p-8 sm:p-10">
                         <div className="size-20 bg-tatt-lime/10 rounded-[24px] flex items-center justify-center mx-auto mb-6">
                             <Lock className="h-10 w-10 text-tatt-lime" />
@@ -1188,13 +1194,13 @@ export default function FeedPage() {
                         <div className="flex flex-col gap-3">
                             <Link 
                                 href="/dashboard/upgrade"
-                                className="w-full bg-tatt-lime text-black font-black py-4 rounded-2xl uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20"
+                                className="w-full bg-tatt-lime text-black font-black py-4 rounded-2xl uppercase tracking-[0.2em] text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 cursor-pointer block text-center"
                             >
                                 View Plans & Upgrade
                             </Link>
                             <button 
                                 onClick={() => setIsUpgradePromptOpen(false)}
-                                className="w-full py-4 text-xs font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+                                className="w-full py-4 text-xs font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors cursor-pointer"
                             >
                                 Maybe Later
                             </button>

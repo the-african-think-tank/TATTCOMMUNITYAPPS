@@ -529,14 +529,15 @@ export default function MemberProfilePage() {
                         {/* Modal Body */}
                         <div className="p-8 flex flex-col gap-6 bg-background">
                             <div className="flex flex-col gap-3">
-                                <label className="text-[15px] font-bold text-foreground" htmlFor="connect-msg">
-                                    Add a personalized message
+                                <label className="text-[15px] font-bold text-foreground flex items-center gap-1" htmlFor="connect-msg">
+                                    Add a personalized message <span className="text-red-500 font-bold">*</span>
                                 </label>
                                 <textarea
                                     id="connect-msg"
                                     rows={4}
+                                    required
                                     className="w-full p-5 bg-surface border border-border rounded-2xl text-foreground placeholder:text-tatt-gray text-[15px] focus:ring-2 focus:ring-tatt-lime outline-none transition-all resize-none shadow-inner"
-                                    placeholder={`Hi ${member.firstName}, I'd love to connect...`}
+                                    placeholder={`Hi ${member.firstName}, I'd love to connect... (Required)`}
                                     value={connectMessage}
                                     onChange={(e) => { setConnectMessage(e.target.value); setSendError(null); }}
                                     maxLength={500}
@@ -551,8 +552,8 @@ export default function MemberProfilePage() {
                             <div className="flex flex-col sm:flex-row gap-4 mt-2">
                                 <button
                                     onClick={handleSendInvite}
-                                    disabled={sending || connectMessage.trim().length < 20}
-                                    className="flex-1 flex items-center justify-center py-4 bg-tatt-lime text-tatt-black text-[13px] font-black rounded-xl uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={sending || !connectMessage.trim()}
+                                    className="flex-1 flex items-center justify-center py-4 bg-tatt-lime text-tatt-black text-[13px] font-black rounded-xl uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                     Send Invitation
