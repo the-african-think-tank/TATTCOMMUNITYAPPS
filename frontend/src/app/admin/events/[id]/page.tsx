@@ -17,19 +17,37 @@ import {
     MoreVertical,
     FileText,
     CreditCard,
-    Briefcase
+    Briefcase,
+    Edit2,
+    X,
+    Plus
 } from "lucide-react";
 import Image from "next/image";
 import api from "@/services/api";
 import { toast, Toaster } from "react-hot-toast";
-import { format } from "date-fns";
+import dayjs, { formatInTimezone, formatLocalTime, TIMEZONE_GROUPS, toUtcIso, toNativeDateTimeInput, normalizeTimezone } from "@/lib/dayjs";
+import { useAuth } from "@/context/auth-context";
 
 export default function EventDetailPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const [event, setEvent] = useState<any>(null);
     const [attendees, setAttendees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [chapters, setChapters] = useState<any[]>([]);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [form, setForm] = useState({
+        title: "",
+        description: "",
+        dateTime: "",
+        timezone: "America/Los_Angeles",
+        type: "EVENT",
+        basePrice: 0,
+        isForAllMembers: true,
+        targetMembershipTiers: [] as string[],
+        locations: [] as Array<{ chapterId: string; address: string }>
+    });
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -52,6 +70,45 @@ export default function EventDetailPage() {
         if (id) fetchDetails();
     }, [id, router]);
 
+    const openEditModal = async () => {
+        try {
+            const chaptersRes = await api.get("/chapters");
+            setChapters(chaptersRes.data || []);
+        } catch {
+            console.error("Failed to load chapters");
+        }
+
+        const normTz = normalizeTimezone(event?.timezone);
+        setForm({
+            title: event?.title || "",
+            description: event?.description || "",
+            dateTime: event?.dateTime ? toNativeDateTimeInput(event.dateTime, normTz) : "",
+            timezone: normTz,
+            type: event?.type || "EVENT",
+            basePrice: event?.basePrice || 0,
+            isForAllMembers: event?.isForAllMembers ?? true,
+            targetMembershipTiers: event?.targetMembershipTiers || [],
+            locations: (event?.locations || []).map((loc: any) => ({ chapterId: loc.chapterId, address: loc.address }))
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateEvent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                ...form,
+                dateTime: toUtcIso(form.dateTime, form.timezone),
+            };
+            const { data } = await api.patch(`/events/${id}`, payload);
+            toast.success("Event updated successfully!");
+            setEvent(data);
+            setIsEditModalOpen(false);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to update event");
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
@@ -73,13 +130,23 @@ export default function EventDetailPage() {
             
             {/* Redesigned Premium Header/Banner */}
             <div className="mb-12">
-                <button 
-                    onClick={() => router.push("/admin/events")}
-                    className="flex items-center gap-2 text-tatt-gray hover:text-tatt-lime transition-colors group mb-8"
-                >
-                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">Back to Directory</span>
-                </button>
+                <div className="flex items-center justify-between gap-4 mb-8">
+                    <button 
+                        onClick={() => router.push("/admin/events")}
+                        className="flex items-center gap-2 text-tatt-gray hover:text-tatt-lime transition-colors group cursor-pointer"
+                    >
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Back to Directory</span>
+                    </button>
+
+                    <button
+                        onClick={openEditModal}
+                        className="flex items-center gap-2 bg-tatt-lime text-tatt-black px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-lg shadow-tatt-lime/20"
+                    >
+                        <Edit2 size={14} />
+                        <span>Edit Event</span>
+                    </button>
+                </div>
 
                 <div className="relative rounded-[48px] overflow-hidden bg-surface border border-border shadow-2xl min-h-[340px] flex flex-col justify-end p-10 lg:p-16">
                     {/* Background Visual Attribute */}
@@ -109,8 +176,8 @@ export default function EventDetailPage() {
                                     <Calendar size={18} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-tatt-gray uppercase tracking-widest opacity-60">Timeline</span>
-                                    <span className="text-xs font-bold">{format(new Date(event.dateTime), "MMMM do, yyyy")}</span>
+                                    <span className="text-[10px] font-black text-tatt-gray uppercase tracking-widest opacity-60">Event Native Time</span>
+                                    <span className="text-xs font-bold text-tatt-lime">{formatInTimezone(event.dateTime, event.timezone || 'America/Los_Angeles')}</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -118,8 +185,8 @@ export default function EventDetailPage() {
                                     <Clock size={18} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black text-tatt-gray uppercase tracking-widest opacity-60">Execution</span>
-                                    <span className="text-xs font-bold">{format(new Date(event.dateTime), "HH:mm")} (Local)</span>
+                                    <span className="text-[10px] font-black text-tatt-gray uppercase tracking-widest opacity-60">Admin Local Time</span>
+                                    <span className="text-xs font-bold">{formatLocalTime(event.dateTime)}</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -273,6 +340,178 @@ export default function EventDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Event Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-tatt-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-surface w-full max-w-2xl rounded-3xl border border-border p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between border-b border-border pb-4">
+                            <h3 className="text-xl font-black uppercase tracking-tight">Edit Event Details</h3>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="p-2 text-tatt-gray hover:text-white rounded-lg transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateEvent} className="space-y-6">
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold">Event Title</label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={form.title}
+                                    onChange={e => setForm({ ...form, title: e.target.value })}
+                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold">Description</label>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    value={form.description}
+                                    onChange={e => setForm({ ...form, description: e.target.value })}
+                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold">Date & Time</label>
+                                    <input
+                                        required
+                                        type="datetime-local"
+                                        value={form.dateTime}
+                                        onChange={e => setForm({ ...form, dateTime: e.target.value })}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime cursor-pointer"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold">Event Timezone</label>
+                                    <select
+                                        value={form.timezone}
+                                        onChange={e => setForm({ ...form, timezone: e.target.value })}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime cursor-pointer"
+                                    >
+                                        {!TIMEZONE_GROUPS.some(tz => tz.value === form.timezone) && (
+                                            <option value={form.timezone}>{form.timezone}</option>
+                                        )}
+                                        {TIMEZONE_GROUPS.map(tz => (
+                                            <option key={tz.value} value={tz.value}>
+                                                {tz.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold">Event Type</label>
+                                    <select
+                                        value={form.type}
+                                        onChange={e => setForm({ ...form, type: e.target.value as any })}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime cursor-pointer"
+                                    >
+                                        <option value="EVENT">General Event</option>
+                                        <option value="MIXER">Mixer</option>
+                                        <option value="WORKSHOP">Workshop</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold">Base Price ($)</label>
+                                    <input
+                                        type="number"
+                                        value={form.basePrice}
+                                        onChange={e => setForm({ ...form, basePrice: parseFloat(e.target.value) || 0 })}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold">Visibility</label>
+                                    <select
+                                        value={form.isForAllMembers ? "true" : "false"}
+                                        onChange={e => setForm({ ...form, isForAllMembers: e.target.value === "true" })}
+                                        disabled={user?.systemRole === 'REGIONAL_ADMIN'}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime disabled:opacity-50"
+                                    >
+                                        <option value="true">Public / All Members</option>
+                                        <option value="false">Restricted / Tier-based</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-bold">Locations & Chapters</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm({ ...form, locations: [...form.locations, { chapterId: chapters[0]?.id || "", address: "" }] })}
+                                        className="text-xs font-bold text-tatt-lime-dark hover:underline flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <Plus className="size-3" /> Add Location
+                                    </button>
+                                </div>
+                                {form.locations.map((loc, idx) => (
+                                    <div key={idx} className="flex gap-2 items-end">
+                                        <div className="flex-1 space-y-1">
+                                            <select
+                                                value={loc.chapterId}
+                                                onChange={e => {
+                                                    const newLocs = [...form.locations];
+                                                    if (newLocs[idx]) newLocs[idx].chapterId = e.target.value;
+                                                    setForm({ ...form, locations: newLocs });
+                                                }}
+                                                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs cursor-pointer"
+                                            >
+                                                {chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex-[2] space-y-1">
+                                            <input
+                                                value={loc.address}
+                                                onChange={e => {
+                                                    const newLocs = [...form.locations];
+                                                    if (newLocs[idx]) newLocs[idx].address = e.target.value;
+                                                    setForm({ ...form, locations: newLocs });
+                                                }}
+                                                placeholder="Venue address or 'Online'"
+                                                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs"
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm({ ...form, locations: form.locations.filter((_, i) => i !== idx) })}
+                                            className="p-2 text-tatt-bronze hover:bg-tatt-yellow/10 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-6 border-t border-border flex gap-3">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-tatt-lime text-tatt-green-deep font-black py-4 rounded-xl uppercase tracking-widest text-xs hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-tatt-lime/20 cursor-pointer"
+                                >
+                                    Update Event
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-8 border border-border font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-border/30 transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

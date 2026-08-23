@@ -10,22 +10,18 @@ type EventCardProps = {
     highlight?: string | null;
 };
 
+import dayjs, { formatLocalTime } from "@/lib/dayjs";
+
 function formatDateShort(dateTime: string) {
     try {
-        const d = new Date(dateTime);
-        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+        return dayjs(dateTime).format("MMM D").toUpperCase();
     } catch {
         return "";
     }
 }
 
 function formatTime(dateTime: string) {
-    try {
-        const d = new Date(dateTime);
-        return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-    } catch {
-        return "";
-    }
+    return formatLocalTime(dateTime);
 }
 
 function typeLabel(type: string): string {

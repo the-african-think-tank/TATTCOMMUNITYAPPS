@@ -9,6 +9,7 @@
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.json",
     "db:deploy": "npx ts-node -r tsconfig-paths/register scripts/deploy-production-db.ts",
+    "db:seed-events": "npx ts-node -r tsconfig-paths/register scripts/seed-future-events.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

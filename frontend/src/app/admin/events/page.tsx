@@ -22,7 +22,8 @@ import {
     Image as ImageIcon,
     CheckCircle2,
     Edit2,
-    Trash2
+    Trash2,
+    Clock
 } from "lucide-react";
 import Image from "next/image";
 import api from "@/services/api";
@@ -30,6 +31,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
+import dayjs, { TIMEZONE_GROUPS, toUtcIso, formatLocalTime, formatInTimezone, formatLocalTimeString, toNativeDateTimeInput, normalizeTimezone } from "@/lib/dayjs";
 
 // --- Types ---
 
@@ -38,6 +40,7 @@ interface Event {
     title: string;
     description: string;
     dateTime: string;
+    timezone?: string;
     type: "EVENT" | "MIXER" | "WORKSHOP";
     imageUrl?: string;
     isForAllMembers: boolean;
@@ -71,6 +74,7 @@ export default function AdminEventsPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+    const [editingEventId, setEditingEventId] = useState<string | null>(null);
     const [attendees, setAttendees] = useState<any[]>([]);
     const [loadingAttendees, setLoadingAttendees] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -92,6 +96,7 @@ export default function AdminEventsPage() {
         title: "",
         description: "",
         dateTime: "",
+        timezone: "America/Los_Angeles",
         type: "EVENT",
         basePrice: 0,
         isForAllMembers: true,
@@ -123,19 +128,25 @@ export default function AdminEventsPage() {
     const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (isEditMode && selectedEvent) {
-                await api.patch(`/events/${selectedEvent.id}`, form);
+            const payload = {
+                ...form,
+                dateTime: toUtcIso(form.dateTime, form.timezone),
+            };
+            if (isEditMode && editingEventId) {
+                await api.patch(`/events/${editingEventId}`, payload);
                 toast.success("Event updated successfully!");
             } else {
-                await api.post("/events", form);
+                await api.post("/events", payload);
                 toast.success("Event created successfully!");
             }
             setIsCreateModalOpen(false);
+            setEditingEventId(null);
             fetchData();
             setForm({
                 title: "",
                 description: "",
                 dateTime: "",
+                timezone: "America/Los_Angeles",
                 type: "EVENT",
                 basePrice: 0,
                 isForAllMembers: true,
@@ -180,12 +191,15 @@ export default function AdminEventsPage() {
 
     const handleEditClick = (event: Event, e: React.MouseEvent) => {
         e.stopPropagation();
-        setSelectedEvent(event);
+        setSelectedEvent(null);
+        setEditingEventId(event.id);
         setIsEditMode(true);
+        const normTz = normalizeTimezone(event.timezone);
         setForm({
             title: event.title,
             description: event.description,
-            dateTime: new Date(event.dateTime).toISOString().slice(0, 16),
+            dateTime: toNativeDateTimeInput(event.dateTime, normTz),
+            timezone: normTz,
             type: event.type,
             basePrice: event.basePrice,
             isForAllMembers: event.isForAllMembers,
@@ -245,10 +259,13 @@ export default function AdminEventsPage() {
                     <button
                         onClick={() => {
                             setIsEditMode(false);
+                            setEditingEventId(null);
+                            setSelectedEvent(null);
                             setForm({
                                 title: "",
                                 description: "",
                                 dateTime: "",
+                                timezone: "America/Los_Angeles",
                                 type: "EVENT",
                                 basePrice: 0,
                                 isForAllMembers: true,
@@ -353,10 +370,13 @@ export default function AdminEventsPage() {
                                                 onClick={() => handleEventClick(event)}
                                                 className="group cursor-pointer"
                                             >
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <span className="text-[10px] font-black tracking-widest text-tatt-lime uppercase">{format(safeDate(event.dateTime), "MMM dd")}</span>
-                                                    <span className="size-1 bg-white/20 rounded-full"></span>
-                                                    <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">{format(safeDate(event.dateTime), "HH:mm")}</span>
+                                                <div className="flex flex-col gap-0.5 mb-1">
+                                                    <span className="text-[10px] font-black tracking-widest text-tatt-lime uppercase">
+                                                        Native: {formatInTimezone(event.dateTime, event.timezone || 'America/Los_Angeles')}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold tracking-wider text-white/60">
+                                                        Local: {formatLocalTime(event.dateTime)}
+                                                    </span>
                                                 </div>
                                                 <h4 className="text-sm font-bold group-hover:text-tatt-lime transition-colors">{event.title}</h4>
                                             </div>
@@ -434,8 +454,12 @@ export default function AdminEventsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <div className="text-xs font-bold text-foreground">{format(safeDate(event.dateTime), "MMM dd, yyyy")}</div>
-                                                <div className="text-[10px] text-tatt-gray font-medium">{format(safeDate(event.dateTime), "HH:mm")}</div>
+                                                <div className="text-xs font-bold text-foreground">
+                                                    Native: {formatInTimezone(event.dateTime, event.timezone || 'America/Los_Angeles')}
+                                                </div>
+                                                <div className="text-[10px] text-tatt-lime font-bold mt-1">
+                                                    Local: {formatLocalTime(event.dateTime)}
+                                                </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <span className="text-xs font-bold text-foreground">
@@ -507,7 +531,7 @@ export default function AdminEventsPage() {
                                     placeholder="Tell members about the event..."
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-sm font-bold">Date & Time</label>
                                     <input
@@ -515,15 +539,32 @@ export default function AdminEventsPage() {
                                         type="datetime-local"
                                         value={form.dateTime}
                                         onChange={e => setForm({ ...form, dateTime: e.target.value })}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime cursor-pointer"
                                     />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold">Event Timezone</label>
+                                    <select
+                                        value={form.timezone}
+                                        onChange={e => setForm({ ...form, timezone: e.target.value })}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime cursor-pointer"
+                                    >
+                                        {!TIMEZONE_GROUPS.some(tz => tz.value === form.timezone) && (
+                                            <option value={form.timezone}>{form.timezone}</option>
+                                        )}
+                                        {TIMEZONE_GROUPS.map(tz => (
+                                            <option key={tz.value} value={tz.value}>
+                                                {tz.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-sm font-bold">Event Type</label>
                                     <select
                                         value={form.type}
                                         onChange={e => setForm({ ...form, type: e.target.value as any })}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime cursor-pointer"
                                     >
                                         <option value="EVENT">General Event</option>
                                         <option value="MIXER">Mixer</option>
@@ -681,9 +722,19 @@ export default function AdminEventsPage() {
                                         {selectedEvent.type}
                                     </div>
                                     <h2 className="text-3xl font-black text-foreground">{selectedEvent.title}</h2>
-                                    <div className="flex items-center gap-4 text-xs font-bold text-tatt-gray">
-                                        <span className="flex items-center gap-1.5"><CalendarIcon className="size-3.5 text-tatt-lime-dark" /> {format(safeDate(selectedEvent.dateTime), "MMMM dd, yyyy 'at' HH:mm")}</span>
-                                        <span className="flex items-center gap-1.5"><MapPin className="size-3.5 text-tatt-lime-dark" /> {selectedEvent.locations?.[0]?.address || "Location TBA"}</span>
+                                    <div className="flex flex-col gap-1 text-xs font-bold text-tatt-gray">
+                                        <span className="flex items-center gap-1.5 text-foreground">
+                                            <CalendarIcon className="size-3.5 text-tatt-lime-dark" />
+                                            Native: {formatInTimezone(selectedEvent.dateTime, selectedEvent.timezone || 'America/Los_Angeles')}
+                                        </span>
+                                        <span className="flex items-center gap-1.5 text-tatt-lime">
+                                            <Clock className="size-3.5 text-tatt-lime" />
+                                            Local: {formatLocalTime(selectedEvent.dateTime)}
+                                        </span>
+                                        <span className="flex items-center gap-1.5">
+                                            <MapPin className="size-3.5 text-tatt-lime-dark" />
+                                            {selectedEvent.locations?.[0]?.address || "Location TBA"}
+                                        </span>
                                     </div>
                                 </div>
                                     <div className="bg-surface p-4 rounded-2xl shadow-sm border border-border text-center min-w-[120px]">
@@ -783,77 +834,116 @@ export default function AdminEventsPage() {
 }
 
 function EventCard({ event, onClick, onEdit, onDelete }: { event: Event, onClick: () => void, onEdit: (e: any) => void, onDelete: (e: any) => void }) {
+    const eventDateStr = dayjs(event.dateTime).format("MMM D, YYYY");
+    const nativeTimeOnly = dayjs(event.dateTime).tz(event.timezone || 'America/Los_Angeles').format("h:mm A z");
+    const localTimeOnly = formatLocalTimeString(event.dateTime);
+    const primaryLocation = event.locations?.[0];
+    const fullAddress = primaryLocation?.address || "Global Virtual Event";
+    const chapterName = primaryLocation?.chapter?.name || "Global Network";
+
     return (
-        <div 
+        <article 
             onClick={onClick}
-            className="group relative bg-surface border border-border rounded-[32px] overflow-hidden cursor-pointer hover:shadow-2xl hover:shadow-tatt-lime/10 transition-all duration-500 hover:-translate-y-1"
+            className="group relative bg-surface border border-border rounded-[32px] overflow-hidden cursor-pointer hover:shadow-2xl hover:shadow-tatt-lime/10 transition-all duration-500 hover:-translate-y-1 flex flex-col justify-between"
         >
-            <div className="relative h-56 w-full">
-                {event.imageUrl ? (
-                    <Image src={event.imageUrl} alt={event.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                ) : (
-                    <div className="size-full bg-tatt-black flex items-center justify-center">
-                         <CalendarIcon className="size-12 text-tatt-lime/20" />
+            <div>
+                {/* Hero Banner Header */}
+                <div className="relative h-52 w-full bg-tatt-black overflow-hidden">
+                    {event.imageUrl ? (
+                        <Image src={event.imageUrl} alt={event.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100" />
+                    ) : (
+                        <div className="size-full bg-gradient-to-br from-tatt-black via-surface to-tatt-black flex items-center justify-center">
+                            <CalendarIcon className="size-14 text-tatt-lime/20" />
+                        </div>
+                    )}
+
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-tatt-black via-tatt-black/40 to-transparent"></div>
+
+                    {/* Top Badges */}
+                    <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2">
+                        <span className="px-3 py-1 bg-tatt-black/80 backdrop-blur-md text-tatt-lime text-[9px] font-black uppercase tracking-widest rounded-full border border-tatt-lime/20 shadow-md">
+                            {event.type}
+                        </span>
+                        <span className="px-3 py-1 bg-tatt-lime text-tatt-black text-[9px] font-black uppercase tracking-widest rounded-full shadow-md">
+                            {event.registrationsCount || 0} Registered
+                        </span>
                     </div>
-                )}
-                <div className="absolute top-4 left-4 z-10 flex gap-2">
-                    <span className="px-3 py-1 bg-tatt-black/60 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest rounded-full border border-white/10">
-                        {event.type}
-                    </span>
-                    <span className="px-3 py-1 bg-tatt-lime text-tatt-black text-[9px] font-black uppercase tracking-widest rounded-full">
-                        {event.registrationsCount || 0} Registered
-                    </span>
-                </div>
-                
-                <div className="absolute top-4 right-4 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onEdit(e); }}
-                        className="bg-white/90 hover:bg-white text-tatt-black p-2 rounded-xl transition-all shadow-sm"
-                    >
-                        <Edit2 size={14} />
-                    </button>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); onDelete(e); }}
-                        className="bg-red-500/90 hover:bg-red-500 text-white p-2 rounded-xl transition-all shadow-sm"
-                    >
-                        <Trash2 size={14} />
-                    </button>
+
+                    {/* Edit & Delete Quick Action Controls */}
+                    <div className="absolute top-4 right-4 z-20 flex gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onEdit(e); }}
+                            className="bg-tatt-black/80 hover:bg-tatt-lime text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
+                            title="Edit Event"
+                        >
+                            <Edit2 size={14} />
+                        </button>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+                            className="bg-tatt-black/80 hover:bg-red-600 text-white p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
+                            title="Delete Event"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+
+                    {/* Title */}
+                    <div className="absolute bottom-4 left-6 right-6 z-10">
+                        <h3 className="text-lg font-black text-white leading-tight uppercase tracking-tight group-hover:text-tatt-lime transition-colors line-clamp-2">
+                            {event.title}
+                        </h3>
+                    </div>
                 </div>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-tatt-black to-transparent opacity-60"></div>
-                <div className="absolute bottom-6 left-6 right-6">
-                    <h3 className="text-xl font-black text-white leading-tight uppercase tracking-tight group-hover:text-tatt-lime transition-colors">
-                        {event.title}
-                    </h3>
+                {/* Content Details */}
+                <div className="p-6 space-y-4">
+                    {/* Time & Date Section */}
+                    <div className="space-y-2 text-xs">
+                        <div className="flex items-center gap-2.5 font-bold text-foreground">
+                            <CalendarIcon size={15} className="text-tatt-lime shrink-0" />
+                            <span>{eventDateStr}</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 font-medium text-tatt-gray flex-wrap">
+                            <Clock size={15} className="text-tatt-lime shrink-0" />
+                            <span className="text-tatt-lime font-bold">{nativeTimeOnly}</span>
+                            <span className="opacity-40">•</span>
+                            <span className="text-foreground/80 font-medium">{localTimeOnly} Local</span>
+                        </div>
+                    </div>
+
+                    {/* Location & Full Address Section (Flexible long address handling) */}
+                    <div className="flex items-start gap-2.5 text-tatt-gray border-t border-border/40 pt-3">
+                        <MapPin size={16} className="text-tatt-lime shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-tatt-lime block mb-0.5">
+                                {chapterName}
+                            </span>
+                            <p className="text-xs font-medium text-foreground leading-relaxed break-words line-clamp-3 hover:line-clamp-none transition-all">
+                                {fullAddress}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="p-6 space-y-4 bg-surface group-hover:bg-background/20 transition-colors">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-tatt-gray">
-                        <CalendarIcon size={14} className="text-tatt-lime" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{format(new Date(event.dateTime), "MMM dd, yyyy")}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-tatt-gray">
-                        <MapPin size={14} className="text-tatt-lime" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
-                            {event.locations?.[0]?.chapter?.name || "Global"}
+            {/* Footer Pricing & CTA */}
+            <div className="p-6 pt-0">
+                <div className="flex items-center justify-between pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-1.5">
+                        <DollarSign size={15} className="text-tatt-lime" />
+                        <span className="text-base font-black text-foreground">
+                            {Number(event.basePrice) > 0 ? `$${Number(event.basePrice).toFixed(2)}` : "Free"}
                         </span>
+                        <span className="text-[8px] font-black text-tatt-gray uppercase tracking-widest opacity-60">Entry</span>
                     </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                    <div className="flex items-center gap-2">
-                        <DollarSign size={14} className="text-tatt-lime" />
-                        <span className="text-base font-black text-foreground">${event.basePrice}</span>
-                        <span className="text-[8px] font-black text-tatt-gray uppercase tracking-widest opacity-40">Entry</span>
-                    </div>
-                    <div className="size-8 rounded-full bg-tatt-lime/10 flex items-center justify-center text-tatt-lime group-hover:bg-tatt-lime group-hover:text-tatt-black transition-all">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-tatt-lime group-hover:translate-x-1 transition-transform">
+                        <span>Manage</span>
                         <ChevronRight size={16} />
                     </div>
                 </div>
             </div>
-        </div>
+        </article>
     );
 }
 

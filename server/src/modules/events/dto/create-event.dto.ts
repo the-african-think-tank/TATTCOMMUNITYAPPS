@@ -28,6 +28,10 @@ export class CreateEventDto {
     @IsOptional()
     imageUrl?: string;
 
+    @IsString()
+    @IsOptional()
+    timezone?: string;
+
     @IsBoolean()
     isForAllMembers: boolean;
 
