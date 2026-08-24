@@ -93,7 +93,7 @@ const TIER_BADGES: Record<string, { label: string; classes: string }> = {
   KIONGOZI: { label: "Kiongozi", classes: "bg-tatt-lime text-tatt-black" },
   IMANI: { label: "Imani", classes: "bg-slate-200  text-foreground" },
   UBUNTU: { label: "Ubuntu", classes: "bg-background border border-border text-tatt-gray" },
-  FREE: { label: "Free", classes: "bg-background border border-border text-tatt-gray" },
+  FREE: { label: "Sankofa", classes: "bg-background border border-border text-tatt-gray" },
 };
 
 const DEFAULT_TIER = TIER_BADGES.FREE;

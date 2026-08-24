@@ -55,7 +55,7 @@ const TIER_BADGES: Record<string, { label: string; classes: string }> = {
     KIONGOZI: { label: "Kiongozi", classes: "bg-tatt-lime text-tatt-black" },
     IMANI: { label: "Imani", classes: "bg-slate-200 text-neutral-700" },
     UBUNTU: { label: "Ubuntu", classes: "bg-neutral-100 border border-border text-tatt-gray" },
-    FREE: { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" },
+    FREE: { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" },
 };
 
 export default function NetworkPage() {
@@ -320,8 +320,8 @@ export default function NetworkPage() {
                                                     )}
                                                 </div>
                                                 {/* Tier badge */}
-                                                <span className={`absolute -bottom-1 -right-1 text-[10px] font-black uppercase tracking-tight px-2 py-0.5 rounded-full ${(TIER_BADGES[member.communityTier] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
-                                                    {(TIER_BADGES[member.communityTier] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
+                                                <span className={`absolute -bottom-1 -right-1 text-[10px] font-black uppercase tracking-tight px-2 py-0.5 rounded-full ${(TIER_BADGES[member.communityTier] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
+                                                    {(TIER_BADGES[member.communityTier] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
                                                 </span>
                                             </div>
 
@@ -434,8 +434,8 @@ export default function NetworkPage() {
                                         </span>
                                     )}
                                 </div>
-                                <span className={`absolute -bottom-3 right-1/2 translate-x-1/2 text-[11px] font-black uppercase tracking-tight px-3 py-0.5 rounded-full whitespace-nowrap ${(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
-                                    {(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
+                                <span className={`absolute -bottom-3 right-1/2 translate-x-1/2 text-[11px] font-black uppercase tracking-tight px-3 py-0.5 rounded-full whitespace-nowrap ${(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
+                                    {(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
                                 </span>
                             </div>
 

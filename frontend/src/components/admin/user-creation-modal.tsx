@@ -17,7 +17,7 @@ const SYSTEM_ROLES = [
 ];
 
 const COMMUNITY_TIERS = [
-    { value: "FREE", label: "Free" },
+    { value: "FREE", label: "Sankofa" },
     { value: "UBUNTU", label: "Ubuntu" },
     { value: "IMANI", label: "Imani" },
     { value: "KIONGOZI", label: "Kiongozi" },

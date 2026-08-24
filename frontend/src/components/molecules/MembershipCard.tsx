@@ -62,6 +62,8 @@ const MembershipCard: React.FC<MembershipCardProps> = ({ member, isCurrentUser }
     const displayTierName =
         tier === "KIONGOZI"
             ? "Kiongozi Business"
+            : tier === "FREE"
+            ? "Sankofa"
             : `${tier.charAt(0)}${tier.slice(1).toLowerCase()}`;
 
     const joinedDate = member.createdAt ? format(new Date(member.createdAt), 'yyyy') : '2024';

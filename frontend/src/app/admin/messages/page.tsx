@@ -78,11 +78,11 @@ const TIER_BADGES: Record<string, { label: string; classes: string }> = {
     KIONGOZI: { label: "Kiongozi", classes: "bg-tatt-lime text-tatt-black" },
     IMANI: { label: "Imani", classes: "bg-slate-200 text-neutral-700  " },
     UBUNTU: { label: "Ubuntu", classes: "bg-orange-100 text-orange-700  " },
-    FREE: { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" },
+    FREE: { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" },
 };
 
 const getTierBadge = (tierCode: string | undefined): { label: string; classes: string } => {
-    return TIER_BADGES[tierCode || "FREE"] || TIER_BADGES["FREE"] || { label: "Free", classes: "" };
+    return TIER_BADGES[tierCode || "FREE"] || TIER_BADGES["FREE"] || { label: "Sankofa", classes: "" };
 };
 
 // Maps systemRole → { label, classes } using global CSS color tokens

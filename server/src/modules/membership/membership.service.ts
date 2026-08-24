@@ -54,8 +54,8 @@ export class MembershipService implements OnApplicationBootstrap {
         const plans = [
             {
                 tier: CommunityTier.FREE,
-                name: 'Karibu',
-                tagline: 'Join the community for free',
+                name: 'Sankofa',
+                tagline: 'Join the community and connect with the African diaspora',
                 monthlyPrice: 0,
                 yearlyPrice: 0,
                 features: ['Access to chapter events', 'Basic community forums', 'Newsletter updates'],

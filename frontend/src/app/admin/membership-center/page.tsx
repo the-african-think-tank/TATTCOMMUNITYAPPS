@@ -44,7 +44,7 @@ const TIER_OPTIONS = [
 ] as const;
 
 const TIER_LABELS: Record<string, string> = {
-    FREE: 'Free',
+    FREE: 'Sankofa',
     UBUNTU: 'Ubuntu',
     IMANI: 'Imani',
     KIONGOZI: 'Kiongozi',

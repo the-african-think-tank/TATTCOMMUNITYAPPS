@@ -32,7 +32,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
     const { user } = useAuth();
 
     const communityTier = user?.communityTier || "FREE";
-    const displayTierName = communityTier.charAt(0).toUpperCase() + communityTier.slice(1).toLowerCase();
+    const displayTierName = communityTier === "FREE" ? "Sankofa" : communityTier.charAt(0).toUpperCase() + communityTier.slice(1).toLowerCase();
 
     const closeSidebar = () => setIsOpen(false);
 
