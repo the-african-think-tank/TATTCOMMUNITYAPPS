@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsArray, IsBoolean, IsEmail, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsArray, IsBoolean, IsEmail, IsNotEmpty, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SystemRole, AccountFlags, ConnectionPreference, CommunityTier } from '../../enums/roles.enum';
 
@@ -77,50 +77,62 @@ export class UpdateUserDto {
 
 export class UpdateProfileDto {
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     firstName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     lastName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     countryOfOrigin?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     countryOfResidence?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     dateOfBirth?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     professionTitle?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     industryId?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     professionalHighlight?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     companyName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     expertise?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     profilePicture?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     chapterId?: string;
 
@@ -135,18 +147,22 @@ export class UpdateProfileDto {
     interests?: string[];
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     businessName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     businessRole?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     businessProfileLink?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     linkedInProfileUrl?: string;
 

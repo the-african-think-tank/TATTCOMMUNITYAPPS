@@ -617,7 +617,9 @@ export default function SettingsPage() {
     const cleanPayload = (data: any) => {
         const cleaned = { ...data };
         Object.keys(cleaned).forEach(key => {
-            if (cleaned[key] === "") cleaned[key] = null;
+            if (cleaned[key] === "" || cleaned[key] === null) {
+                cleaned[key] = undefined;
+            }
         });
         return cleaned;
     };
@@ -635,10 +637,12 @@ export default function SettingsPage() {
 
             // Update auth context with new user data
             updateUser(response.data);
-            toast.success("Profile settings saved securely!");
-        } catch (error) {
+            toast.success("Profile settings saved successfully!", { icon: "✅" });
+        } catch (error: any) {
             console.error("Failed to update profile", error);
-            toast.error("Failed to update profile. Please try again.");
+            const apiMsg = error?.response?.data?.message;
+            const formattedErrorMsg = Array.isArray(apiMsg) ? apiMsg.join(", ") : apiMsg || "Failed to update profile. Please try again.";
+            toast.error(formattedErrorMsg);
         } finally {
             setLoading(false);
         }
