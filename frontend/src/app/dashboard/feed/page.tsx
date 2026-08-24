@@ -272,12 +272,12 @@ export default function FeedPage() {
         try {
             const [recRes, eventRes, curationRes, topicsRes] = await Promise.all([
                 api.get("/connections/recommend", { params: { limit: 3 } }),
-                api.get("/events"),
+                api.get("/events", { params: { upcoming: "true", limit: 2 } }),
                 api.get("/feed/curation/active"),
                 api.get("/feed/topics")
             ]);
             setRecommendations(recRes.data);
-            setUpcomingEvents(eventRes.data.slice(0, 2)); // Only show top 2
+            setUpcomingEvents(eventRes.data || []);
             setActiveInsight(curationRes.data?.insight);
             setTopics(topicsRes.data);
         } catch (error) {
@@ -732,57 +732,57 @@ export default function FeedPage() {
                     </div>
 
                     {/* Upcoming Events */}
-                    <div className="bg-tatt-black rounded-2xl border border-white/10 p-6 shadow-xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 size-24 bg-tatt-lime/10 blur-3xl -mr-12 -mt-12 rounded-full"></div>
-                        <div className="flex items-center justify-between mb-6 relative z-10">
-                            <h2 className="text-sm font-black uppercase tracking-widest text-white">Upcoming Mixers</h2>
-                            <Calendar className="h-4 w-4 text-tatt-lime" />
-                        </div>
-                        <div className="space-y-6 relative z-10">
-                            {isLoadingSidebar ? (
-                                Array(2).fill(0).map((_, i) => (
-                                    <div key={i} className="flex gap-4">
-                                        <div className="w-12 h-14 bg-white/10 rounded"></div>
-                                        <div className="flex-1 space-y-2 py-1">
-                                            <div className="h-3 bg-white/10 rounded w-full"></div>
-                                            <div className="h-2 bg-white/10 rounded w-2/3"></div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : upcomingEvents.length > 0 ? (
-                                upcomingEvents.map(event => {
-                                    const date = new Date(event.dateTime);
-                                    const locationName = (event.locations && event.locations.length > 0)
-                                        ? event.locations[0]?.chapter?.name
-                                        : "Global";
-                                    return (
-                                        <div key={event.id} className="flex gap-4 group cursor-pointer">
-                                            <div className="bg-white/10 text-white rounded-xl flex flex-col items-center justify-center p-2 min-w-[52px] h-14 border border-white/5 group-hover:bg-tatt-lime group-hover:text-black transition-all">
-                                                <span className="text-[10px] font-black uppercase tracking-tighter opacity-70">{date.toLocaleString('default', { month: 'short' })}</span>
-                                                <span className="text-xl font-black leading-none">{date.getDate()}</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-sm font-bold text-white group-hover:text-tatt-lime transition-colors line-clamp-1">{event.title}</h3>
-                                                <p className="text-[10px] text-white/50 mt-1 flex items-center gap-1 font-medium italic">
-                                                    {event.type === 'WEBINAR' ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-                                                    {locationName}
-                                                </p>
-                                                <button className="text-[10px] font-black text-tatt-lime uppercase tracking-widest mt-2 hover:underline">Register Now</button>
+                    {(isLoadingSidebar || upcomingEvents.length > 0) && (
+                        <div className="bg-tatt-black rounded-2xl border border-white/10 p-6 shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 size-24 bg-tatt-lime/10 blur-3xl -mr-12 -mt-12 rounded-full"></div>
+                            <div className="flex items-center justify-between mb-6 relative z-10">
+                                <h2 className="text-sm font-black uppercase tracking-widest text-white">Upcoming Mixers</h2>
+                                <Calendar className="h-4 w-4 text-tatt-lime" />
+                            </div>
+                            <div className="space-y-6 relative z-10">
+                                {isLoadingSidebar ? (
+                                    Array(2).fill(0).map((_, i) => (
+                                        <div key={i} className="flex gap-4">
+                                            <div className="w-12 h-14 bg-white/10 rounded"></div>
+                                            <div className="flex-1 space-y-2 py-1">
+                                                <div className="h-3 bg-white/10 rounded w-full"></div>
+                                                <div className="h-2 bg-white/10 rounded w-2/3"></div>
                                             </div>
                                         </div>
-                                    );
-                                })
-                            ) : (
-                                <p className="text-xs text-white/50 text-center py-4">Check back soon for new events!</p>
-                            )}
+                                    ))
+                                ) : (
+                                    upcomingEvents.map(event => {
+                                        const date = new Date(event.dateTime);
+                                        const locationName = (event.locations && event.locations.length > 0)
+                                            ? event.locations[0]?.chapter?.name
+                                            : "Global";
+                                        return (
+                                            <div key={event.id} className="flex gap-4 group cursor-pointer">
+                                                <div className="bg-white/10 text-white rounded-xl flex flex-col items-center justify-center p-2 min-w-[52px] h-14 border border-white/5 group-hover:bg-tatt-lime group-hover:text-black transition-all">
+                                                    <span className="text-[10px] font-black uppercase tracking-tighter opacity-70">{date.toLocaleString('default', { month: 'short' })}</span>
+                                                    <span className="text-xl font-black leading-none">{date.getDate()}</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-white group-hover:text-tatt-lime transition-colors line-clamp-1">{event.title}</h3>
+                                                    <p className="text-[10px] text-white/50 mt-1 flex items-center gap-1 font-medium italic">
+                                                        {event.type === 'WEBINAR' ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+                                                        {locationName}
+                                                    </p>
+                                                    <button className="text-[10px] font-black text-tatt-lime uppercase tracking-widest mt-2 hover:underline">Register Now</button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                            <Link 
+                                href="/dashboard/events"
+                                className="w-full mt-6 py-2 text-[10px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors block text-center"
+                            >
+                                See All Events
+                            </Link>
                         </div>
-                        <Link 
-                            href="/dashboard/events"
-                            className="w-full mt-6 py-2 text-[10px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors block text-center"
-                        >
-                            See All Events
-                        </Link>
-                    </div>
+                    )}
 
                     {/* Footer Links */}
                     <div className="px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 opacity-30 text-foreground">

@@ -39,8 +39,13 @@ export class EventsController {
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'List all published events and workshops' })
-    async findAll(@Req() req: any, @Query('upcoming') upcoming?: string) {
-        return this.eventsService.getEvents(req.user, upcoming === 'true');
+    async findAll(
+        @Req() req: any,
+        @Query('upcoming') upcoming?: string,
+        @Query('limit') limit?: string,
+    ) {
+        const limitNum = limit ? parseInt(limit, 10) : undefined;
+        return this.eventsService.getEvents(req.user, upcoming === 'true', limitNum);
     }
 
     @Get(':id')

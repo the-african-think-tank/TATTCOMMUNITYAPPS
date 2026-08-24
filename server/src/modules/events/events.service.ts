@@ -174,7 +174,7 @@ export class EventsService {
         }
     }
 
-    async getEvents(viewer: User, upcoming?: boolean) {
+    async getEvents(viewer: User, upcoming?: boolean, limit?: number) {
         // Optionally filter by membership if we want to hide restricted events from the list
         // Requirement says "it should show up in the events and workshops page", implying it might be visible but maybe locked?
         // Usually restricted events are only visible to those who can join.
@@ -191,6 +191,7 @@ export class EventsService {
                 { model: User, as: 'featuredGuests', attributes: ['id', 'firstName', 'lastName', 'profilePicture'], through: { attributes: [] } },
             ],
             order: [['dateTime', 'ASC']],
+            limit: limit && !isNaN(limit) && limit > 0 ? limit : undefined,
         });
     }
 
