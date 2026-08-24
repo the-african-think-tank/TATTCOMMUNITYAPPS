@@ -73,14 +73,11 @@ export function MemberBenefits() {
                                 <Zap className="size-3" />
                                 {plan.name}
                             </div>
-                            <ul className="space-y-4 mb-6 flex-1">
-                                {plan.accessControls?.filter(c => c.enabled).slice(0, 5).map((control, idx) => (
-                                    <li key={idx} className="flex items-start gap-3">
-                                        <CheckCircle className="size-4 shrink-0 mt-0.5 text-tatt-lime/80" />
-                                        <div>
-                                            <span className="block text-xs font-bold text-foreground">{control.title}</span>
-                                            <span className="block text-[10px] text-tatt-gray font-medium mt-0.5 leading-snug">{control.subtitle}</span>
-                                        </div>
+                            <ul className="space-y-3 mb-6 flex-1">
+                                {plan.features?.map((feature, idx) => (
+                                    <li key={idx} className="flex items-center gap-2.5">
+                                        <CheckCircle className="size-4 shrink-0 text-tatt-lime/80" />
+                                        <span className="text-xs font-bold text-foreground">{feature}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -119,13 +116,10 @@ export function MemberBenefits() {
                     )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {currentPlan.accessControls?.filter(c => c.enabled).map((control, idx) => (
-                        <div key={idx} className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
-                            <CheckCircle className="size-5 shrink-0 mt-0.5 text-tatt-lime" />
-                            <div>
-                                <span className="block text-sm font-bold text-white">{control.title}</span>
-                                <span className="block text-xs text-white/60 font-medium mt-1 leading-relaxed">{control.subtitle}</span>
-                            </div>
+                    {currentPlan.features?.map((feature, idx) => (
+                        <div key={idx} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-colors">
+                            <CheckCircle className="size-5 shrink-0 text-tatt-lime" />
+                            <span className="text-sm font-bold text-white">{feature}</span>
                         </div>
                     ))}
                 </div>
