@@ -27,7 +27,7 @@ import {
     FeedQueryDto, FeedFilter,
     CreatePostDto, UpdatePostDto,
     AddCommentDto, GetCommentsQueryDto,
-    ReportPostDto,
+    ReportPostDto, RecordViewsDto,
 } from './dto/feed.dto';
 import { FeedGateway } from './feed.gateway';
 import { NotificationsService } from '../notifications/services/notifications.service';
@@ -153,6 +153,7 @@ function applyPremiumGate(
         likesCount: post.likes?.length ?? 0,
         upvotesCount: post.upvotes?.length ?? 0,
         commentsCount: post.comments?.length ?? 0,
+        viewsCount: post.viewsCount ?? 0,
         isLikedByMe: likedPostIds.has(post.id),
         isUpvotedByMe: upvotedPostIds.has(post.id),
         isBookmarked: bookmarkedPostIds.has(post.id),
@@ -805,5 +806,25 @@ export class FeedService {
         }
 
         this.logger.log('[TATT-Digest] Daily digest completed.');
+    }
+
+    async recordViews(viewer: User, dto: RecordViewsDto) {
+        if (!dto.postIds || dto.postIds.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        const uniquePostIds = Array.from(new Set(dto.postIds.filter(id => Boolean(id))));
+        if (uniquePostIds.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        await this.postRepo.increment('viewsCount', {
+            by: 1,
+            where: {
+                id: { [Op.in]: uniquePostIds }
+            }
+        });
+
+        return { success: true, count: uniquePostIds.length };
     }
 }

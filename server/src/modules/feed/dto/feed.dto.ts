@@ -283,3 +283,13 @@ export class ReportPostDto {
     @IsEnum(ReportAction)
     suggestedAction: ReportAction;
 }
+
+// ─── BATCH VIEWS RECORDING ───────────────────────────────────────────────────
+
+export class RecordViewsDto {
+    @ApiProperty({ description: 'Array of post UUIDs viewed by the member', example: ['c3d4e5f6-0001-4f71-bf14-01e23f4a5678'] })
+    @IsArray()
+    @IsString({ each: true })
+    @ArrayMaxSize(100)
+    postIds: string[];
+}

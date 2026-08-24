@@ -49,6 +49,7 @@ import { useAuth } from "@/context/auth-context";
 import toast, { Toaster } from "react-hot-toast";
 import { formatTimeAgo } from "@/utils/date";
 import { initiateFeedSocket, disconnectFeedSocket } from "@/services/feed-socket";
+import { usePostViewTracker } from "@/hooks/use-post-view-tracker";
 
 // --- Types ---
 
@@ -165,6 +166,7 @@ const POST_TYPES = [
 export default function FeedPage() {
     const { showTerms } = useTermsModal();
     const { user } = useAuth();
+    const { registerPostRef } = usePostViewTracker();
 
     const [posts, setPosts] = useState<Post[]>([]);
     const [filter, setFilter] = useState<"ALL" | "CHAPTER" | "PREMIUM" | "BOOKMARKS">("ALL");
@@ -580,6 +582,7 @@ export default function FeedPage() {
                                     setPosts(prev => prev.filter(p => p.id !== post.id));
                                 }}
                                 onSelectTopic={(id) => setSelectedTopic(id)}
+                                registerPostRef={registerPostRef}
                             />
                         ))}
 
@@ -1213,7 +1216,26 @@ export default function FeedPage() {
     );
 }
 
-function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, onLike: () => void, onPostDeleted: () => void, onSelectTopic: (topicId: string) => void }) {
+function formatViewsCount(num?: number): string {
+    if (!num || num <= 0) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return num.toString();
+}
+
+function PostCard({ 
+    post, 
+    onLike, 
+    onPostDeleted, 
+    onSelectTopic,
+    registerPostRef
+}: { 
+    post: Post;
+    onLike: () => void;
+    onPostDeleted: () => void;
+    onSelectTopic: (topicId: string) => void;
+    registerPostRef?: (node: HTMLElement | null, postId: string) => void;
+}) {
     const { user } = useAuth();
     const commentInputRef = useRef<HTMLInputElement>(null);
     const [showComments, setShowComments] = useState(false);
@@ -1403,7 +1425,10 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
     };
 
     return (
-        <article className="bg-surface rounded-2xl border border-border shadow-sm hover:shadow-md transition-all overflow-hidden group">
+        <article 
+            ref={(node) => registerPostRef?.(node, post.id)} 
+            className="bg-surface rounded-2xl border border-border shadow-sm hover:shadow-md transition-all overflow-hidden group"
+        >
             {/* Top accent strip — color-coded by post type */}
             {post.type === "ANNOUNCEMENT" && (
                 <div className="bg-gradient-to-r from-tatt-yellow/50 via-tatt-yellow/10 to-transparent h-0.5" />
@@ -1769,7 +1794,7 @@ function PostCard({ post, onLike, onPostDeleted, onSelectTopic }: { post: Post, 
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5 text-tatt-gray text-[10px] font-bold uppercase tracking-widest mr-2">
                             <Eye className="h-3 w-3" />
-                            {post.viewsCount || 0}
+                            {formatViewsCount(post.viewsCount)}
                         </div>
                         <button onClick={handleShare} className="flex items-center gap-2.5 px-3 py-2 text-tatt-gray hover:text-tatt-lime hover:bg-tatt-lime/10 rounded-xl transition-all border border-border/50 cursor-pointer">
                             <Share2 className="h-4.5 w-4.5" />

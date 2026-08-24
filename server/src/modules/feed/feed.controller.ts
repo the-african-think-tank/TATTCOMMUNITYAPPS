@@ -13,7 +13,7 @@ import {
     FeedQueryDto, FeedFilter,
     CreatePostDto, UpdatePostDto,
     AddCommentDto, GetCommentsQueryDto,
-    ReportPostDto,
+    ReportPostDto, RecordViewsDto,
 } from './dto/feed.dto';
 import {
     PostCardSchema, PostAuthorSchema, PostChapterSchema,
@@ -110,6 +110,13 @@ export class FeedController {
     @Get('curation/active')
     async getActiveCuration() {
         return this.feedService.getActiveCuration();
+    }
+
+    @ApiOperation({ summary: 'Batch record feed post views (impressions)' })
+    @HttpCode(HttpStatus.OK)
+    @Post('views')
+    async recordViews(@Request() req, @Body() dto: RecordViewsDto) {
+        return this.feedService.recordViews(req.user, dto);
     }
 
     @ApiOperation({ summary: 'Get available feed topics' })
