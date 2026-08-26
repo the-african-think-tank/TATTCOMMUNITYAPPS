@@ -80,7 +80,7 @@ import { SupportMessage } from '../../modules/support/entities/support-message.e
                 synchronize: config.get<string | boolean>('DB_SYNC') !== 'false' && config.get<string | boolean>('DB_SYNC') !== false && config.get<string | boolean>('DB_SYNC') !== '0',
                 autoLoadModels: true,
                 alter: true,
-                logging: config.get<string>('NODE_ENV') === 'development' ? console.log : false,
+                logging: config.get<string>('DB_LOGGING') === 'true' ? console.log : false,
             }),
         }),
     ],

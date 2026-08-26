@@ -15,6 +15,7 @@ import {
     Mail,
     UserPlus,
     UserCheck,
+    UserX,
     Clock,
     X,
     AlertCircle,
@@ -31,6 +32,7 @@ import api from "@/services/api";
 import MembershipCard from "@/components/molecules/MembershipCard";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface MemberProfile {
     id: string;
@@ -100,6 +102,22 @@ export default function MemberProfilePage() {
         setModalOpen(false);
         setConnectMessage("");
         setSendError(null);
+    };
+
+    const [disconnecting, setDisconnecting] = useState(false);
+
+    const handleRemoveConnection = async () => {
+        if (!status?.connectionId) return;
+        setDisconnecting(true);
+        try {
+            await api.delete(`/connections/${status.connectionId}`);
+            setStatus({ status: "NOT_CONNECTED", connectionId: null });
+            toast.success("Connection removed successfully");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to remove connection");
+        } finally {
+            setDisconnecting(false);
+        }
     };
 
     const handleSendInvite = async () => {
@@ -305,10 +323,24 @@ export default function MemberProfilePage() {
                                         <>
                                             {status?.status === "ACCEPTED" ? (
                                                 <>
-                                                    <button className="flex-1 md:flex-none px-6 py-2.5 bg-green-500/10 text-green-600 font-bold rounded-lg text-sm justify-center gap-2 flex items-center cursor-default">
-                                                        <UserCheck className="h-5 w-5" /> Connected
+                                                    <button
+                                                        onClick={handleRemoveConnection}
+                                                        disabled={disconnecting}
+                                                        className="flex-1 md:flex-none px-6 py-2.5 bg-green-500/10 text-green-600 font-bold rounded-lg text-sm justify-center gap-2 flex items-center hover:bg-red-500/10 hover:text-red-500 transition-all group cursor-pointer border border-green-500/20 hover:border-red-500/30"
+                                                        title="Click to remove connection"
+                                                    >
+                                                        {disconnecting ? (
+                                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                <UserCheck className="h-5 w-5 group-hover:hidden" />
+                                                                <UserX className="h-5 w-5 hidden group-hover:block text-red-500" />
+                                                                <span className="group-hover:hidden">Connected</span>
+                                                                <span className="hidden group-hover:inline text-red-500">Remove Connection</span>
+                                                            </>
+                                                        )}
                                                     </button>
-                                                    <button onClick={() => router.push("/dashboard/messages")} className="flex-1 md:flex-none px-6 py-2.5 bg-background border border-border text-foreground font-bold rounded-lg text-sm hover:bg-surface transition-all justify-center gap-2 flex items-center">
+                                                    <button onClick={() => router.push("/dashboard/messages")} className="flex-1 md:flex-none px-6 py-2.5 bg-background border border-border text-foreground font-bold rounded-lg text-sm hover:bg-surface transition-all justify-center gap-2 flex items-center cursor-pointer">
                                                         <Mail className="h-5 w-5" /> Message
                                                     </button>
                                                 </>

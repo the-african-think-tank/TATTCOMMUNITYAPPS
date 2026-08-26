@@ -6,7 +6,7 @@ import {
     ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import { Connection, ConnectionStatus } from './entities/connection.entity';
 import { User } from '../iam/entities/user.entity';
 import { Chapter } from '../chapters/entities/chapter.entity';
@@ -316,6 +316,7 @@ export class ConnectionsService {
             [Op.or]: [
                 { connectionPreference: ConnectionPreference.OPEN },
                 { connectionPreference: null },
+                { connectionPreference: ConnectionPreference.CHAPTER_ONLY, chapterId: null },
                 ...(requestingUserChapterId ? [{
                     connectionPreference: ConnectionPreference.CHAPTER_ONLY,
                     chapterId: requestingUserChapterId,
@@ -334,14 +335,47 @@ export class ConnectionsService {
         }
 
         if (search) {
-            andConditions.push({
-                [Op.or]: [
-                    { firstName: { [Op.iLike]: `%${search}%` } },
-                    { lastName: { [Op.iLike]: `%${search}%` } },
-                    { professionTitle: { [Op.iLike]: `%${search}%` } },
-                    { companyName: { [Op.iLike]: `%${search}%` } },
-                ],
-            });
+            const cleanSearch = search.trim();
+            const searchTerms = cleanSearch.split(/\s+/).filter(Boolean);
+
+            let tierSearch = cleanSearch.toUpperCase();
+            if (tierSearch === "SANKOFA") tierSearch = "FREE";
+
+            const searchOrConditions: any[] = [
+                { firstName: { [Op.iLike]: `%${cleanSearch}%` } },
+                { lastName: { [Op.iLike]: `%${cleanSearch}%` } },
+                { professionTitle: { [Op.iLike]: `%${cleanSearch}%` } },
+                { companyName: { [Op.iLike]: `%${cleanSearch}%` } },
+                Sequelize.where(
+                    Sequelize.cast(Sequelize.col('User.communityTier'), 'text'),
+                    { [Op.iLike]: `%${tierSearch}%` }
+                ),
+                Sequelize.where(
+                    Sequelize.fn('concat', Sequelize.col('User.firstName'), ' ', Sequelize.col('User.lastName')),
+                    { [Op.iLike]: `%${cleanSearch}%` }
+                )
+            ];
+
+            if (searchTerms.length > 1) {
+                const termConditions = searchTerms.map(term => {
+                    const cleanTerm = term.toUpperCase() === 'SANKOFA' ? 'FREE' : term;
+                    return {
+                        [Op.or]: [
+                            { firstName: { [Op.iLike]: `%${term}%` } },
+                            { lastName: { [Op.iLike]: `%${term}%` } },
+                            { professionTitle: { [Op.iLike]: `%${term}%` } },
+                            { companyName: { [Op.iLike]: `%${term}%` } },
+                            Sequelize.where(
+                                Sequelize.cast(Sequelize.col('User.communityTier'), 'text'),
+                                { [Op.iLike]: `%${cleanTerm}%` }
+                            ),
+                        ]
+                    };
+                });
+                searchOrConditions.push({ [Op.and]: termConditions });
+            }
+
+            andConditions.push({ [Op.or]: searchOrConditions });
         }
 
         if (andConditions.length > 0) {

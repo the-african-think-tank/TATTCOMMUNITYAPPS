@@ -9,6 +9,7 @@ import {
     UserPlus,
     Clock,
     UserCheck,
+    UserX,
     Loader2,
     ChevronDown,
     X,
@@ -24,6 +25,7 @@ import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface Chapter {
     id: string;
@@ -172,6 +174,19 @@ export default function NetworkPage() {
 
     const handleLoadMore = () => {
         if (page < totalPages) setPage(prev => prev + 1);
+    };
+
+    const handleRemoveConnection = async (memberId: string, connectionId: string) => {
+        try {
+            await api.delete(`/connections/${connectionId}`);
+            setConnectionStatuses(prev => ({
+                ...prev,
+                [memberId]: { status: "NOT_CONNECTED", connectionId: null }
+            }));
+            toast.success("Connection removed");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to remove connection");
+        }
     };
 
     // ── Modal ────────────────────────────────────────────────────
@@ -357,8 +372,15 @@ export default function NetworkPage() {
                                         <div className="w-full px-6 pb-6 mt-auto grid grid-cols-2 gap-3">
                                             {/* Connect / Status button */}
                                             {status?.status === "ACCEPTED" ? (
-                                                <button disabled className="flex items-center justify-center gap-1.5 bg-green-500/10 text-green-600 font-black py-2.5 rounded-xl text-[11px] uppercase tracking-wide cursor-default">
-                                                    <UserCheck className="h-3.5 w-3.5" /> Connected
+                                                <button
+                                                    onClick={() => status.connectionId && handleRemoveConnection(member.id, status.connectionId)}
+                                                    className="flex items-center justify-center gap-1.5 bg-green-500/10 text-green-600 font-black py-2.5 rounded-xl text-[11px] uppercase tracking-wide hover:bg-red-500/10 hover:text-red-500 transition-all border border-green-500/20 hover:border-red-500/30 group cursor-pointer"
+                                                    title="Click to remove connection"
+                                                >
+                                                    <UserCheck className="h-3.5 w-3.5 group-hover:hidden" />
+                                                    <UserX className="h-3.5 w-3.5 hidden group-hover:block text-red-500" />
+                                                    <span className="group-hover:hidden">Connected</span>
+                                                    <span className="hidden group-hover:inline text-red-500">Remove</span>
                                                 </button>
                                             ) : status?.status === "PENDING" ? (
                                                 <Link
