@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import toast from "react-hot-toast";
+import { AppModal } from "@/components/modals/app-modal";
 
 import type { FeedPost } from "@/types/feed";
 
@@ -38,6 +39,21 @@ type FeedPostCardProps = {
 };
 
 import { formatTimeAgo, formatForDateTimeLocal } from "@/utils/date";
+import {
+    Modal,
+    ModalBackdrop,
+    ModalContainer,
+    ModalDialog,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    ModalCloseTrigger,
+    Dropdown,
+    DropdownTrigger,
+    DropdownPopover,
+    DropdownMenu,
+    DropdownItem
+} from "@heroui/react";
 
 function formatDate(iso: string) {
     return formatTimeAgo(iso);
@@ -349,46 +365,35 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                         <span className="text-tatt-gray text-xs ml-auto shrink-0">{formatDate(post.createdAt)}</span>
                         
                         {canManagePost && (
-                            <div className="relative ml-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowOptions(!showOptions)}
-                                    className="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground"
-                                    title="Post options"
-                                    aria-label="Post options"
-                                >
+                            <Dropdown>
+                                <DropdownTrigger className="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground outline-none" aria-label="Post options">
                                     <MoreVertical className="h-4 w-4" />
-                                </button>
-                                {showOptions && (
-                                    <>
-                                        <div className="fixed inset-0 z-20" onClick={() => setShowOptions(false)} />
-                                        <div className="absolute right-0 mt-1 w-36 bg-surface border border-border rounded-xl shadow-2xl z-30 py-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setShowOptions(false);
-                                                    handleStartEditPost();
-                                                }}
-                                                className="w-full px-3.5 py-2 text-left text-xs text-foreground hover:bg-tatt-lime/10 hover:text-tatt-lime flex items-center gap-2 cursor-pointer font-bold transition-colors"
-                                            >
-                                                <Pencil className="h-3.5 w-3.5" />
-                                                Edit Post
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setShowOptions(false);
-                                                    handleDelete();
-                                                }}
-                                                className="w-full px-3.5 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 hover:text-red-500 flex items-center gap-2 cursor-pointer font-bold transition-colors"
-                                            >
+                                </DropdownTrigger>
+                                <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-2xl shadow-xl p-1 z-50">
+                                    <DropdownMenu aria-label="Post Actions">
+                                        <DropdownItem
+                                            key="edit"
+                                            onPress={handleStartEditPost}
+                                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-black/5 rounded-xl cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Pencil className="h-3.5 w-3.5 text-tatt-lime" />
+                                                <span>Edit Post</span>
+                                            </div>
+                                        </DropdownItem>
+                                        <DropdownItem
+                                            key="delete"
+                                            onPress={handleDelete}
+                                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-xl cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2 text-red-500">
                                                 <Trash2 className="h-3.5 w-3.5" />
-                                                Delete Post
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                                                <span>Delete Post</span>
+                                            </div>
+                                        </DropdownItem>
+                                    </DropdownMenu>
+                                </DropdownPopover>
+                            </Dropdown>
                         )}
                     </div>
                     {post.isPremium && (
@@ -548,46 +553,39 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                                                             {c.author.firstName} {c.author.lastName}
                                                         </p>
                                                         {(canEditComment(c.author) || canDeleteComment(c.author)) && (
-                                                            <div className="relative">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setActiveCommentMenuId(activeCommentMenuId === c.id ? null : c.id)}
-                                                                    className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer"
-                                                                >
+                                                            <Dropdown>
+                                                                <DropdownTrigger className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
                                                                     <MoreHorizontal className="size-4" />
-                                                                </button>
-                                                                {activeCommentMenuId === c.id && (
-                                                                    <>
-                                                                        <div className="fixed inset-0 z-40" onClick={() => setActiveCommentMenuId(null)} />
-                                                                        <div className="absolute right-0 mt-1 w-36 bg-white border border-border rounded-xl shadow-xl z-50 py-1 text-xs font-semibold overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                                                            {canEditComment(c.author) && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        setActiveCommentMenuId(null);
-                                                                                        handleStartEditComment(c.id, c.content);
-                                                                                    }}
-                                                                                    className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-tatt-lime/10 hover:text-tatt-lime transition-colors text-left cursor-pointer"
-                                                                                >
-                                                                                    <Pencil className="size-3.5 text-tatt-lime" /> Edit
-                                                                                </button>
-                                                                            )}
-                                                                            {canDeleteComment(c.author) && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        setActiveCommentMenuId(null);
-                                                                                        handleDeleteComment(c.id);
-                                                                                    }}
-                                                                                    className="w-full flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 transition-colors text-left cursor-pointer"
-                                                                                >
-                                                                                    <Trash2 className="size-3.5" /> Delete
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </div>
+                                                                </DropdownTrigger>
+                                                                <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-xl shadow-lg p-1 z-50">
+                                                                    <DropdownMenu aria-label="Comment Options">
+                                                                        {canEditComment(c.author) ? (
+                                                                            <DropdownItem
+                                                                                key="edit"
+                                                                                onPress={() => handleStartEditComment(c.id, c.content)}
+                                                                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold hover:bg-black/5 rounded-lg cursor-pointer"
+                                                                            >
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Pencil className="size-3.5 text-tatt-lime" />
+                                                                                    <span>Edit</span>
+                                                                                </div>
+                                                                            </DropdownItem>
+                                                                        ) : null}
+                                                                        {canDeleteComment(c.author) ? (
+                                                                            <DropdownItem
+                                                                                key="delete"
+                                                                                onPress={() => handleDeleteComment(c.id)}
+                                                                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                                                                            >
+                                                                                <div className="flex items-center gap-2 text-red-500">
+                                                                                    <Trash2 className="size-3.5" />
+                                                                                    <span>Delete</span>
+                                                                                </div>
+                                                                            </DropdownItem>
+                                                                        ) : null}
+                                                                    </DropdownMenu>
+                                                                </DropdownPopover>
+                                                            </Dropdown>
                                                         )}
                                                     </div>
 
@@ -714,46 +712,39 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                                                                         {reply.author?.firstName} {reply.author?.lastName}
                                                                     </p>
                                                                     {(canEditComment(reply.author) || canDeleteComment(reply.author)) && (
-                                                                        <div className="relative">
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setActiveCommentMenuId(activeCommentMenuId === reply.id ? null : reply.id)}
-                                                                                className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer"
-                                                                            >
+                                                                        <Dropdown>
+                                                                            <DropdownTrigger className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
                                                                                 <MoreHorizontal className="size-3.5" />
-                                                                            </button>
-                                                                            {activeCommentMenuId === reply.id && (
-                                                                                <>
-                                                                                    <div className="fixed inset-0 z-40" onClick={() => setActiveCommentMenuId(null)} />
-                                                                                    <div className="absolute right-0 mt-1 w-32 bg-white border border-border rounded-xl shadow-xl z-50 py-1 text-xs font-semibold overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                                                                        {canEditComment(reply.author) && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => {
-                                                                                                    setActiveCommentMenuId(null);
-                                                                                                    handleStartEditComment(reply.id, reply.content);
-                                                                                                }}
-                                                                                                className="w-full flex items-center gap-2 px-3 py-1.5 text-foreground hover:bg-tatt-lime/10 hover:text-tatt-lime transition-colors text-left cursor-pointer"
-                                                                                            >
-                                                                                                <Pencil className="size-3 text-tatt-lime" /> Edit
-                                                                                            </button>
-                                                                                        )}
-                                                                                        {canDeleteComment(reply.author) && (
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => {
-                                                                                                    setActiveCommentMenuId(null);
-                                                                                                    handleDeleteComment(reply.id);
-                                                                                                }}
-                                                                                                className="w-full flex items-center gap-2 px-3 py-1.5 text-red-500 hover:bg-red-50 transition-colors text-left cursor-pointer"
-                                                                                            >
-                                                                                                <Trash2 className="size-3" /> Delete
-                                                                                            </button>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </>
-                                                                            )}
-                                                                        </div>
+                                                                            </DropdownTrigger>
+                                                                            <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-xl shadow-lg p-1 z-50">
+                                                                                <DropdownMenu aria-label="Reply Options">
+                                                                                    {canEditComment(reply.author) ? (
+                                                                                        <DropdownItem
+                                                                                            key="edit"
+                                                                                            onPress={() => handleStartEditComment(reply.id, reply.content)}
+                                                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-semibold hover:bg-black/5 rounded-lg cursor-pointer"
+                                                                                        >
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <Pencil className="size-3 text-tatt-lime" />
+                                                                                                <span>Edit</span>
+                                                                                            </div>
+                                                                                        </DropdownItem>
+                                                                                    ) : null}
+                                                                                    {canDeleteComment(reply.author) ? (
+                                                                                        <DropdownItem
+                                                                                            key="delete"
+                                                                                            onPress={() => handleDeleteComment(reply.id)}
+                                                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                                                                                        >
+                                                                                            <div className="flex items-center gap-2 text-red-500">
+                                                                                                <Trash2 className="size-3" />
+                                                                                                <span>Delete</span>
+                                                                                            </div>
+                                                                                        </DropdownItem>
+                                                                                    ) : null}
+                                                                                </DropdownMenu>
+                                                                            </DropdownPopover>
+                                                                        </Dropdown>
                                                                     )}
                                                                 </div>
 
@@ -814,205 +805,194 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
             </div>
 
             {/* Edit Post Modal */}
-            {isEditingPost && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsEditingPost(false)} />
-                    <div className="relative bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="p-6 border-b border-border flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-bold text-foreground">Edit {post.type} Post</h2>
-                                <p className="text-[10px] text-tatt-gray font-black uppercase tracking-widest mt-0.5">
-                                    Authoring as <span className="text-tatt-lime">{post.author.firstName} {post.author.lastName}</span>
-                                </p>
+            <AppModal
+                isOpen={isEditingPost}
+                onClose={() => setIsEditingPost(false)}
+                title={`Edit ${post.type} Post`}
+                subtitle={
+                    <span>
+                        Authoring as <span className="text-tatt-lime">{post.author.firstName} {post.author.lastName}</span>
+                    </span>
+                }
+                maxWidth="max-w-4xl"
+            >
+                <form onSubmit={handleSavePostEdit} className="space-y-6">
+                    <input
+                        value={editPostTitle}
+                        onChange={(e) => setEditPostTitle(e.target.value)}
+                        placeholder={post.type === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
+                        className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none text-foreground"
+                    />
+
+                    {/* JOB Fields */}
+                    {post.type === "JOB" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
+                                <div className="relative">
+                                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        value={editJobCompany}
+                                        onChange={(e) => setEditJobCompany(e.target.value)}
+                                        placeholder="e.g. Google Africa"
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
                             </div>
-                            <button onClick={() => setIsEditingPost(false)} className="size-10 rounded-full bg-black/5 flex items-center justify-center text-tatt-gray hover:text-foreground transition-all cursor-pointer">
-                                <X className="h-5 w-5" />
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        value={editJobLocation}
+                                        onChange={(e) => setEditJobLocation(e.target.value)}
+                                        placeholder="e.g. Nairobi, Kenya"
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
+                                <div className="relative">
+                                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        value={editJobLink}
+                                        onChange={(e) => setEditJobLink(e.target.value)}
+                                        placeholder="https://careers.company.com/job/..."
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* EVENT Fields */}
+                    {post.type === "EVENT" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => setEditEventType(t)}
+                                            className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                                                editEventType === t
+                                                    ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
+                                                    : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
+                                            }`}
+                                        >
+                                            {t.replace("_", " ")}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        type="datetime-local"
+                                        value={editEventDate}
+                                        onChange={e => setEditEventDate(e.target.value)}
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Link</label>
+                                <div className="relative">
+                                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        type="url"
+                                        value={editEventUrl}
+                                        onChange={e => setEditEventUrl(e.target.value)}
+                                        placeholder="https://zoom.us/j/..."
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <textarea
+                        value={editPostContent}
+                        onChange={(e) => setEditPostContent(e.target.value)}
+                        placeholder="Write post content..."
+                        rows={5}
+                        className="w-full bg-black/5 border border-border rounded-2xl p-4 text-sm focus:ring-2 focus:ring-tatt-lime outline-none resize-none text-foreground"
+                        required
+                    />
+
+                    {/* Image Attachments */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
+                                <ImageIcon className="size-3" /> Media Attachments
+                            </label>
+                            <label className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer flex items-center gap-1">
+                                <Paperclip className="size-3.5" /> Add Images
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleEditFileUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                        </div>
+                        {editMediaUrls.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {editMediaUrls.map((url, i) => (
+                                    <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-black/5">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeEditMediaUrl(i)}
+                                            className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-4 border-t border-border flex items-center justify-between gap-4">
+                        {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
+                            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-tatt-lime">
+                                <input
+                                    type="checkbox"
+                                    checked={editIsPremium}
+                                    onChange={(e) => setEditIsPremium(e.target.checked)}
+                                    className="rounded border-border text-tatt-lime focus:ring-tatt-lime size-4"
+                                />
+                                Premium Lock
+                            </label>
+                        )}
+                        <div className="flex justify-end gap-3 ml-auto">
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingPost(false)}
+                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-tatt-gray border border-border hover:bg-black/5 cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={savingPost || !editPostContent.trim()}
+                                className="px-6 py-2.5 rounded-xl text-xs font-bold bg-tatt-lime text-tatt-black hover:brightness-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-lg shadow-tatt-lime/20"
+                            >
+                                {savingPost && <Loader2 className="h-4 w-4 animate-spin" />}
+                                Save Changes
                             </button>
                         </div>
-
-                        {/* Body */}
-                        <form onSubmit={handleSavePostEdit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar flex flex-col justify-between">
-                            <div className="space-y-6">
-                                <input
-                                    value={editPostTitle}
-                                    onChange={(e) => setEditPostTitle(e.target.value)}
-                                    placeholder={post.type === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
-                                    className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none text-foreground"
-                                />
-
-                                {/* JOB Fields */}
-                                {post.type === "JOB" && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
-                                            <div className="relative">
-                                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    value={editJobCompany}
-                                                    onChange={(e) => setEditJobCompany(e.target.value)}
-                                                    placeholder="e.g. Google Africa"
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
-                                            <div className="relative">
-                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    value={editJobLocation}
-                                                    onChange={(e) => setEditJobLocation(e.target.value)}
-                                                    placeholder="e.g. Nairobi, Kenya"
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="md:col-span-2 space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
-                                            <div className="relative">
-                                                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    value={editJobLink}
-                                                    onChange={(e) => setEditJobLink(e.target.value)}
-                                                    placeholder="https://careers.company.com/job/..."
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* EVENT Fields */}
-                                {post.type === "EVENT" && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                                        <div className="md:col-span-2 space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
-                                                    <button
-                                                        key={t}
-                                                        type="button"
-                                                        onClick={() => setEditEventType(t)}
-                                                        className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
-                                                            editEventType === t
-                                                                ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
-                                                                : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
-                                                        }`}
-                                                    >
-                                                        {t.replace("_", " ")}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    type="datetime-local"
-                                                    value={editEventDate}
-                                                    onChange={e => setEditEventDate(e.target.value)}
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event URL</label>
-                                            <div className="relative">
-                                                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    type="url"
-                                                    value={editEventUrl}
-                                                    onChange={e => setEditEventUrl(e.target.value)}
-                                                    placeholder="https://zoom.us/j/..."
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <textarea
-                                    value={editPostContent}
-                                    onChange={(e) => setEditPostContent(e.target.value)}
-                                    placeholder="What's on your mind?"
-                                    className="w-full bg-transparent border-none text-base resize-none focus:ring-0 min-h-[160px] placeholder:text-tatt-gray/50 outline-none text-foreground"
-                                    required
-                                />
-
-                                {/* Image Attachments */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
-                                            <ImageIcon className="size-3" /> Media Attachments
-                                        </label>
-                                        <label className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer flex items-center gap-1">
-                                            <Paperclip className="size-3.5" /> Add Images
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                multiple
-                                                onChange={handleEditFileUpload}
-                                                className="hidden"
-                                            />
-                                        </label>
-                                    </div>
-                                    {editMediaUrls.length > 0 && (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                            {editMediaUrls.map((url, i) => (
-                                                <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-black/5">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={url} alt="Attachment" className="w-full h-full object-cover" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeEditMediaUrl(i)}
-                                                        className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Footer Buttons */}
-                            <div className="pt-6 border-t border-border flex items-center justify-between gap-4">
-                                {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-tatt-lime">
-                                        <input
-                                            type="checkbox"
-                                            checked={editIsPremium}
-                                            onChange={(e) => setEditIsPremium(e.target.checked)}
-                                            className="rounded border-border text-tatt-lime focus:ring-tatt-lime size-4"
-                                        />
-                                        Premium Lock
-                                    </label>
-                                )}
-                                <div className="flex justify-end gap-3 ml-auto">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditingPost(false)}
-                                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-tatt-gray border border-border hover:bg-black/5 cursor-pointer"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={savingPost || !editPostContent.trim()}
-                                        className="px-6 py-2.5 rounded-xl text-xs font-bold bg-tatt-lime text-tatt-black hover:brightness-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-lg shadow-tatt-lime/20"
-                                    >
-                                        {savingPost && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        Save Changes
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                </form>
+            </AppModal>
         </article>
     );
 }

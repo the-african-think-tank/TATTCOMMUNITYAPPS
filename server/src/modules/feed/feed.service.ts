@@ -485,14 +485,6 @@ export class FeedService {
             throw new ForbiddenException('You are not authorized to delete this post.');
         }
 
-        // Only enforce 30-minute window for authors (staff can delete anytime)
-        if (isOwner && !isStaffUser) {
-            const minutesSinceCreation = (new Date().getTime() - new Date(post.createdAt).getTime()) / 60000;
-            if (minutesSinceCreation > 30) {
-                throw new ForbiddenException('Posts can only be deleted within 30 minutes of publishing.');
-            }
-        }
-
         await post.destroy();
         return { message: 'Post removed.' };
     }

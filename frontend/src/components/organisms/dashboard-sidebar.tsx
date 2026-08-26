@@ -80,19 +80,19 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
                 fixed inset-y-0 left-0 z-50 w-64 bg-tatt-black border-r border-border flex flex-col transition-transform duration-300
                 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
             `}>
-                <div className="p-6 flex items-center justify-between gap-3 border-b border-border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-full h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                <div className="p-6 flex items-center justify-between gap-3">
+                    {/* <div className="flex items-center gap-3"> */}
+                        <div className="w-full h-14 shrink-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src="/assets/tatt-logo-full.webp"
                                 alt="TATT Logo"
                                 width={40}
                                 height={40}
-                                className="object-contain w-full h-10"
+                                className="object-contain w-fit h-14"
                             />
                         </div>
-                    </div>
+                    {/* </div> */}
                     <button onClick={closeSidebar} className="lg:hidden text-white hover:text-tatt-lime">
                         <X className="h-6 w-6" />
                     </button>
@@ -127,7 +127,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
                         );
                     })}
 
-                    <div className="pt-4 mt-4 border-t border-border space-y-1">
+                    <div className="pt-4 mt-4 border-t-[0.5] border-border space-y-1">
                         {bottomLinks.map((link) => {
                             const Icon = link.icon;
                             const isActive = pathname === link.href;
@@ -151,7 +151,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
                     </div>
 
                     {isAdmin && (
-                        <div className="pt-4 mt-4 border-t border-border space-y-1">
+                        <div className="pt-4 mt-4 border-t-[0.5] border-border space-y-1">
                             <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray opacity-50">Admin Control</p>
                             {adminLinks.map((link) => {
                                 if (link.role === "SUPERADMIN" && !isSuperAdmin) return null;
@@ -179,7 +179,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
                     )}
                 </div>
 
-                <div className="p-4 border-t border-border">
+                <div className="p-4 border-t-[0.5] border-border">
                     <div className="bg-black/20 rounded-xl p-4 border border-tatt-lime/20">
                         <p className="text-xs text-tatt-lime font-bold uppercase mb-2">Current Tier</p>
                         <div className="flex items-center justify-between">

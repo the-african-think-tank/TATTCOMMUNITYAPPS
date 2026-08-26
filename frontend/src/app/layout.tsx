@@ -35,6 +35,7 @@ export const metadata: Metadata = {
 import { ToastProvider } from "@/components/organisms/ToastProvider";
 import QueryProvider from "@/context/query-provider";
 import { TermsProvider } from "@/context/terms-context";
+import { HeroUIAppProvider } from "@/providers/hero-ui-provider";
 
 
 export default function RootLayout({
@@ -48,13 +49,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ToastProvider />
-        <QueryProvider>
-            <AuthProvider>
-              <TermsProvider>
-                {children}
-              </TermsProvider>
-            </AuthProvider>
-        </QueryProvider>
+        <HeroUIAppProvider>
+          <QueryProvider>
+              <AuthProvider>
+                <TermsProvider>
+                  {children}
+                </TermsProvider>
+              </AuthProvider>
+          </QueryProvider>
+        </HeroUIAppProvider>
       </body>
     </html>
   );

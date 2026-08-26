@@ -52,6 +52,23 @@ import toast, { Toaster } from "react-hot-toast";
 import { formatTimeAgo, formatForDateTimeLocal } from "@/utils/date";
 import { initiateFeedSocket, disconnectFeedSocket } from "@/services/feed-socket";
 import { usePostViewTracker } from "@/hooks/use-post-view-tracker";
+import { AppModal } from "@/components/modals/app-modal";
+import {
+    Modal,
+    ModalBackdrop,
+    ModalContainer,
+    ModalDialog,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    ModalCloseTrigger,
+    Dropdown,
+    DropdownTrigger,
+    DropdownPopover,
+    DropdownMenu,
+    DropdownItem,
+    Button
+} from "@heroui/react";
 
 // --- Types ---
 
@@ -799,304 +816,284 @@ export default function FeedPage() {
             </div>
 
             {/* Post Type Selector (Wizard) */}
-            {isPostWizardOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsPostWizardOpen(false)} />
-                    <div className="relative bg-white  w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                        <div className="p-8 border-b border-border bg-gradient-to-r from-tatt-lime/10 to-transparent">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="text-2xl font-black tracking-tight text-foreground">Choose Post Type</h2>
-                                <button onClick={() => setIsPostWizardOpen(false)} className="size-10 rounded-full bg-black/5  flex items-center justify-center text-tatt-gray hover:text-foreground transition-all">
-                                    <X className="h-5 w-5" />
+            <AppModal
+                isOpen={isPostWizardOpen}
+                onClose={() => setIsPostWizardOpen(false)}
+                title="Choose Post Type"
+                subtitle="Select the nature of your contribution to the TATT community."
+                headerClass="bg-gradient-to-r from-tatt-lime/10 to-transparent p-8"
+                bodyClass="grid gap-4 p-6"
+                maxWidth="max-w-2xl"
+            >
+                {allowedPostTypes.map(type => (
+                    <button
+                        key={type.id}
+                        onClick={() => {
+                            setSelectedPostType(type.id);
+                            setIsPostWizardOpen(false);
+                            setIsCreateModalOpen(true);
+                        }}
+                        className="flex items-center gap-5 p-5 rounded-2xl border border-border hover:border-tatt-lime hover:bg-tatt-lime/5 transition-all text-left group cursor-pointer"
+                    >
+                        <div className="size-14 rounded-2xl bg-black/5 flex items-center justify-center group-hover:bg-tatt-lime group-hover:text-black transition-all">
+                            <type.icon className="h-7 w-7" />
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-bold text-foreground mb-1">{type.name}</h4>
+                            <p className="text-xs text-tatt-gray">{type.description}</p>
+                        </div>
+                        <Plus className="h-5 w-5 text-tatt-gray group-hover:text-tatt-lime group-hover:translate-x-1 transition-all" />
+                    </button>
+                ))}
+            </AppModal>
+
+            {/* Create Post Modal */}
+            <AppModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                headerExtra={
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCreateModalOpen(false);
+                            setIsPostWizardOpen(true);
+                        }}
+                        className="p-2 hover:bg-black/5 rounded-lg text-tatt-gray cursor-pointer"
+                    >
+                        <ChevronDown className="h-5 w-5 rotate-90" />
+                    </button>
+                }
+                title={
+                    <div>
+                        <h2 className="text-lg font-bold text-foreground">New {POST_TYPES.find(t => t.id === selectedPostType)?.name}</h2>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <div className="size-5 rounded-full overflow-hidden bg-tatt-lime/10 flex items-center justify-center text-[10px] font-bold text-tatt-lime shrink-0">
+                                {user?.profilePicture ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                                ) : (
+                                    <span>{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-tatt-gray font-black uppercase tracking-widest flex items-center gap-1.5">
+                                Authoring as <span className="text-tatt-lime">{user?.firstName} {user?.lastName}</span>
+                            </p>
+                        </div>
+                    </div>
+                }
+                footer={
+                    <div className="flex flex-col gap-4 w-full">
+                        {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
+                            <div className="flex items-center justify-between p-4 bg-tatt-lime/5 rounded-2xl border border-tatt-lime/20 w-full">
+                                <div className="flex items-center gap-3 text-tatt-lime">
+                                    <Lock className="h-5 w-5" />
+                                    <div>
+                                        <p className="text-sm font-bold">Premium Visibility</p>
+                                        <p className="text-[10px] font-medium opacity-80 uppercase tracking-tight">Only paid members will see the full content</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsPremiumPost(!isPremiumPost)}
+                                    className={`w-12 h-6 rounded-full transition-all relative cursor-pointer ${isPremiumPost ? 'bg-tatt-lime' : 'bg-tatt-gray/30'}`}
+                                >
+                                    <div className={`absolute top-1 size-4 bg-white rounded-full transition-all ${isPremiumPost ? 'left-7' : 'left-1'}`} />
                                 </button>
                             </div>
-                            <p className="text-tatt-gray text-sm">Select the nature of your contribution to the TATT community.</p>
-                        </div>
-                        <div className="p-6 grid gap-4">
-                            {allowedPostTypes.map(type => (
+                        )}
+
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex gap-2">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    multiple
+                                    hidden
+                                    accept="image/*,video/*,application/pdf"
+                                />
                                 <button
-                                    key={type.id}
-                                    onClick={() => {
-                                        setSelectedPostType(type.id);
-                                        setIsPostWizardOpen(false);
-                                        setIsCreateModalOpen(true);
-                                    }}
-                                    className="flex items-center gap-5 p-5 rounded-2xl border border-border hover:border-tatt-lime hover:bg-tatt-lime/5 transition-all text-left group"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer"
                                 >
-                                    <div className="size-14 rounded-2xl bg-black/5  flex items-center justify-center group-hover:bg-tatt-lime group-hover:text-black transition-all">
-                                        <type.icon className="h-7 w-7" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-foreground mb-1">{type.name}</h4>
-                                        <p className="text-xs text-tatt-gray">{type.description}</p>
-                                    </div>
-                                    <Plus className="h-5 w-5 text-tatt-gray group-hover:text-tatt-lime group-hover:translate-x-1 transition-all" />
+                                    <ImageIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer"
+                                >
+                                    <Paperclip className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <button
+                                onClick={handleCreatePost}
+                                className="bg-tatt-lime text-black font-black px-8 py-3 rounded-xl text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 cursor-pointer"
+                            >
+                                Publish Post
+                            </button>
+                        </div>
+                    </div>
+                }
+                size="lg"
+            >
+                <input
+                    value={newPostTitle}
+                    onChange={(e) => setNewPostTitle(e.target.value)}
+                    placeholder={selectedPostType === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
+                    className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none text-foreground"
+                />
+
+                {selectedPostType === "JOB" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
+                            <div className="relative">
+                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                <input
+                                    value={jobCompany}
+                                    onChange={(e) => setJobCompany(e.target.value)}
+                                    placeholder="e.g. Google Africa"
+                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                <input
+                                    value={jobLocation}
+                                    onChange={(e) => setJobLocation(e.target.value)}
+                                    placeholder="e.g. Nairobi, Kenya"
+                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                />
+                            </div>
+                        </div>
+                        <div className="md:col-span-2 space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
+                            <div className="relative">
+                                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                <input
+                                    value={jobLink}
+                                    onChange={(e) => setJobLink(e.target.value)}
+                                    placeholder="https://careers.company.com/job/..."
+                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {selectedPostType === "EVENT" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                        <div className="md:col-span-2 space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
+                            <div className="flex flex-wrap gap-2">
+                                {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => setEventType(t)}
+                                        className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                                            eventType === t
+                                                ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
+                                                : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
+                                        }`}
+                                    >
+                                        {t.replace("_", " ")}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                <input
+                                    type="datetime-local"
+                                    value={eventDate}
+                                    onChange={e => setEventDate(e.target.value)}
+                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Link</label>
+                            <div className="relative">
+                                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                <input
+                                    type="url"
+                                    value={eventUrl}
+                                    onChange={e => setEventUrl(e.target.value)}
+                                    placeholder="https://zoom.us/j/..."
+                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Custom topic pill-picker */}
+                {topics.length > 0 && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
+                            <MessageSquare className="size-3" /> Community Topic
+                            <span className="font-normal normal-case opacity-60">(optional)</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPostTopicId("")}
+                                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                                    postTopicId === ""
+                                        ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
+                                        : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
+                                }`}
+                            >
+                                No Topic
+                            </button>
+                            {topics.map(t => (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setPostTopicId(t.id === postTopicId ? "" : t.id)}
+                                    className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                                        postTopicId === t.id
+                                            ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
+                                            : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
+                                    }`}
+                                >
+                                    {t.name}
                                 </button>
                             ))}
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Create Post Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCreateModalOpen(false)} />
-                    <div className="relative bg-white  w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="p-6 border-b border-border flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                <textarea
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    placeholder="What's on your mind? Use strategic insights to engage the community..."
+                    className="w-full bg-transparent border-none text-base resize-none focus:ring-0 min-h-[200px] placeholder:text-tatt-gray/50 outline-none text-foreground"
+                />
+
+                {/* Attachment Previews */}
+                {attachmentPreviews.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-4">
+                        {attachmentPreviews.map((preview, i) => (
+                            <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={preview} alt="Attachment preview" className="w-full h-full object-cover" />
                                 <button
-                                    onClick={() => {
-                                        setIsCreateModalOpen(false);
-                                        setIsPostWizardOpen(true);
-                                    }}
-                                    className="p-2 hover:bg-black/5  rounded-lg text-tatt-gray"
+                                    type="button"
+                                    onClick={() => removeAttachment(i)}
+                                    className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                 >
-                                    <ChevronDown className="h-5 w-5 rotate-90" />
-                                </button>
-                                <div>
-                                    <h2 className="text-lg font-bold">New {POST_TYPES.find(t => t.id === selectedPostType)?.name}</h2>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <div className="size-5 rounded-full overflow-hidden bg-tatt-lime/10 flex items-center justify-center text-[10px] font-bold text-tatt-lime shrink-0">
-                                            {user?.profilePicture ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-full" />
-                                            ) : (
-                                                <span>{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span>
-                                            )}
-                                        </div>
-                                        <p className="text-[10px] text-tatt-gray font-black uppercase tracking-widest flex items-center gap-1.5">
-                                            Authoring as <span className="text-tatt-lime">{user?.firstName} {user?.lastName}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="size-10 rounded-full bg-black/5  flex items-center justify-center text-tatt-gray hover:text-foreground transition-all">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Body */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                            <input
-                                value={newPostTitle}
-                                onChange={(e) => setNewPostTitle(e.target.value)}
-                                placeholder={selectedPostType === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
-                                className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none"
-                            />
-
-                            {selectedPostType === "JOB" && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
-                                        <div className="relative">
-                                            <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                            <input
-                                                value={jobCompany}
-                                                onChange={(e) => setJobCompany(e.target.value)}
-                                                placeholder="e.g. Google Africa"
-                                                className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
-                                        <div className="relative">
-                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                            <input
-                                                value={jobLocation}
-                                                onChange={(e) => setJobLocation(e.target.value)}
-                                                placeholder="e.g. Nairobi, Kenya"
-                                                className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="md:col-span-2 space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
-                                        <div className="relative">
-                                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                            <input
-                                                value={jobLink}
-                                                onChange={(e) => setJobLink(e.target.value)}
-                                                placeholder="https://careers.company.com/job/..."
-                                                className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* EVENT Fields */}
-                            {selectedPostType === "EVENT" && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                                    {/* Event Type pill buttons */}
-                                    <div className="md:col-span-2 space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
-                                                <button
-                                                    key={t}
-                                                    type="button"
-                                                    onClick={() => setEventType(t)}
-                                                    className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                                        eventType === t
-                                                            ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
-                                                            : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
-                                                    }`}
-                                                >
-                                                    {t.replace("_", " ")}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
-                                        <div className="relative">
-                                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                            <input
-                                                type="datetime-local"
-                                                value={eventDate}
-                                                onChange={e => setEventDate(e.target.value)}
-                                                className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event URL <span className="normal-case font-normal opacity-60">(optional)</span></label>
-                                        <div className="relative">
-                                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                            <input
-                                                type="url"
-                                                value={eventUrl}
-                                                onChange={e => setEventUrl(e.target.value)}
-                                                placeholder="https://zoom.us/j/..."
-                                                className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Custom topic pill-picker */}
-                            {topics.length > 0 && (
-                                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
-                                        <MessageSquare className="size-3" /> Community Topic
-                                        <span className="font-normal normal-case opacity-60">(optional)</span>
-                                    </label>
-                                    <div className="flex flex-wrap gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPostTopicId("")}
-                                            className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                                postTopicId === ""
-                                                    ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
-                                                    : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
-                                            }`}
-                                        >
-                                            No Topic
-                                        </button>
-                                        {topics.map(t => (
-                                            <button
-                                                key={t.id}
-                                                type="button"
-                                                onClick={() => setPostTopicId(t.id === postTopicId ? "" : t.id)}
-                                                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                                    postTopicId === t.id
-                                                        ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
-                                                        : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
-                                                }`}
-                                            >
-                                                {t.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <textarea
-                                value={newPostContent}
-                                onChange={(e) => setNewPostContent(e.target.value)}
-                                placeholder="What's on your mind? Use strategic insights to engage the community..."
-                                className="w-full bg-transparent border-none text-base resize-none focus:ring-0 min-h-[200px] placeholder:text-tatt-gray/50 outline-none"
-                            />
-
-                            {/* Attachment Previews */}
-                            {attachmentPreviews.length > 0 && (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-4">
-                                    {attachmentPreviews.map((preview, i) => (
-                                        <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={preview} alt="Attachment preview" className="w-full h-full object-cover" />
-                                            <button
-                                                onClick={() => removeAttachment(i)}
-                                                className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-
-                        {/* Actions */}
-                        <div className="p-6 border-t border-border space-y-4">
-                            {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
-                                <div className="flex items-center justify-between p-4 bg-tatt-lime/5 rounded-2xl border border-tatt-lime/20">
-                                    <div className="flex items-center gap-3 text-tatt-lime">
-                                        <Lock className="h-5 w-5" />
-                                        <div>
-                                            <p className="text-sm font-bold">Premium Visibility</p>
-                                            <p className="text-[10px] font-medium opacity-80 uppercase tracking-tight">Only paid members will see the full content</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setIsPremiumPost(!isPremiumPost)}
-                                        className={`w-12 h-6 rounded-full transition-all relative ${isPremiumPost ? 'bg-tatt-lime' : 'bg-tatt-gray/30'}`}
-                                    >
-                                        <div className={`absolute top-1 size-4 bg-white rounded-full transition-all ${isPremiumPost ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileChange}
-                                        multiple
-                                        hidden
-                                        accept="image/*,video/*,application/pdf"
-                                    />
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="p-2.5 bg-black/5  hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all"
-                                    >
-                                        <ImageIcon className="h-5 w-5" />
-                                    </button>
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="p-2.5 bg-black/5  hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all"
-                                    >
-                                        <Paperclip className="h-5 w-5" />
-                                    </button>
-                                </div>
-                                <button
-                                    onClick={handleCreatePost}
-                                    className="bg-tatt-lime text-black font-black px-8 py-3 rounded-xl text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20"
-                                >
-                                    Publish Post
+                                    <X className="h-4 w-4" />
                                 </button>
                             </div>
-                        </div>
-
+                        ))}
                     </div>
-                </div>
-            )}
+                )}
+            </AppModal>
 
             {/* Connection Modal */}
             {connectModal.open && (
@@ -1481,16 +1478,6 @@ function PostCard({
     };
 
     const handleDelete = async () => {
-        // Enforce 30-minute limit
-        const isStaff = !!(user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER');
-        const minutesSinceCreation = (new Date().getTime() - new Date(post.createdAt).getTime()) / 60000;
-        
-        if (!isStaff && minutesSinceCreation > 30) {
-            toast.error("Strategic insights can only be removed within 30 minutes of publishing.");
-            setShowOptions(false);
-            return;
-        }
-
         if (!window.confirm("Are you sure you want to delete this strategic insight? This action cannot be undone.")) return;
         
         const loadingToast = toast.loading("Removing post...");
@@ -1664,70 +1651,85 @@ function PostCard({
                             </p>
                         </div>
                     </div>
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowOptions(!showOptions)}
-                            className="text-tatt-gray hover:text-tatt-lime p-2 rounded-xl hover:bg-black/5  transition-all"
-                        >
+                    <Dropdown>
+                        <DropdownTrigger className="text-tatt-gray hover:text-tatt-lime p-2 rounded-xl hover:bg-black/5 transition-all cursor-pointer outline-none">
                             <MoreHorizontal className="h-5 w-5" />
-                        </button>
-                        {showOptions && (
-                            <>
-                                <div className="fixed inset-0 z-[55]" onClick={() => setShowOptions(false)} />
-                                <div className="absolute right-0 mt-2 w-48 bg-white border border-border rounded-2xl shadow-2xl z-[60] overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
-                                    {post.author.id !== user?.id && (
-                                        <>
-                                            <button onClick={handleBookmark} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 transition-colors text-left">
-                                                <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-tatt-lime text-tatt-lime' : ''}`} />
-                                                {isBookmarked ? 'Bookmarked' : 'Bookmark Post'}
-                                            </button>
-                                            <button
-                                                onClick={() => { setShowOptions(false); setIsReporting(true); }}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-red-50 text-red-600 transition-colors text-left"
-                                            >
-                                                <Flag className="h-4 w-4" />
-                                                Report Post
-                                            </button>
-                                        </>
-                                    )}
-                                    {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR' || user?.systemRole === 'REGIONAL_ADMIN') && (
-                                        <button onClick={handleHighlight} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 transition-colors text-left">
-                                            <Highlighter className={`h-4 w-4 ${isHighlighted ? 'text-tatt-lime' : ''}`} />
-                                            {isHighlighted ? 'Remove Highlight' : 'Highlight in Chapter'}
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => { setShowOptions(false); setIsReposting(true); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 transition-colors text-left"
+                        </DropdownTrigger>
+                        <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-2xl shadow-xl p-1 z-50">
+                            <DropdownMenu aria-label="Post Actions">
+                                {post.author.id !== user?.id ? (
+                                    <DropdownItem
+                                        key="bookmark"
+                                        onPress={handleBookmark}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-black/5 rounded-xl cursor-pointer"
                                     >
+                                        <div className="flex items-center gap-2">
+                                            <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-tatt-lime text-tatt-lime' : ''}`} />
+                                            <span>{isBookmarked ? 'Bookmarked' : 'Bookmark Post'}</span>
+                                        </div>
+                                    </DropdownItem>
+                                ) : null}
+                                {post.author.id !== user?.id ? (
+                                    <DropdownItem
+                                        key="report"
+                                        onPress={() => setIsReporting(true)}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-xl cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2 text-red-500">
+                                            <Flag className="h-4 w-4" />
+                                            <span>Report Post</span>
+                                        </div>
+                                    </DropdownItem>
+                                ) : null}
+                                {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR' || user?.systemRole === 'REGIONAL_ADMIN') ? (
+                                    <DropdownItem
+                                        key="highlight"
+                                        onPress={handleHighlight}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-black/5 rounded-xl cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Highlighter className={`h-4 w-4 ${isHighlighted ? 'text-tatt-lime' : ''}`} />
+                                            <span>{isHighlighted ? 'Remove Highlight' : 'Highlight in Chapter'}</span>
+                                        </div>
+                                    </DropdownItem>
+                                ) : null}
+                                <DropdownItem
+                                    key="repost"
+                                    onPress={() => setIsReposting(true)}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-black/5 rounded-xl cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-2">
                                         <Repeat2 className="h-4 w-4" />
-                                        Repost
-                                    </button>
-                                    {(post.author?.id === user?.id || (post as any).authorId === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) && (
-                                        <>
-                                            <button
-                                                onClick={() => {
-                                                    setShowOptions(false);
-                                                    handleStartEditPost();
-                                                }}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-tatt-lime/10 hover:text-tatt-lime transition-colors text-left font-semibold text-foreground cursor-pointer"
-                                            >
-                                                <Pencil className="h-4 w-4 text-tatt-lime" />
-                                                Edit Post
-                                            </button>
-                                            <button 
-                                                onClick={handleDelete} 
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-red-50 text-red-600 transition-colors text-left font-semibold cursor-pointer"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                                Delete Post
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                                        <span>Repost</span>
+                                    </div>
+                                </DropdownItem>
+                                {(post.author?.id === user?.id || (post as any).authorId === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) ? (
+                                    <DropdownItem
+                                        key="edit"
+                                        onPress={handleStartEditPost}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-black/5 rounded-xl cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Pencil className="h-4 w-4 text-tatt-lime" />
+                                            <span>Edit Post</span>
+                                        </div>
+                                    </DropdownItem>
+                                ) : null}
+                                {(post.author?.id === user?.id || (post as any).authorId === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) ? (
+                                    <DropdownItem
+                                        key="delete"
+                                        onPress={handleDelete}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-xl cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2 text-red-500">
+                                            <Trash2 className="h-4 w-4" />
+                                            <span>Delete Post</span>
+                                        </div>
+                                    </DropdownItem>
+                                ) : null}
+                            </DropdownMenu>
+                        </DropdownPopover>
+                    </Dropdown>
 
                 </div>
 
@@ -2079,46 +2081,39 @@ function PostCard({
                                                          <span className="text-[10px] text-tatt-gray ml-2 font-medium">{formatTimeAgo(comment.createdAt)} {comment.updatedAt && comment.updatedAt !== comment.createdAt && <span className="italic text-tatt-gray/80">(edited)</span>}</span>
                                                      </div>
                                                      {((comment.author?.id === user?.id || (comment.author as any) === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) || (post.author?.id === user?.id)) && (
-                                                         <div className="relative">
-                                                             <button
-                                                                 type="button"
-                                                                 onClick={() => setActiveCommentMenuId(activeCommentMenuId === comment.id ? null : comment.id)}
-                                                                 className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer"
-                                                             >
+                                                         <Dropdown>
+                                                             <DropdownTrigger className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
                                                                  <MoreHorizontal className="size-4" />
-                                                             </button>
-                                                             {activeCommentMenuId === comment.id && (
-                                                                 <>
-                                                                     <div className="fixed inset-0 z-40" onClick={() => setActiveCommentMenuId(null)} />
-                                                                     <div className="absolute right-0 mt-1 w-36 bg-white border border-border rounded-xl shadow-xl z-50 py-1 text-xs font-semibold overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                                                         {(comment.author?.id === user?.id || (comment.author as any) === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) && (
-                                                                             <button
-                                                                                 type="button"
-                                                                                 onClick={() => {
-                                                                                     setActiveCommentMenuId(null);
-                                                                                     handleStartEditComment(comment.id, comment.content);
-                                                                                 }}
-                                                                                 className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-tatt-lime/10 hover:text-tatt-lime transition-colors text-left cursor-pointer"
-                                                                             >
-                                                                                 <Pencil className="size-3.5 text-tatt-lime" /> Edit
-                                                                             </button>
-                                                                         )}
-                                                                         {(comment.author?.id === user?.id || (comment.author as any) === user?.id || post.author?.id === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) && (
-                                                                             <button
-                                                                                 type="button"
-                                                                                 onClick={() => {
-                                                                                     setActiveCommentMenuId(null);
-                                                                                     handleDeleteComment(comment.id);
-                                                                                 }}
-                                                                                 className="w-full flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 transition-colors text-left cursor-pointer"
-                                                                             >
-                                                                                 <Trash2 className="size-3.5" /> Delete
-                                                                             </button>
-                                                                         )}
-                                                                     </div>
-                                                                 </>
-                                                             )}
-                                                         </div>
+                                                             </DropdownTrigger>
+                                                             <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-xl shadow-lg p-1 z-50">
+                                                                 <DropdownMenu aria-label="Comment Options">
+                                                                     {(comment.author?.id === user?.id || (comment.author as any) === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) ? (
+                                                                         <DropdownItem
+                                                                             key="edit"
+                                                                             onPress={() => handleStartEditComment(comment.id, comment.content)}
+                                                                             className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold hover:bg-black/5 rounded-lg cursor-pointer"
+                                                                         >
+                                                                             <div className="flex items-center gap-2">
+                                                                                 <Pencil className="size-3.5 text-tatt-lime" />
+                                                                                 <span>Edit</span>
+                                                                             </div>
+                                                                         </DropdownItem>
+                                                                     ) : null}
+                                                                     {(comment.author?.id === user?.id || (comment.author as any) === user?.id || post.author?.id === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) ? (
+                                                                         <DropdownItem
+                                                                             key="delete"
+                                                                             onPress={() => handleDeleteComment(comment.id)}
+                                                                             className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                                                                         >
+                                                                             <div className="flex items-center gap-2 text-red-500">
+                                                                                 <Trash2 className="size-3.5" />
+                                                                                 <span>Delete</span>
+                                                                             </div>
+                                                                         </DropdownItem>
+                                                                     ) : null}
+                                                                 </DropdownMenu>
+                                                             </DropdownPopover>
+                                                         </Dropdown>
                                                      )}
                                                  </div>
                                                 {editingCommentId === comment.id ? (
@@ -2242,46 +2237,39 @@ function PostCard({
                                                                 <div className="flex justify-between items-start mb-0.5">
                                                                      <span className="font-bold text-xs">{reply.author?.firstName} {reply.author?.lastName}</span>
                                                                      {((reply.author?.id === user?.id || (reply.author as any) === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) || (post.author?.id === user?.id)) && (
-                                                                         <div className="relative">
-                                                                             <button
-                                                                                 type="button"
-                                                                                 onClick={() => setActiveCommentMenuId(activeCommentMenuId === reply.id ? null : reply.id)}
-                                                                                 className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer"
-                                                                             >
+                                                                         <Dropdown>
+                                                                             <DropdownTrigger className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
                                                                                  <MoreHorizontal className="size-3.5" />
-                                                                             </button>
-                                                                             {activeCommentMenuId === reply.id && (
-                                                                                 <>
-                                                                                     <div className="fixed inset-0 z-40" onClick={() => setActiveCommentMenuId(null)} />
-                                                                                     <div className="absolute right-0 mt-1 w-32 bg-white border border-border rounded-xl shadow-xl z-50 py-1 text-xs font-semibold overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                                                                                         {(reply.author?.id === user?.id || (reply.author as any) === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) && (
-                                                                                             <button
-                                                                                                 type="button"
-                                                                                                 onClick={() => {
-                                                                                                     setActiveCommentMenuId(null);
-                                                                                                     handleStartEditComment(reply.id, reply.content);
-                                                                                                 }}
-                                                                                                 className="w-full flex items-center gap-2 px-3 py-1.5 text-foreground hover:bg-tatt-lime/10 hover:text-tatt-lime transition-colors text-left cursor-pointer"
-                                                                                             >
-                                                                                                 <Pencil className="size-3 text-tatt-lime" /> Edit
-                                                                                             </button>
-                                                                                         )}
-                                                                                         {(reply.author?.id === user?.id || (reply.author as any) === user?.id || post.author?.id === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) && (
-                                                                                             <button
-                                                                                                 type="button"
-                                                                                                 onClick={() => {
-                                                                                                     setActiveCommentMenuId(null);
-                                                                                                     handleDeleteComment(reply.id);
-                                                                                                 }}
-                                                                                                 className="w-full flex items-center gap-2 px-3 py-1.5 text-red-500 hover:bg-red-50 transition-colors text-left cursor-pointer"
-                                                                                             >
-                                                                                                 <Trash2 className="size-3" /> Delete
-                                                                                             </button>
-                                                                                         )}
-                                                                                     </div>
-                                                                                 </>
-                                                                             )}
-                                                                         </div>
+                                                                             </DropdownTrigger>
+                                                                             <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-xl shadow-lg p-1 z-50">
+                                                                                 <DropdownMenu aria-label="Reply Options">
+                                                                                     {(reply.author?.id === user?.id || (reply.author as any) === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) ? (
+                                                                                         <DropdownItem
+                                                                                             key="edit"
+                                                                                             onPress={() => handleStartEditComment(reply.id, reply.content)}
+                                                                                             className="flex items-center gap-2 px-3 py-1 text-xs font-semibold hover:bg-black/5 rounded-lg cursor-pointer"
+                                                                                         >
+                                                                                             <div className="flex items-center gap-2">
+                                                                                                 <Pencil className="size-3 text-tatt-lime" />
+                                                                                                 <span>Edit</span>
+                                                                                             </div>
+                                                                                         </DropdownItem>
+                                                                                     ) : null}
+                                                                                     {(reply.author?.id === user?.id || (reply.author as any) === user?.id || post.author?.id === user?.id || (user?.systemRole && user.systemRole !== 'COMMUNITY_MEMBER')) ? (
+                                                                                         <DropdownItem
+                                                                                             key="delete"
+                                                                                             onPress={() => handleDeleteComment(reply.id)}
+                                                                                             className="flex items-center gap-2 px-3 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                                                                                         >
+                                                                                             <div className="flex items-center gap-2 text-red-500">
+                                                                                                 <Trash2 className="size-3" />
+                                                                                                 <span>Delete</span>
+                                                                                             </div>
+                                                                                         </DropdownItem>
+                                                                                     ) : null}
+                                                                                 </DropdownMenu>
+                                                                             </DropdownPopover>
+                                                                         </Dropdown>
                                                                      )}
                                                                  </div>
                                                                 {editingCommentId === reply.id ? (
@@ -2335,241 +2323,217 @@ function PostCard({
 
             {/* Edit Post Modal */}
             {isEditingPost && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsEditingPost(false)} />
-                    <div className="relative bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="p-6 border-b border-border flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-bold text-foreground">Edit {post.type} Post</h2>
-                                <p className="text-[10px] text-tatt-gray font-black uppercase tracking-widest mt-0.5">
-                                    Authoring as <span className="text-tatt-lime">{post.author.firstName} {post.author.lastName}</span>
-                                </p>
+                <AppModal
+                    isOpen={isEditingPost}
+                    onClose={() => setIsEditingPost(false)}
+                    title={`Edit ${post.type} Post`}
+                    subtitle={
+                        <span>
+                            Authoring as <span className="text-tatt-lime">{post.author.firstName} {post.author.lastName}</span>
+                        </span>
+                    }
+                    maxWidth="max-w-2xl"
+                    footer={
+                        <>
+                            {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
+                                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-tatt-lime">
+                                    <input
+                                        type="checkbox"
+                                        checked={editIsPremium}
+                                        onChange={(e) => setEditIsPremium(e.target.checked)}
+                                        className="rounded border-border text-tatt-lime focus:ring-tatt-lime size-4"
+                                    />
+                                    Premium Lock
+                                </label>
+                            )}
+                            <div className="flex justify-end gap-3 ml-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditingPost(false)}
+                                    className="px-5 py-2.5 rounded-xl text-xs font-bold text-tatt-gray border border-border hover:bg-black/5 cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSavePostEdit as any}
+                                    disabled={savingPost || !editPostContent.trim()}
+                                    className="px-6 py-2.5 rounded-xl text-xs font-bold bg-tatt-lime text-tatt-black hover:brightness-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-lg shadow-tatt-lime/20"
+                                >
+                                    {savingPost && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    Save Changes
+                                </button>
                             </div>
-                            <button onClick={() => setIsEditingPost(false)} className="size-10 rounded-full bg-black/5 flex items-center justify-center text-tatt-gray hover:text-foreground transition-all cursor-pointer">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+                        </>
+                    }
+                >
+                    <form onSubmit={handleSavePostEdit} className="space-y-6">
+                        <input
+                            value={editPostTitle}
+                            onChange={(e) => setEditPostTitle(e.target.value)}
+                            placeholder={post.type === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
+                            className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none text-foreground"
+                        />
 
-                        {/* Body */}
-                        <form onSubmit={handleSavePostEdit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar flex flex-col justify-between">
-                            <div className="space-y-6">
-                                <input
-                                    value={editPostTitle}
-                                    onChange={(e) => setEditPostTitle(e.target.value)}
-                                    placeholder={post.type === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
-                                    className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none text-foreground"
-                                />
-
-                                {/* JOB Fields */}
-                                {post.type === "JOB" && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
-                                            <div className="relative">
-                                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    value={editJobCompany}
-                                                    onChange={(e) => setEditJobCompany(e.target.value)}
-                                                    placeholder="e.g. Google Africa"
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
-                                            <div className="relative">
-                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    value={editJobLocation}
-                                                    onChange={(e) => setEditJobLocation(e.target.value)}
-                                                    placeholder="e.g. Nairobi, Kenya"
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="md:col-span-2 space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
-                                            <div className="relative">
-                                                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    value={editJobLink}
-                                                    onChange={(e) => setEditJobLink(e.target.value)}
-                                                    placeholder="https://careers.company.com/job/..."
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
+                        {/* JOB Fields */}
+                        {post.type === "JOB" && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
+                                    <div className="relative">
+                                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                        <input
+                                            value={editJobCompany}
+                                            onChange={(e) => setEditJobCompany(e.target.value)}
+                                            placeholder="e.g. Google Africa"
+                                            className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                        />
                                     </div>
-                                )}
-
-                                {/* EVENT Fields */}
-                                {post.type === "EVENT" && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                                        <div className="md:col-span-2 space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
-                                                    <button
-                                                        key={t}
-                                                        type="button"
-                                                        onClick={() => setEditEventType(t)}
-                                                        className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
-                                                            editEventType === t
-                                                                ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
-                                                                : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
-                                                        }`}
-                                                    >
-                                                        {t.replace("_", " ")}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    type="datetime-local"
-                                                    value={editEventDate}
-                                                    onChange={e => setEditEventDate(e.target.value)}
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event URL</label>
-                                            <div className="relative">
-                                                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
-                                                <input
-                                                    type="url"
-                                                    value={editEventUrl}
-                                                    onChange={e => setEditEventUrl(e.target.value)}
-                                                    placeholder="https://zoom.us/j/..."
-                                                    className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
-                                                />
-                                            </div>
-                                        </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                        <input
+                                            value={editJobLocation}
+                                            onChange={(e) => setEditJobLocation(e.target.value)}
+                                            placeholder="e.g. Nairobi, Kenya"
+                                            className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                        />
                                     </div>
-                                )}
+                                </div>
+                                <div className="md:col-span-2 space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
+                                    <div className="relative">
+                                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                        <input
+                                            value={editJobLink}
+                                            onChange={(e) => setEditJobLink(e.target.value)}
+                                            placeholder="https://careers.company.com/job/..."
+                                            className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                                 {/* Topic Selector */}
-                                {allTopics && allTopics.length > 0 && (
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
-                                            <MessageSquare className="size-3" /> Community Topic
-                                        </label>
-                                        <div className="flex flex-wrap gap-2">
+                        {/* EVENT Fields */}
+                        {post.type === "EVENT" && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
                                             <button
+                                                key={t}
                                                 type="button"
-                                                onClick={() => setEditPostTopicId("")}
+                                                onClick={() => setEditEventType(t)}
                                                 className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
-                                                    editPostTopicId === ""
+                                                    editEventType === t
                                                         ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
                                                         : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
                                                 }`}
                                             >
-                                                No Topic
+                                                {t.replace("_", " ")}
                                             </button>
-                                            {allTopics.map(t => (
-                                                <button
-                                                    key={t.id}
-                                                    type="button"
-                                                    onClick={() => setEditPostTopicId(t.id === editPostTopicId ? "" : t.id)}
-                                                    className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
-                                                        editPostTopicId === t.id
-                                                            ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
-                                                            : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
-                                                    }`}
-                                                >
-                                                    {t.name}
-                                                </button>
-                                            ))}
-                                        </div>
+                                        ))}
                                     </div>
-                                )}
-
-                                <textarea
-                                    value={editPostContent}
-                                    onChange={(e) => setEditPostContent(e.target.value)}
-                                    placeholder="What's on your mind?"
-                                    className="w-full bg-transparent border-none text-base resize-none focus:ring-0 min-h-[160px] placeholder:text-tatt-gray/50 outline-none text-foreground"
-                                    required
-                                />
-
-                                {/* Image Attachments */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
-                                            <ImageIcon className="size-3" /> Media Attachments
-                                        </label>
-                                        <label className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer flex items-center gap-1">
-                                            <Paperclip className="size-3.5" /> Add Images
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                multiple
-                                                onChange={handleEditFileUpload}
-                                                className="hidden"
-                                            />
-                                        </label>
-                                    </div>
-                                    {editMediaUrls.length > 0 && (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                            {editMediaUrls.map((url, i) => (
-                                                <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-black/5">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={url} alt="Attachment" className="w-full h-full object-cover" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeEditMediaUrl(i)}
-                                                        className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
-
-                            {/* Footer Buttons */}
-                            <div className="pt-6 border-t border-border flex items-center justify-between gap-4">
-                                {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
-                                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-tatt-lime">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
                                         <input
-                                            type="checkbox"
-                                            checked={editIsPremium}
-                                            onChange={(e) => setEditIsPremium(e.target.checked)}
-                                            className="rounded border-border text-tatt-lime focus:ring-tatt-lime size-4"
+                                            type="datetime-local"
+                                            value={editEventDate}
+                                            onChange={(e) => setEditEventDate(e.target.value)}
+                                            className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
                                         />
-                                        Premium Lock
-                                    </label>
-                                )}
-                                <div className="flex justify-end gap-3 ml-auto">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditingPost(false)}
-                                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-tatt-gray border border-border hover:bg-black/5 cursor-pointer"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={savingPost || !editPostContent.trim()}
-                                        className="px-6 py-2.5 rounded-xl text-xs font-bold bg-tatt-lime text-tatt-black hover:brightness-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-lg shadow-tatt-lime/20"
-                                    >
-                                        {savingPost && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        Save Changes
-                                    </button>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Link</label>
+                                    <div className="relative">
+                                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                        <input
+                                            value={editEventUrl}
+                                            onChange={(e) => setEditEventUrl(e.target.value)}
+                                            placeholder="https://zoom.us/j/..."
+                                            className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-                </div>
+                        )}
+
+                        <textarea
+                            value={editPostContent}
+                            onChange={(e) => setEditPostContent(e.target.value)}
+                            placeholder="Write post content..."
+                            rows={5}
+                            className="w-full bg-black/5 border border-border rounded-2xl p-4 text-sm focus:ring-2 focus:ring-tatt-lime outline-none resize-none text-foreground"
+                        />
+
+                        {/* Topic Tag Selector */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Community Topic</label>
+                            <div className="flex flex-wrap gap-2">
+                                {allTopics.map(t => (
+                                    <button
+                                        key={t.id}
+                                        type="button"
+                                        onClick={() => setEditPostTopicId(editPostTopicId === t.id ? "" : t.id)}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                                            editPostTopicId === t.id
+                                                ? "bg-tatt-lime text-black border-tatt-lime shadow-md shadow-tatt-lime/20"
+                                                : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
+                                        }`}
+                                    >
+                                        #{t.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Image Attachments */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
+                                    <ImageIcon className="size-3" /> Media Attachments
+                                </label>
+                                <label className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer flex items-center gap-1">
+                                    <Paperclip className="size-3.5" /> Add Images
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleEditFileUpload}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </div>
+                            {editMediaUrls.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    {editMediaUrls.map((url, i) => (
+                                        <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-black/5">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeEditMediaUrl(i)}
+                                                className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </form>
+                </AppModal>
             )}
-        </article >
+        </article>
     );
 }
 
@@ -2601,61 +2565,59 @@ function RepostModal({ post, onClose, onSuccess }: { post: Post, onClose: () => 
     };
 
     return (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white  w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate-in fade-in zoom-in duration-300">
-                <div className="p-6 border-b border-border flex items-center justify-between bg-black/5">
-                    <h3 className="font-bold flex items-center gap-2">
-                        <Repeat2 className="h-5 w-5 text-tatt-lime" />
-                        Repost Insight
-                    </h3>
-                    <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors font-black">
-                        <X className="h-5 w-5" />
+        <AppModal
+            isOpen={true}
+            onClose={onClose}
+            title={
+                <h3 className="font-bold flex items-center gap-2 text-foreground">
+                    <Repeat2 className="h-5 w-5 text-tatt-lime" />
+                    Repost Insight
+                </h3>
+            }
+            headerClass="bg-black/5"
+            footer={
+                <div className="flex justify-end gap-3 w-full">
+                    <button onClick={onClose} className="px-6 py-3 rounded-xl text-xs font-bold hover:bg-black/5 transition-all uppercase tracking-widest cursor-pointer">
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleRepost}
+                        disabled={isSubmitting}
+                        className="bg-tatt-lime text-black font-black px-8 py-3 rounded-xl text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 flex items-center gap-2 cursor-pointer"
+                    >
+                        {isSubmitting && <div className="size-3 border-2 border-black border-t-transparent animate-spin rounded-full" />}
+                        Share Post
                     </button>
                 </div>
-                <div className="p-6 space-y-6">
-                    <textarea
-                        value={commentary}
-                        onChange={(e) => setCommentary(e.target.value)}
-                        className="w-full bg-black/5  border border-border rounded-2xl p-4 text-sm focus:ring-1 focus:ring-tatt-lime outline-none min-h-[120px]"
-                        placeholder="Add your strategic perspective to this insight..."
-                    />
+            }
+            size="lg"
+        >
+            <textarea
+                value={commentary}
+                onChange={(e) => setCommentary(e.target.value)}
+                className="w-full bg-black/5 border border-border rounded-2xl p-4 text-sm focus:ring-1 focus:ring-tatt-lime outline-none min-h-[120px] text-foreground"
+                placeholder="Add your strategic perspective to this insight..."
+            />
 
-                    <div className="p-4 rounded-2xl border border-border bg-black/5 opacity-80 scale-95 origin-top">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="size-6 rounded-full border border-border overflow-hidden bg-background">
-                                {post.author.profilePicture ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={post.author.profilePicture} alt={post.author.firstName} className="w-full h-full object-cover" />
-                            ) : (
-                                    <div className="size-full flex items-center justify-center text-[8px] font-bold text-tatt-lime">
-                                        {post.author.firstName.charAt(0)}{post.author.lastName.charAt(0)}
-                                    </div>
-                                )}
+            <div className="p-4 rounded-2xl border border-border bg-black/5 opacity-80 scale-95 origin-top">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="size-6 rounded-full border border-border overflow-hidden bg-background">
+                        {post.author.profilePicture ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={post.author.profilePicture} alt={post.author.firstName} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="size-full flex items-center justify-center text-[8px] font-bold text-tatt-lime">
+                                {post.author.firstName.charAt(0)}{post.author.lastName.charAt(0)}
                             </div>
-                            <span className="text-xs font-bold">{post.author.firstName} {post.author.lastName}</span>
-                        </div>
-                        <p className="text-xs text-tatt-gray line-clamp-2">
-                            {post.isPremiumLocked ? "Elite Strategic Insight (Locked)" : (post.content || "").replace(/<[^>]*>?/gm, '').substring(0, 150) + '...'}
-                        </p>
+                        )}
                     </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button onClick={onClose} className="px-6 py-3 rounded-xl text-sm font-bold hover:bg-black/5 transition-all uppercase tracking-widest text-xs">
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleRepost}
-                            disabled={isSubmitting}
-                            className="bg-tatt-lime text-black font-black px-8 py-3 rounded-xl text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 flex items-center gap-2"
-                        >
-                            {isSubmitting && <div className="size-3 border-2 border-black border-t-transparent animate-spin rounded-full" />}
-                            Share Post
-                        </button>
-                    </div>
+                    <span className="text-xs font-bold text-foreground">{post.author.firstName} {post.author.lastName}</span>
                 </div>
+                <p className="text-xs text-tatt-gray line-clamp-2">
+                    {post.isPremiumLocked ? "Elite Strategic Insight (Locked)" : (post.content || "").replace(/<[^>]*>?/gm, '').substring(0, 150) + '...'}
+                </p>
             </div>
-        </div>
+        </AppModal>
     );
 }
 
@@ -2686,63 +2648,63 @@ function ReportModal({ post, onClose }: { post: Post, onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white  w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-white/10 animate-in fade-in zoom-in duration-300">
-                <div className="p-6 border-b border-border flex items-center justify-between bg-red-500/5">
-                    <h3 className="font-bold flex items-center gap-2 text-red-500">
-                        <Flag className="h-5 w-5" />
-                        Report Insight
-                    </h3>
-                    <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors font-black">
-                        <X className="h-5 w-5" />
+        <AppModal
+            isOpen={true}
+            onClose={onClose}
+            title={
+                <h3 className="font-bold flex items-center gap-2 text-red-500">
+                    <Flag className="h-5 w-5" />
+                    Report Insight
+                </h3>
+            }
+            headerClass="bg-red-500/5"
+            footer={
+                <div className="flex justify-end gap-3 w-full">
+                    <button onClick={onClose} className="px-6 py-3 rounded-xl text-sm font-bold hover:bg-black/5 transition-all cursor-pointer">
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleReport}
+                        disabled={isSubmitting}
+                        className="bg-red-600 text-white font-black px-8 py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-red-700 transition-all flex items-center gap-2 shadow-lg shadow-red-600/20 cursor-pointer"
+                    >
+                        {isSubmitting && <div className="size-3 border-2 border-white border-t-transparent animate-spin rounded-full" />}
+                        Submit Report
                     </button>
                 </div>
-                <div className="p-6 space-y-6">
-                    <div>
-                        <label className="block text-xs font-black uppercase tracking-widest text-tatt-gray mb-3">Reason for Reporting</label>
-                        <textarea
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            className="w-full bg-black/5  border border-border rounded-2xl p-4 text-sm focus:ring-1 focus:ring-red-500 outline-none min-h-[120px]"
-                            placeholder="Please describe why this post violates community guidelines..."
-                        />
-                    </div>
+            }
+            size="lg"
+        >
+            <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-tatt-gray mb-3">Reason for Reporting</label>
+                <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full bg-black/5 border border-border rounded-2xl p-4 text-sm focus:ring-1 focus:ring-red-500 outline-none min-h-[120px] text-foreground"
+                    placeholder="Please describe why this post violates community guidelines..."
+                />
+            </div>
 
-                    <div>
-                        <label className="block text-xs font-black uppercase tracking-widest text-tatt-gray mb-3">Suggested Strategic Action</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                onClick={() => setSuggestedAction("LIMIT_RECOMMENDATION")}
-                                className={`p-4 rounded-2xl border text-xs font-bold transition-all ${suggestedAction === "LIMIT_RECOMMENDATION" ? "border-tatt-lime bg-tatt-lime/5 text-foreground" : "border-border bg-black/5 text-tatt-gray hover:border-tatt-lime/30"}`}
-                            >
-                                Limit Reach
-                            </button>
-                            <button
-                                onClick={() => setSuggestedAction("DELETE")}
-                                className={`p-4 rounded-2xl border text-xs font-bold transition-all ${suggestedAction === "DELETE" ? "border-red-500 bg-red-500/5 text-red-500" : "border-border bg-black/5 text-tatt-gray hover:border-red-500/30"}`}
-                            >
-                                Delete Post
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button onClick={onClose} className="px-6 py-3 rounded-xl text-sm font-bold hover:bg-black/5 transition-all">
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleReport}
-                            disabled={isSubmitting}
-                            className="bg-red-600 text-white font-black px-8 py-3 rounded-xl text-xs uppercase tracking-widest hover:bg-red-700 transition-all flex items-center gap-2 shadow-lg shadow-red-600/20"
-                        >
-                            {isSubmitting && <div className="size-3 border-2 border-white border-t-transparent animate-spin rounded-full" />}
-                            Submit Report
-                        </button>
-                    </div>
+            <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-tatt-gray mb-3">Suggested Strategic Action</label>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setSuggestedAction("LIMIT_RECOMMENDATION")}
+                        className={`p-4 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${suggestedAction === "LIMIT_RECOMMENDATION" ? "border-tatt-lime bg-tatt-lime/5 text-foreground" : "border-border bg-black/5 text-tatt-gray hover:border-tatt-lime/30"}`}
+                    >
+                        Limit Reach
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSuggestedAction("DELETE")}
+                        className={`p-4 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${suggestedAction === "DELETE" ? "border-red-500 bg-red-500/5 text-red-500" : "border-border bg-black/5 text-tatt-gray hover:border-red-500/30"}`}
+                    >
+                        Delete Post
+                    </button>
                 </div>
             </div>
-        </div>
+        </AppModal>
     );
 }
 
