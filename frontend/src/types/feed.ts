@@ -33,6 +33,13 @@ export type FeedPost = {
     isLikedByMe: boolean;
     createdAt: string;
     updatedAt: string;
+    jobLink?: string;
+    jobLocation?: string;
+    jobCompany?: string;
+    eventType?: string | null;
+    eventDate?: string | null;
+    eventUrl?: string | null;
+    topic?: { id: string; name: string } | null;
 };
 
 export type FeedMeta = {

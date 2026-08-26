@@ -580,7 +580,7 @@ export default function SettingsPage() {
         loadInitialData();
         fetchPaymentMethod();
         fetchBusinessProfile();
-    }, [user]);
+    }, [user?.id]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -626,6 +626,7 @@ export default function SettingsPage() {
 
     const handleSave = async () => {
         setLoading(true);
+        toast.loading("Saving profile settings...", { id: "profile-save" });
         try {
             const { employer, ...payload } = formData;
             const cleanedPayload = cleanPayload({
@@ -637,12 +638,12 @@ export default function SettingsPage() {
 
             // Update auth context with new user data
             updateUser(response.data);
-            toast.success("Profile settings saved successfully!", { icon: "✅" });
+            toast.success("Profile settings saved successfully!", { id: "profile-save" });
         } catch (error: any) {
             console.error("Failed to update profile", error);
             const apiMsg = error?.response?.data?.message;
             const formattedErrorMsg = Array.isArray(apiMsg) ? apiMsg.join(", ") : apiMsg || "Failed to update profile. Please try again.";
-            toast.error(formattedErrorMsg);
+            toast.error(formattedErrorMsg, { id: "profile-save" });
         } finally {
             setLoading(false);
         }

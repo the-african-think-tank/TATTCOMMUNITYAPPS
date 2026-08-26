@@ -223,6 +223,36 @@ export class UpdatePostDto {
     @IsOptional()
     @IsString()
     topicId?: string;
+
+    @ApiPropertyOptional({ description: 'Link to the job description (for JOB posts).' })
+    @IsOptional()
+    @IsString()
+    jobLink?: string;
+
+    @ApiPropertyOptional({ description: 'Location of the job (for JOB posts).' })
+    @IsOptional()
+    @IsString()
+    jobLocation?: string;
+
+    @ApiPropertyOptional({ description: 'Name of the company (for JOB posts).' })
+    @IsOptional()
+    @IsString()
+    jobCompany?: string;
+
+    @ApiPropertyOptional({ description: 'Event type (for EVENT posts).' })
+    @IsOptional()
+    @IsString()
+    eventType?: string;
+
+    @ApiPropertyOptional({ description: 'Date/time of the event (ISO string, for EVENT posts).' })
+    @IsOptional()
+    @IsString()
+    eventDate?: string;
+
+    @ApiPropertyOptional({ description: 'Registration / event URL (for EVENT posts).' })
+    @IsOptional()
+    @IsString()
+    eventUrl?: string;
 }
 
 // ─── COMMENT ─────────────────────────────────────────────────────────────────
@@ -243,6 +273,17 @@ export class AddCommentDto {
     @IsOptional()
     @IsString()
     parentId?: string;
+}
+
+export class UpdateCommentDto {
+    @ApiProperty({
+        description: 'Updated comment text content.',
+        example: 'This is an updated comment text.',
+    })
+    @IsString()
+    @IsNotEmpty({ message: 'Comment content cannot be empty.' })
+    @MaxLength(1000, { message: 'Comment content cannot exceed 1000 characters.' })
+    content: string;
 }
 
 export class GetCommentsQueryDto {

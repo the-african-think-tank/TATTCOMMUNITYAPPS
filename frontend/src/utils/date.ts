@@ -27,3 +27,17 @@ export function formatTimeAgo(dateString?: string | null): string {
         return "";
     }
 }
+
+/**
+ * Format ISO date string into HTML5 datetime-local input format ("YYYY-MM-DDTHH:mm").
+ */
+export function formatForDateTimeLocal(dateString?: string | null): string {
+    if (!dateString) return "";
+    try {
+        const d = dayjs(dateString);
+        if (!d.isValid()) return "";
+        return d.format("YYYY-MM-DDTHH:mm");
+    } catch {
+        return "";
+    }
+}

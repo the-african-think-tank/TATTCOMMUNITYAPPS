@@ -26,7 +26,7 @@ import { CommunityTier, SystemRole, AccountFlags } from '../iam/enums/roles.enum
 import {
     FeedQueryDto, FeedFilter,
     CreatePostDto, UpdatePostDto,
-    AddCommentDto, GetCommentsQueryDto,
+    AddCommentDto, UpdateCommentDto, GetCommentsQueryDto,
     ReportPostDto, RecordViewsDto,
 } from './dto/feed.dto';
 import { FeedGateway } from './feed.gateway';
@@ -461,10 +461,17 @@ export class FeedService {
             ...(dto.tags !== undefined && { tags: dto.tags }),
             ...(dto.isPremium !== undefined && { isPremium: dto.isPremium }),
             ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
+            ...(dto.topicId !== undefined && { topicId: dto.topicId || null }),
+            ...(dto.jobCompany !== undefined && { jobCompany: dto.jobCompany }),
+            ...(dto.jobLocation !== undefined && { jobLocation: dto.jobLocation }),
+            ...(dto.jobLink !== undefined && { jobLink: dto.jobLink }),
+            ...(dto.eventType !== undefined && { eventType: dto.eventType }),
+            ...(dto.eventDate !== undefined && { eventDate: dto.eventDate }),
+            ...(dto.eventUrl !== undefined && { eventUrl: dto.eventUrl }),
         });
 
         await post.save();
-        return { message: 'Post updated.' };
+        return this.getPost(viewer, postId);
     }
 
     async deletePost(viewer: User, postId: string) {
@@ -584,6 +591,21 @@ export class FeedService {
         this.feedGateway.broadcastNewComment(postId, fullComment);
 
         return { message: 'Comment added.', commentId: comment.id };
+    }
+
+    async updateComment(viewer: User, commentId: string, dto: UpdateCommentDto) {
+        const comment = await this.commentRepo.findByPk(commentId);
+        if (!comment) throw new NotFoundException('Comment not found.');
+        if (comment.authorId !== viewer.id && !isStaff(viewer)) {
+            throw new ForbiddenException('You can only edit your own comments.');
+        }
+        comment.content = dto.content;
+        await comment.save();
+
+        const updatedComment = await this.commentRepo.findByPk(commentId, {
+            include: [{ model: User, as: 'author', attributes: [...AUTHOR_ATTRS] }],
+        });
+        return { message: 'Comment updated successfully.', comment: updatedComment };
     }
 
     async deleteComment(viewer: User, commentId: string) {

@@ -82,19 +82,15 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
             `}>
                 <div className="p-6 flex items-center justify-between gap-3 border-b border-border">
                     <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-lg flex items-center justify-center shrink-0">
+                        <div className="w-full h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                                src="/assets/tatt-logo.webp"
+                                src="/assets/tatt-logo-full.webp"
                                 alt="TATT Logo"
                                 width={40}
                                 height={40}
-                                className="object-contain w-10 h-10"
+                                className="object-contain w-full h-10"
                             />
-                        </div>
-                        <div>
-                            <h1 className="font-black text-xl tracking-tighter leading-none text-white whitespace-nowrap">The African</h1>
-                            <p className="font-black text-xl tracking-tighter leading-none text-tatt-lime uppercase">Think Tank</p>
                         </div>
                     </div>
                     <button onClick={closeSidebar} className="lg:hidden text-white hover:text-tatt-lime">

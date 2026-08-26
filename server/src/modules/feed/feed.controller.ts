@@ -12,7 +12,7 @@ import { FeedService } from './feed.service';
 import {
     FeedQueryDto, FeedFilter,
     CreatePostDto, UpdatePostDto,
-    AddCommentDto, GetCommentsQueryDto,
+    AddCommentDto, UpdateCommentDto, GetCommentsQueryDto,
     ReportPostDto, RecordViewsDto,
 } from './dto/feed.dto';
 import {
@@ -428,8 +428,31 @@ export class FeedController {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //  COMMENTS — delete
+    //  COMMENTS — edit & delete
     // ═══════════════════════════════════════════════════════════════════════════
+
+    @ApiOperation({
+        summary: 'Edit a comment',
+        description: 'Updates comment text content. Only the comment author or moderators can edit.',
+    })
+    @ApiParam({
+        name: 'commentId',
+        format: 'uuid',
+        description: 'UUID of the comment to edit',
+    })
+    @ApiBody({ type: UpdateCommentDto })
+    @ApiResponse({ status: 200, description: 'Comment updated.' })
+    @ApiResponse({ status: 403, description: 'Not the comment author.' })
+    @ApiResponse({ status: 404, description: 'Comment not found.' })
+    @Patch('comment/:commentId')
+    @HttpCode(HttpStatus.OK)
+    async updateComment(
+        @Request() req,
+        @Param('commentId', ParseUUIDPipe) commentId: string,
+        @Body() dto: UpdateCommentDto,
+    ) {
+        return this.feedService.updateComment(req.user, commentId, dto);
+    }
 
     @ApiOperation({
         summary: 'Delete a comment',
