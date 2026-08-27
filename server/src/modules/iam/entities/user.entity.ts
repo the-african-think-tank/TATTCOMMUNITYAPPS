@@ -278,6 +278,9 @@ export class User extends Model<User> {
     })
     billingCycle?: 'MONTHLY' | 'YEARLY';
 
+    @Column(DataType.STRING)
+    pendingTier?: string | null;
+
     @Default(true)
     @Column(DataType.BOOLEAN)
     hasAutoPayEnabled: boolean;

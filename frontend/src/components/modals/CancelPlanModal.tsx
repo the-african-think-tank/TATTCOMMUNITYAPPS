@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { X, AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { AppModal } from "@/components/modals/app-modal";
 
 export interface CancelPlanModalProps {
     isOpen: boolean;
@@ -24,15 +25,15 @@ export const CancelPlanModal: React.FC<CancelPlanModalProps> = ({
     reason,
     setReason,
 }) => {
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-surface border border-border w-full max-w-md rounded-3xl p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
-                <button onClick={onClose} className="absolute cursor-pointer top-6 right-6 text-tatt-gray hover:text-foreground">
-                    <X className="size-6" />
-                </button>
-
+        <AppModal
+            isOpen={isOpen}
+            onClose={onClose}
+            size="md"
+            dialogClass="bg-surface border border-border rounded-3xl"
+            showCloseButton={true}
+        >
+            <div className="p-8 flex flex-col">
                 <div className="size-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6">
                     <AlertTriangle className="text-red-500 size-7" />
                 </div>
@@ -79,6 +80,6 @@ export const CancelPlanModal: React.FC<CancelPlanModalProps> = ({
                     </button>
                 </div>
             </div>
-        </div>
+        </AppModal>
     );
 };

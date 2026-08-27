@@ -577,7 +577,8 @@ export class AuthService {
                 'isActive', 'flags', 'isTwoFactorEnabled', 'twoFactorMethod',
                 'connectionPreference', 'expertise', 'businessName', 'businessRole',
                 'businessProfileLink', 'professionalHighlight', 'location', 'deletionRequestedAt',
-                'linkedInProfileUrl', 'hasAutoPayEnabled', 'countryOfOrigin', 'countryOfResidence', 'dateOfBirth'
+                'linkedInProfileUrl', 'hasAutoPayEnabled', 'countryOfOrigin', 'countryOfResidence', 'dateOfBirth',
+                'pendingTier', 'subscriptionExpiresAt', 'billingCycle'
             ],
 
             include: [
@@ -587,6 +588,15 @@ export class AuthService {
             ],
         });
         if (!user) throw new UnauthorizedException('User not found');
+
+        // Self-heal: Ensure paid members always have a valid subscriptionExpiresAt date
+        if (user.communityTier && user.communityTier !== CommunityTier.FREE && !user.subscriptionExpiresAt) {
+            const defaultExpiry = new Date();
+            defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+            user.subscriptionExpiresAt = defaultExpiry;
+            await user.save();
+        }
+
         const plain = user.get({ plain: true }) as Record<string, any>;
         if (plain.chapter) {
             plain.chapterName = (plain.chapter as any).name;

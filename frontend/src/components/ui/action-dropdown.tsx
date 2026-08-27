@@ -59,7 +59,6 @@ export function ActionDropdown({
                         }
 
                         const itemProps: Record<string, any> = {
-                            key: item.key,
                             className: `flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold rounded-lg cursor-pointer transition-colors ${
                                 item.isDanger
                                     ? "text-red-500 hover:bg-red-500/10 focus:bg-red-500/10"
@@ -71,7 +70,7 @@ export function ActionDropdown({
                         if (item.isDisabled) itemProps.isDisabled = item.isDisabled;
 
                         return (
-                            <DropdownItem {...itemProps}>
+                            <DropdownItem key={item.key} {...itemProps}>
                                 {item.icon && <span className="shrink-0">{item.icon}</span>}
                                 <span>{item.label}</span>
                             </DropdownItem>

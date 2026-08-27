@@ -87,6 +87,22 @@ export class BillingController {
         return this.billingService.cancelSubscription(req.user.id, dto.reason);
     }
 
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Schedule membership downgrade to a lower paid tier at period end' })
+    @UseGuards(JwtAuthGuard)
+    @Post('downgrade')
+    async scheduleDowngrade(@Req() req: any, @Body() dto: { targetTier: CommunityTier }) {
+        return this.billingService.scheduleDowngrade(req.user.id, dto.targetTier);
+    }
+
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Cancel pending downgrade / subscription cancellation' })
+    @UseGuards(JwtAuthGuard)
+    @Post('cancel-downgrade')
+    async cancelPendingDowngrade(@Req() req: any) {
+        return this.billingService.cancelPendingDowngrade(req.user.id);
+    }
+
 
     // --- ADMIN SUBSCRIPTION VIEWS ---
 

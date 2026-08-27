@@ -24,11 +24,16 @@ import {
     Zap
 } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
+import { Plan } from "@/components/molecules/pricing-plan-card";
 import { Interest } from "@/types/interests";
 import { ChapterDetail } from "@/types/chapter";
 import { toast } from "react-hot-toast";
 import { ChevronDown, X, AlertTriangle, Globe, MapPin, Phone, Mail, Layout, Search } from "lucide-react";
 import { CancelPlanModal } from "@/components/modals/CancelPlanModal";
+import { DowngradePlanModal } from "@/components/modals/DowngradePlanModal";
+import { ConfirmRevertDowngradeModal } from "@/components/modals/ConfirmRevertDowngradeModal";
 import { ALL_COUNTRIES } from "@/constants/countries";
 
 // --- Custom Components ---
@@ -448,10 +453,119 @@ export default function SettingsPage() {
     const [togglingAutoPay, setTogglingAutoPay] = useState(false);
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING' | 'BUSINESS'>('GENERAL');
 
-    // Cancellation State
+    const router = useRouter();
+
+    // Billing Plans & Downgrade State
+    const [plans, setPlans] = useState<Plan[]>([]);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState("");
     const [cancelingPlan, setCancelingPlan] = useState(false);
+
+    useEffect(() => {
+        const fetchPlans = async () => {
+            try {
+                const resp = await api.get("/billing/plans");
+                setPlans(resp.data || []);
+            } catch (err) {
+                console.error("Failed to fetch billing plans", err);
+            }
+        };
+        fetchPlans();
+    }, []);
+
+    const TIER_RANK: Record<string, number> = {
+        SANKOFA: 0,
+        FREE: 0,
+        UBUNTU: 1,
+        IMANI: 2,
+        KIONGOZI: 3,
+    };
+
+    const getDowngradeOptions = () => {
+        const currentTier = user?.communityTier?.toUpperCase() || 'FREE';
+        const currentRank = TIER_RANK[currentTier] ?? 0;
+
+        const lowerPlans = plans.filter(p => {
+            const planRank = TIER_RANK[p.tier?.toUpperCase()] ?? 0;
+            return planRank < currentRank;
+        });
+
+        const hasFreeInLower = lowerPlans.some(p => p.tier?.toUpperCase() === 'SANKOFA' || p.tier?.toUpperCase() === 'FREE');
+        if (!hasFreeInLower && currentRank > 0) {
+            lowerPlans.push({
+                id: 'sankofa-free',
+                name: 'Sankofa',
+                tier: 'SANKOFA',
+                tagline: 'Community tier',
+                monthlyPrice: 0,
+                yearlyPrice: 0,
+                features: [],
+                isPopular: false,
+                hasYearlyDiscount: false,
+            });
+        }
+
+        lowerPlans.sort((a, b) => (TIER_RANK[b.tier?.toUpperCase()] ?? 0) - (TIER_RANK[a.tier?.toUpperCase()] ?? 0));
+
+        return lowerPlans.map(p => {
+            const isFree = p.tier?.toUpperCase() === 'SANKOFA' || p.tier?.toUpperCase() === 'FREE' || p.monthlyPrice === 0;
+            const priceLabel = isFree ? 'Free' : `$${p.monthlyPrice}/mo`;
+            const description = isFree
+                ? 'Free · Cancel paid subscription'
+                : `${priceLabel} · Switch to ${p.name}`;
+
+            return {
+                tier: p.tier,
+                label: `${p.name} Tier`,
+                description,
+            };
+        });
+    };
+
+    // Downgrade & Revert Modal State
+    const [selectedDowngradeTier, setSelectedDowngradeTier] = useState<string | null>(null);
+    const [isDowngradeModalOpen, setIsDowngradeModalOpen] = useState(false);
+    const [isRevertModalOpen, setIsRevertModalOpen] = useState(false);
+    const [schedulingDowngrade, setSchedulingDowngrade] = useState(false);
+    const [revertingDowngrade, setRevertingDowngrade] = useState(false);
+
+    const handleDowngradeSelect = (selectedTier: string) => {
+        if (selectedTier === 'SANKOFA' || selectedTier === 'FREE') {
+            setIsCancelModalOpen(true);
+        } else {
+            setSelectedDowngradeTier(selectedTier);
+            setIsDowngradeModalOpen(true);
+        }
+    };
+
+    const handleConfirmDowngrade = async () => {
+        if (!selectedDowngradeTier) return;
+        setSchedulingDowngrade(true);
+        try {
+            await api.post("/billing/downgrade", { targetTier: selectedDowngradeTier });
+            updateUser({ pendingTier: selectedDowngradeTier });
+            toast.success(`Subscription downgrade to ${selectedDowngradeTier} scheduled for your next billing cycle.`);
+            setIsDowngradeModalOpen(false);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to schedule downgrade.");
+        } finally {
+            setSchedulingDowngrade(false);
+        }
+    };
+
+    const handleConfirmRevertDowngrade = async () => {
+        setRevertingDowngrade(true);
+        try {
+            await api.post("/billing/cancel-downgrade");
+            updateUser({ pendingTier: null, hasAutoPayEnabled: true });
+            toast.success("Downgrade cancelled. Subscription will renew as normal.");
+            setIsRevertModalOpen(false);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to cancel pending downgrade.");
+        } finally {
+            setRevertingDowngrade(false);
+        }
+    };
 
     const handleCancelSubscription = async () => {
         setCancelingPlan(true);
@@ -459,9 +573,9 @@ export default function SettingsPage() {
             await api.post("/billing/cancel", {
                 reason: cancelReason,
             });
+            updateUser({ pendingTier: 'SANKOFA', hasAutoPayEnabled: false });
             toast.success("Subscription scheduled for cancellation at period end.");
             setIsCancelModalOpen(false);
-            window.location.reload();
         } catch (err: any) {
             toast.error(err?.response?.data?.message || "Failed to cancel subscription.");
         } finally {
@@ -1094,7 +1208,7 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-black uppercase tracking-widest text-tatt-gray">Active Plan & Status</label>
                                     
-                                    <div className="p-6 bg-gradient-to-br mt-1 from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between gap-6 relative overflow-hidden">
+                                    <div className="p-6 bg-gradient-to-br mt-1 from-tatt-lime/15 via-tatt-lime/5 to-tatt-lime/10 rounded-2xl flex flex-col justify-between gap-5 relative overflow-hidden">
                                         {/* Header Row */}
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Current Plan</span>
@@ -1108,7 +1222,46 @@ export default function SettingsPage() {
                                             <p className="text-xs text-tatt-gray mt-1">
                                                 {user?.billingCycle === 'YEARLY' ? 'Billed annually' : 'Billed monthly'}
                                             </p>
+
+                                            {user?.communityTier !== 'FREE' && (
+                                                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs">
+                                                    <span className="text-tatt-gray font-medium">Next Billing Date</span>
+                                                    <span className="font-bold text-foreground">
+                                                        {(() => {
+                                                            if (user?.subscriptionExpiresAt) {
+                                                                return new Date(user.subscriptionExpiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                                                            }
+                                                            const fallback = new Date();
+                                                            fallback.setDate(fallback.getDate() + 30);
+                                                            return fallback.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
+
+                                        {/* Pending Downgrade / Cancellation Notice Banner */}
+                                        {(user?.pendingTier || user?.hasAutoPayEnabled === false) && user?.communityTier !== 'FREE' && (
+                                            <div className="p-3.5 bg-tatt-lime/15 border border-tatt-lime/30 rounded-xl  items-center justify-between gap-3 text-xs">
+                                                <div className="flex  gap-2.5 min-w-0">
+                                                    <AlertTriangle className="size-4 text-tatt-lime shrink-0" />
+                                                    <div className="text-foreground/90 font-medium flex flex-col items-start ">
+                                                        {user?.pendingTier && user.pendingTier !== 'FREE' && user.pendingTier !== 'SANKOFA'
+                                                            ? `Scheduled downgrade to ${user.pendingTier} Tier on ${user?.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'period end'}`
+                                                            : `Scheduled for cancellation on ${user?.subscriptionExpiresAt ? new Date(user.subscriptionExpiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'period end'}`
+                                                        }
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsRevertModalOpen(true)}
+                                                            className="text-[11px] font-bold text-tatt-lime hover:underline cursor-pointer shrink-0"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                            </div>
+                                        )}
 
                                         {/* Footer Row: Change Plan & Cancel / Reactivate on Same Line */}
                                         <div className="pt-3 border-t border-tatt-lime/20 flex items-center justify-between">
@@ -1132,14 +1285,28 @@ export default function SettingsPage() {
                                                     Reactivate
                                                 </button>
                                             ) : (
-                                                user?.communityTier && user.communityTier !== 'FREE' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsCancelModalOpen(true)}
-                                                        className="text-xs text-tatt-gray/70 hover:text-red-500 transition-colors cursor-pointer"
-                                                    >
-                                                        Cancel subscription
-                                                    </button>
+                                                user?.communityTier && user.communityTier !== 'FREE' && user.communityTier !== 'SANKOFA' && (
+                                                    <ActionDropdown
+                                                        ariaLabel="Downgrade Plan Options"
+                                                        placement="bottom end"
+                                                        triggerClassName="inline-flex items-center text-xs text-tatt-gray/80 hover:text-foreground transition-colors cursor-pointer gap-1 font-semibold outline-none"
+                                                        popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56"
+                                                        trigger={
+                                                            <span>
+                                                                Downgrade Plan <ChevronDown className="size-3 text-tatt-gray inline ml-0.5" />
+                                                            </span>
+                                                        }
+                                                        items={getDowngradeOptions().map(option => ({
+                                                            key: option.tier,
+                                                            label: (
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="font-bold text-xs text-foreground">{option.label}</span>
+                                                                    <span className="text-[10px] text-tatt-gray font-normal">{option.description}</span>
+                                                                </div>
+                                                            ),
+                                                            onPress: () => handleDowngradeSelect(option.tier)
+                                                        }))}
+                                                    />
                                                 )
                                             )}
                                         </div>
@@ -1475,6 +1642,27 @@ export default function SettingsPage() {
                 expiresAt={user?.subscriptionExpiresAt}
                 reason={cancelReason}
                 setReason={setCancelReason}
+            />
+
+            <DowngradePlanModal
+                isOpen={isDowngradeModalOpen}
+                onClose={() => setIsDowngradeModalOpen(false)}
+                onConfirm={handleConfirmDowngrade}
+                isLoading={schedulingDowngrade}
+                currentTierName={user?.communityTier || 'Current'}
+                targetTierName={selectedDowngradeTier || 'Target'}
+                targetPriceLabel={plans.find(p => p.tier === selectedDowngradeTier)?.monthlyPrice ? `$${plans.find(p => p.tier === selectedDowngradeTier)?.monthlyPrice}/mo` : undefined}
+                expiresAt={user?.subscriptionExpiresAt}
+            />
+
+            <ConfirmRevertDowngradeModal
+                isOpen={isRevertModalOpen}
+                onClose={() => setIsRevertModalOpen(false)}
+                onConfirm={handleConfirmRevertDowngrade}
+                isLoading={revertingDowngrade}
+                currentTierName={user?.communityTier || 'Current'}
+                targetTierName={user?.pendingTier}
+                expiresAt={user?.subscriptionExpiresAt}
             />
         </div>
     );
