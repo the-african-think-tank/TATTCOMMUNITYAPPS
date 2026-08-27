@@ -43,9 +43,10 @@ export class EventsController {
         @Req() req: any,
         @Query('upcoming') upcoming?: string,
         @Query('limit') limit?: string,
+        @Query('chapterId') chapterId?: string,
     ) {
         const limitNum = limit ? parseInt(limit, 10) : undefined;
-        return this.eventsService.getEvents(req.user, upcoming === 'true', limitNum);
+        return this.eventsService.getEvents(req.user, upcoming === 'true', limitNum, chapterId);
     }
 
     @Get(':id')

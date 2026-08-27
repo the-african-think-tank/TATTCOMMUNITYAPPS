@@ -187,10 +187,10 @@ export default function MyChapterPage() {
     try {
       const [chapterRes, membersRes, activitiesRes, feedRes, eventsRes] = await Promise.allSettled([
         api.get(`/chapters/${cid}`),
-        api.get(`/chapters/${cid}/members`),
+        api.get(`/chapters/${cid}/members?excludeSelf=true`),
         api.get(`/chapters/${cid}/activities?limit=10&visibility=CHAPTER_WIDE`),
-        api.get(`/chapters/${cid}/feed?limit=15`),
-        api.get(`/events`),
+        api.get(`/chapters/${cid}/feed?limit=15&excludeSelf=true`),
+        api.get(`/events`, { params: { chapterId: cid } }),
       ]);
 
       if (chapterRes.status === "fulfilled") setChapter(chapterRes.value.data);
@@ -203,7 +203,7 @@ export default function MyChapterPage() {
       if (eventsRes.status === "fulfilled") {
         const allEvents = eventsRes.value.data;
         const filtered = allEvents.filter((e: any) =>
-          e.locations.some((l: any) => l.chapterId === cid) || e.isForAllMembers
+          e.locations && e.locations.some((l: any) => l.chapterId === cid)
         ).slice(0, 3);
         setChapterEvents(filtered);
       }
@@ -537,7 +537,7 @@ export default function MyChapterPage() {
               {newPostsAvailableCount > 0 && (
                 <button
                     onClick={() => {
-                        api.get(`/chapters/${user?.chapterId}/feed?limit=15`).then(res => {
+                        api.get(`/chapters/${user?.chapterId}/feed?limit=15&excludeSelf=true`).then(res => {
                             setFeed(res.data.data || []);
                             setNewPostsAvailableCount(0);
                             window.scrollTo({ top: 300, behavior: 'smooth' });
@@ -551,8 +551,8 @@ export default function MyChapterPage() {
               {feed.length === 0 ? (
                 <div className="text-center py-20 bg-surface rounded-2xl border border-dashed border-border">
                   <Users className="size-12 text-tatt-gray mx-auto mb-4 opacity-20" />
-                  <h3 className="text-lg font-black text-foreground mb-1">No chapter posts yet</h3>
-                  <p className="text-tatt-gray text-sm">Be the first to post in your chapter's space.</p>
+                  <h3 className="text-lg font-black text-foreground mb-1">No member posts yet</h3>
+                  <p className="text-tatt-gray text-sm">Posts shared by other members in your chapter will appear here.</p>
                 </div>
               ) : (
                 feed.map(post => {
@@ -647,7 +647,7 @@ export default function MyChapterPage() {
                   View Network <ChevronRight className="size-3" />
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {members.map(m => {
                   const tier = getTier(m.communityTier);
                   return (
