@@ -32,8 +32,8 @@ import type { FeedPost } from "@/types/feed";
 
 type FeedPostCardProps = {
     post: FeedPost;
-    onLikeToggle: () => void;
-    onCommentAdded: () => void;
+    onLikeToggle?: () => void;
+    onCommentAdded?: () => void;
     onDelete?: () => void;
     onPostUpdated?: () => void;
 };
@@ -61,7 +61,7 @@ function formatDate(iso: string) {
 
 export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onPostUpdated }: FeedPostCardProps) {
     const { user } = useAuth();
-    const isStaff = user?.systemRole !== "COMMUNITY_MEMBER";
+    const isStaff = Boolean(user?.systemRole && user.systemRole !== "COMMUNITY_MEMBER");
     const isProfileComplete = isStaff || user?.flags?.includes("PROFILE_COMPLETED");
 
     const postAuthorId = post.author?.id || (post as any).authorId;
@@ -148,7 +148,7 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
         setLiking(true);
         try {
             await api.post(`/feed/${post.id}/like`);
-            onLikeToggle();
+            onLikeToggle?.();
         } finally {
             setLiking(false);
         }
@@ -169,7 +169,7 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
             });
             setNewComment("");
             setReplyingTo(null);
-            onCommentAdded();
+            onCommentAdded?.();
             loadComments();
         } finally {
             setSubmittingComment(false);

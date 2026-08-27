@@ -492,7 +492,6 @@ export class FeedService {
     async toggleLike(viewer: User, postId: string) {
         const post = await this.postRepo.findByPk(postId);
         if (!post || !post.isPublished) throw new NotFoundException('Post not found.');
-        if (post.authorId === viewer.id) throw new BadRequestException('You cannot like your own post.');
 
         if (post.isPremium && !canSeePremium(viewer)) throw new ForbiddenException('Upgrade required.');
 
@@ -506,7 +505,6 @@ export class FeedService {
     async toggleUpvote(viewer: User, postId: string) {
         const post = await this.postRepo.findByPk(postId);
         if (!post || !post.isPublished) throw new NotFoundException('Post not found.');
-        if (post.authorId === viewer.id) throw new BadRequestException('You cannot upvote your own post.');
 
         const existing = await this.upvoteRepo.findOne({ where: { userId: viewer.id, postId } });
         if (existing) { await existing.destroy(); return { upvoted: false }; }
@@ -552,10 +550,26 @@ export class FeedService {
             where: { postId, parentId: null },
             include: [
                 { model: User, as: 'author', attributes: [...AUTHOR_ATTRS] },
-                { model: PostComment, as: 'replies', required: false, where: { deletedAt: null }, include: [{ model: User, as: 'author', attributes: [...AUTHOR_ATTRS] }] },
+                {
+                    model: PostComment,
+                    as: 'replies',
+                    required: false,
+                    where: { deletedAt: null },
+                    include: [{ model: User, as: 'author', attributes: [...AUTHOR_ATTRS] }],
+                },
             ],
-            order: [['createdAt', 'DESC']],
+            order: [
+                ['createdAt', 'ASC'],
+                [{ model: PostComment, as: 'replies' }, 'createdAt', 'ASC'],
+            ],
             limit, offset, distinct: true,
+        });
+
+        // Ensure nested replies are sorted chronologically
+        rows.forEach(comment => {
+            if (comment.replies && Array.isArray(comment.replies)) {
+                comment.replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            }
         });
 
         return { data: rows, meta: { total: count, page, limit, totalPages: Math.ceil(count / limit) } };
