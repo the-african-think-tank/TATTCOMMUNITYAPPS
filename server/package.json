@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "db:deploy": "npx ts-node -r tsconfig-paths/register scripts/deploy-production-db.ts",
     "db:seed-events": "npx ts-node -r tsconfig-paths/register scripts/seed-future-events.ts",
+    "db:seed-volunteers": "npx ts-node -r tsconfig-paths/register scripts/seed-volunteers.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

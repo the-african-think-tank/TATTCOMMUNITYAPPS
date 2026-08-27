@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 interface VolunteerStat {
     rating: number;
@@ -189,11 +190,32 @@ export default function ActiveVolunteersPage() {
                                         <td className="px-8 py-6 text-[11px] font-bold text-tatt-gray uppercase tracking-widest">
                                             {agent.volunteerStat?.totalHours || 0} Hours Contributed
                                         </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <button className="p-2 text-tatt-gray hover:text-tatt-lime hover:bg-tatt-lime/10 rounded-lg transition-all">
-                                                <MoreVertical size={20} />
-                                            </button>
-                                        </td>
+                                         <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>
+                                             <ActionDropdown
+                                                 ariaLabel="Volunteer Options"
+                                                 items={[
+                                                     {
+                                                         key: "view",
+                                                         label: "View Full Profile",
+                                                         onPress: () => router.push(`/admin/volunteers/${agent.id}`)
+                                                     },
+                                                     {
+                                                         key: "dismiss",
+                                                         label: "Dismiss Volunteer",
+                                                         isDanger: true,
+                                                         onPress: () => {
+                                                             const loadingToast = toast.loading("Dismissing volunteer...");
+                                                             api.patch(`/volunteers/admin/profile/${agent.id}/stats`, { status: "INACTIVE" })
+                                                                 .then(() => {
+                                                                     toast.success("Volunteer dismissed", { id: loadingToast });
+                                                                     fetchVolunteers();
+                                                                 })
+                                                                 .catch(() => toast.error("Failed to dismiss volunteer", { id: loadingToast }));
+                                                         }
+                                                     }
+                                                 ]}
+                                             />
+                                         </td>
                                     </tr>
                                 ))
                             )}

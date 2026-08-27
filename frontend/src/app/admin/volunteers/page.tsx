@@ -1,33 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
+import { useAuth } from "@/context/auth-context";
+import api from "@/services/api";
+import {
+    BookOpen,
+    ChevronRight,
+    Clock,
+    Eye,
+    Filter,
+    GraduationCap,
+    Loader2,
+    PlusCircle,
+    Search,
+    Star,
+    TrendingUp,
+    Users
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-    Users, 
-    Clock, 
-    GraduationCap, 
-    Filter, 
-    Download, 
-    MoreVertical, 
-    TrendingUp, 
-    TrendingDown,
-    PlusCircle,
-    BookOpen,
-    Search,
-    ChevronLeft,
-    ChevronRight,
-    Star,
-    Loader2,
-    MapPin,
-    Calendar,
-    Award,
-    Eye,
-    CheckCircle2
-} from "lucide-react";
-import api from "@/services/api";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useAuth } from "@/context/auth-context";
 
 interface VolunteerStat {
     rating: number;
@@ -373,34 +366,29 @@ export default function VolunteerCenterPage() {
                             />
                         </div>
                         <div className="flex gap-3">
-                            <div className="relative">
-                                <button 
-                                    onClick={() => setIsChapterOpen(!isChapterOpen)}
-                                    className="px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-background transition-all"
-                                >
-                                    <Filter size={14} className="text-tatt-lime" />
-                                    {selectedChapter === 'all' ? 'All Chapters' : chapters.find(c => c.id === selectedChapter)?.name}
-                                </button>
-                                {isChapterOpen && (
-                                    <div className="absolute top-full right-0 mt-2 w-64 bg-surface border border-border rounded-xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in duration-200">
-                                        <button 
-                                            onClick={() => { setSelectedChapter('all'); setIsChapterOpen(false); }}
-                                            className="w-full text-left px-5 py-3 text-xs font-black uppercase tracking-widest hover:bg-tatt-lime/10 text-foreground"
-                                        >
-                                            All Chapters (Global)
-                                        </button>
-                                        {chapters.map(c => (
-                                            <button 
-                                                key={c.id}
-                                                onClick={() => { setSelectedChapter(c.id); setIsChapterOpen(false); }}
-                                                className="w-full text-left px-5 py-3 text-xs font-black uppercase tracking-widest hover:bg-tatt-lime/10 text-foreground"
-                                            >
-                                                {c.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            <ActionDropdown
+                                ariaLabel="Filter Chapters"
+                                placement="bottom end"
+                                popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
+                                trigger={
+                                    <button className="px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-background transition-all cursor-pointer outline-none">
+                                        <Filter size={14} className="text-tatt-lime" />
+                                        <span>{selectedChapter === 'all' ? 'All Chapters' : chapters.find(c => c.id === selectedChapter)?.name}</span>
+                                    </button>
+                                }
+                                items={[
+                                    {
+                                        key: "all",
+                                        label: "All Chapters (Global)",
+                                        onPress: () => setSelectedChapter('all')
+                                    },
+                                    ...chapters.map(c => ({
+                                        key: c.id,
+                                        label: c.name,
+                                        onPress: () => setSelectedChapter(c.id)
+                                    }))
+                                ]}
+                            />
                         </div>
                     </div>
 
@@ -443,58 +431,43 @@ export default function VolunteerCenterPage() {
                                                     <span className="text-[9px] font-black text-tatt-gray uppercase tracking-widest">Efficiency Matrix</span>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-5 text-right relative">
-                                                <details className="dropdown dropdown-end">
-                                                    <summary className="p-2 inline-flex justify-center hover:bg-background rounded-lg transition-colors text-tatt-gray hover:text-tatt-lime cursor-pointer list-none [&::-webkit-details-marker]:hidden outline-none">
-                                                        <MoreVertical size={18} />
-                                                    </summary>
-                                                    <ul className="dropdown-content menu p-2 shadow-2xl shadow-black/50 bg-surface border border-border border-t-tatt-lime/50 rounded-xl w-52 z-[100] text-left mt-1">
-                                                        <li>
-                                                            <a onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.currentTarget.closest("details")?.removeAttribute("open");
-                                                                router.push(`/admin/volunteers/${v.id}`);
-                                                            }} className="text-xs font-bold text-foreground hover:text-tatt-lime hover:bg-background">
-                                                                Edit Volunteer
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.currentTarget.closest("details")?.removeAttribute("open");
-                                                                const loadingToast = toast.loading("Dismissing volunteer...");
-                                                                api.patch(`/volunteers/admin/profile/${v.id}/stats`, { status: "INACTIVE" })
-                                                                    .then(() => {
-                                                                        toast.success("Volunteer dismissed from program", { id: loadingToast });
-                                                                        fetchVolunteers();
-                                                                    })
-                                                                    .catch(() => toast.error("Failed to dismiss volunteer", { id: loadingToast }));
-                                                            }} className="text-xs font-bold text-red-500 hover:text-red-400 hover:bg-background">
-                                                                Dismiss Volunteering
-                                                            </a>
-                                                        </li>
-                                                        <div className="h-px bg-border my-1"></div>
-                                                        <li>
-                                                            <a onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.currentTarget.closest("details")?.removeAttribute("open");
-                                                                setAssignActivityVol(v);
-                                                            }} className="text-xs font-bold text-tatt-gray hover:text-tatt-lime hover:bg-background">
-                                                                Assign Activity
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.currentTarget.closest("details")?.removeAttribute("open");
-                                                                setAssignTrainingVol(v);
-                                                            }} className="text-xs font-bold text-tatt-gray hover:text-tatt-lime hover:bg-background">
-                                                                Assign Training
-                                                            </a>
-                                                        </li>
-                                                    </ul>
-                                                </details>
-                                            </td>
+                                             <td className="px-8 py-5 text-right relative" onClick={(e) => e.stopPropagation()}>
+                                                 <ActionDropdown
+                                                     ariaLabel="Volunteer Actions"
+                                                     items={[
+                                                         {
+                                                             key: "edit",
+                                                             label: "Edit Volunteer",
+                                                             onPress: () => router.push(`/admin/volunteers/${v.id}`)
+                                                         },
+                                                         {
+                                                             key: "assign-activity",
+                                                             label: "Assign Activity",
+                                                             onPress: () => setAssignActivityVol(v)
+                                                         },
+                                                         {
+                                                             key: "assign-training",
+                                                             label: "Assign Training",
+                                                             onPress: () => setAssignTrainingVol(v)
+                                                         },
+                                                         "divider",
+                                                         {
+                                                             key: "dismiss",
+                                                             label: "Dismiss Volunteering",
+                                                             isDanger: true,
+                                                             onPress: () => {
+                                                                 const loadingToast = toast.loading("Dismissing volunteer...");
+                                                                 api.patch(`/volunteers/admin/profile/${v.id}/stats`, { status: "INACTIVE" })
+                                                                     .then(() => {
+                                                                         toast.success("Volunteer dismissed from program", { id: loadingToast });
+                                                                         fetchVolunteers();
+                                                                     })
+                                                                     .catch(() => toast.error("Failed to dismiss volunteer", { id: loadingToast }));
+                                                             }
+                                                         }
+                                                     ]}
+                                                 />
+                                             </td>
                                         </tr>
 
                                     ))
@@ -510,23 +483,29 @@ export default function VolunteerCenterPage() {
                         <div className="flex items-center gap-3 bg-surface border border-border px-4 py-2 rounded-2xl shadow-sm relative">
                             <Filter size={16} className="text-tatt-lime" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Regional Link:</span>
-                            <div className="relative">
-                                <button 
-                                    onClick={() => setIsChapterOpen(!isChapterOpen)}
-                                    className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground"
-                                >
-                                    {selectedChapter === 'all' ? 'All Active Hubs' : chapters.find(c => c.id === selectedChapter)?.name}
-                                    <ChevronRight size={14} className={`transition-transform duration-300 ${isChapterOpen ? 'rotate-90' : ''}`} />
-                                </button>
-                                {isChapterOpen && (
-                                    <div className="absolute top-full left-0 mt-3 w-64 bg-surface border border-border rounded-xl shadow-2xl py-2 z-50">
-                                        <button onClick={() => { setSelectedChapter('all'); setIsChapterOpen(false); }} className="w-full text-left px-5 py-3 text-xs font-black uppercase hover:bg-tatt-lime/10">All Hubs</button>
-                                        {chapters.map(c => (
-                                            <button key={c.id} onClick={() => { setSelectedChapter(c.id); setIsChapterOpen(false); }} className="w-full text-left px-5 py-3 text-xs font-black uppercase hover:bg-tatt-lime/10">{c.name}</button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            <ActionDropdown
+                                ariaLabel="Regional Hub Filter"
+                                placement="bottom start"
+                                popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
+                                trigger={
+                                    <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground cursor-pointer outline-none">
+                                        <span>{selectedChapter === 'all' ? 'All Active Hubs' : chapters.find(c => c.id === selectedChapter)?.name}</span>
+                                        <ChevronRight size={14} />
+                                    </button>
+                                }
+                                items={[
+                                    {
+                                        key: "all",
+                                        label: "All Hubs",
+                                        onPress: () => setSelectedChapter('all')
+                                    },
+                                    ...chapters.map(c => ({
+                                        key: c.id,
+                                        label: c.name,
+                                        onPress: () => setSelectedChapter(c.id)
+                                    }))
+                                ]}
+                            />
                         </div>
                     </div>
 
@@ -568,20 +547,29 @@ export default function VolunteerCenterPage() {
                         <div className="flex items-center gap-3 bg-background border border-border px-4 py-2 rounded-2xl shadow-sm relative">
                             <Filter size={16} className="text-tatt-lime" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Filter Hub:</span>
-                            <div className="relative">
-                                <button onClick={() => setIsChapterOpen(!isChapterOpen)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground">
-                                    {selectedChapter === 'all' ? 'All Roles' : chapters.find(c => c.id === selectedChapter)?.name}
-                                    <ChevronRight size={14} className={`transition-transform duration-300 ${isChapterOpen ? 'rotate-90' : ''}`} />
-                                </button>
-                                {isChapterOpen && (
-                                    <div className="absolute top-full right-0 mt-3 w-64 bg-surface border border-border rounded-xl shadow-2xl py-2 z-50">
-                                        <button onClick={() => { setSelectedChapter('all'); setIsChapterOpen(false); }} className="w-full text-left px-5 py-3 text-xs font-black uppercase hover:bg-tatt-lime/10">All Hub Roles</button>
-                                        {chapters.map(c => (
-                                            <button key={c.id} onClick={() => { setSelectedChapter(c.id); setIsChapterOpen(false); }} className="w-full text-left px-5 py-3 text-xs font-black uppercase hover:bg-tatt-lime/10">{c.name}</button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            <ActionDropdown
+                                ariaLabel="Role Chapter Filter"
+                                placement="bottom end"
+                                popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
+                                trigger={
+                                    <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground cursor-pointer outline-none">
+                                        <span>{selectedChapter === 'all' ? 'All Roles' : chapters.find(c => c.id === selectedChapter)?.name}</span>
+                                        <ChevronRight size={14} />
+                                    </button>
+                                }
+                                items={[
+                                    {
+                                        key: "all",
+                                        label: "All Hub Roles",
+                                        onPress: () => setSelectedChapter('all')
+                                    },
+                                    ...chapters.map(c => ({
+                                        key: c.id,
+                                        label: c.name,
+                                        onPress: () => setSelectedChapter(c.id)
+                                    }))
+                                ]}
+                            />
                         </div>
                     </div>
 

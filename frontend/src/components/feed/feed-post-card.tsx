@@ -1,32 +1,31 @@
 "use client";
 
-import { useState, useRef } from "react";
-import api from "@/services/api";
-import Link from "next/link";
-import {
-    Heart,
-    MessageCircle,
-    Lock,
-    Send,
-    Loader2,
-    MoreVertical,
-    MoreHorizontal,
-    Trash2,
-    Pencil,
-    AlertCircle,
-    ChevronUp,
-    ChevronDown,
-    X,
-    Briefcase,
-    MapPin,
-    Link2,
-    Calendar,
-    Image as ImageIcon,
-    Paperclip
-} from "lucide-react";
-import { useAuth } from "@/context/auth-context";
-import toast from "react-hot-toast";
 import { AppModal } from "@/components/modals/app-modal";
+import { useAuth } from "@/context/auth-context";
+import api from "@/services/api";
+import {
+    AlertCircle,
+    Briefcase,
+    Calendar,
+    ChevronDown,
+    ChevronUp,
+    Heart,
+    Image as ImageIcon,
+    Link2,
+    Loader2,
+    Lock,
+    MapPin,
+    MessageCircle,
+    MoreHorizontal,
+    MoreVertical,
+    Paperclip,
+    Pencil,
+    Trash2,
+    X
+} from "lucide-react";
+import Link from "next/link";
+import { useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 import type { FeedPost } from "@/types/feed";
 
@@ -38,22 +37,8 @@ type FeedPostCardProps = {
     onPostUpdated?: () => void;
 };
 
-import { formatTimeAgo, formatForDateTimeLocal } from "@/utils/date";
-import {
-    Modal,
-    ModalBackdrop,
-    ModalContainer,
-    ModalDialog,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    ModalCloseTrigger,
-    Dropdown,
-    DropdownTrigger,
-    DropdownPopover,
-    DropdownMenu,
-    DropdownItem
-} from "@heroui/react";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
+import { formatForDateTimeLocal, formatTimeAgo } from "@/utils/date";
 
 function formatDate(iso: string) {
     return formatTimeAgo(iso);
@@ -365,35 +350,29 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                         <span className="text-tatt-gray text-xs ml-auto shrink-0">{formatDate(post.createdAt)}</span>
                         
                         {canManagePost && (
-                            <Dropdown>
-                                <DropdownTrigger className="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground outline-none" aria-label="Post options">
-                                    <MoreVertical className="h-4 w-4" />
-                                </DropdownTrigger>
-                                <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-2xl shadow-xl p-1 z-50">
-                                    <DropdownMenu aria-label="Post Actions">
-                                        <DropdownItem
-                                            key="edit"
-                                            onPress={handleStartEditPost}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-black/5 rounded-xl cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Pencil className="h-3.5 w-3.5 text-tatt-lime" />
-                                                <span>Edit Post</span>
-                                            </div>
-                                        </DropdownItem>
-                                        <DropdownItem
-                                            key="delete"
-                                            onPress={handleDelete}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-xl cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2 text-red-500">
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                                <span>Delete Post</span>
-                                            </div>
-                                        </DropdownItem>
-                                    </DropdownMenu>
-                                </DropdownPopover>
-                            </Dropdown>
+                            <ActionDropdown
+                                ariaLabel="Post Actions"
+                                trigger={
+                                    <button className="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground outline-none" aria-label="Post options">
+                                        <MoreVertical className="h-4 w-4" />
+                                    </button>
+                                }
+                                items={[
+                                    {
+                                        key: "edit",
+                                        label: "Edit Post",
+                                        icon: <Pencil className="h-3.5 w-3.5 text-tatt-lime" />,
+                                        onPress: handleStartEditPost
+                                    },
+                                    {
+                                        key: "delete",
+                                        label: "Delete Post",
+                                        icon: <Trash2 className="h-3.5 w-3.5" />,
+                                        isDanger: true,
+                                        onPress: handleDelete
+                                    }
+                                ]}
+                            />
                         )}
                     </div>
                     {post.isPremium && (
@@ -553,39 +532,29 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                                                             {c.author.firstName} {c.author.lastName}
                                                         </p>
                                                         {(canEditComment(c.author) || canDeleteComment(c.author)) && (
-                                                            <Dropdown>
-                                                                <DropdownTrigger className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
-                                                                    <MoreHorizontal className="size-4" />
-                                                                </DropdownTrigger>
-                                                                <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-xl shadow-lg p-1 z-50">
-                                                                    <DropdownMenu aria-label="Comment Options">
-                                                                        {canEditComment(c.author) ? (
-                                                                            <DropdownItem
-                                                                                key="edit"
-                                                                                onPress={() => handleStartEditComment(c.id, c.content)}
-                                                                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold hover:bg-black/5 rounded-lg cursor-pointer"
-                                                                            >
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <Pencil className="size-3.5 text-tatt-lime" />
-                                                                                    <span>Edit</span>
-                                                                                </div>
-                                                                            </DropdownItem>
-                                                                        ) : null}
-                                                                        {canDeleteComment(c.author) ? (
-                                                                            <DropdownItem
-                                                                                key="delete"
-                                                                                onPress={() => handleDeleteComment(c.id)}
-                                                                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
-                                                                            >
-                                                                                <div className="flex items-center gap-2 text-red-500">
-                                                                                    <Trash2 className="size-3.5" />
-                                                                                    <span>Delete</span>
-                                                                                </div>
-                                                                            </DropdownItem>
-                                                                        ) : null}
-                                                                    </DropdownMenu>
-                                                                </DropdownPopover>
-                                                            </Dropdown>
+                                                            <ActionDropdown
+                                                                ariaLabel="Comment Options"
+                                                                trigger={
+                                                                    <button className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
+                                                                        <MoreHorizontal className="size-4" />
+                                                                    </button>
+                                                                }
+                                                                items={[
+                                                                    ...(canEditComment(c.author) ? [{
+                                                                        key: "edit",
+                                                                        label: "Edit",
+                                                                        icon: <Pencil className="size-3.5 text-tatt-lime" />,
+                                                                        onPress: () => handleStartEditComment(c.id, c.content)
+                                                                    }] : []),
+                                                                    ...(canDeleteComment(c.author) ? [{
+                                                                        key: "delete",
+                                                                        label: "Delete",
+                                                                        icon: <Trash2 className="size-3.5" />,
+                                                                        isDanger: true,
+                                                                        onPress: () => handleDeleteComment(c.id)
+                                                                    }] : [])
+                                                                ]}
+                                                            />
                                                         )}
                                                     </div>
 
@@ -712,39 +681,29 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                                                                         {reply.author?.firstName} {reply.author?.lastName}
                                                                     </p>
                                                                     {(canEditComment(reply.author) || canDeleteComment(reply.author)) && (
-                                                                        <Dropdown>
-                                                                            <DropdownTrigger className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
-                                                                                <MoreHorizontal className="size-3.5" />
-                                                                            </DropdownTrigger>
-                                                                            <DropdownPopover placement="bottom end" className="bg-white border border-border rounded-xl shadow-lg p-1 z-50">
-                                                                                <DropdownMenu aria-label="Reply Options">
-                                                                                    {canEditComment(reply.author) ? (
-                                                                                        <DropdownItem
-                                                                                            key="edit"
-                                                                                            onPress={() => handleStartEditComment(reply.id, reply.content)}
-                                                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-semibold hover:bg-black/5 rounded-lg cursor-pointer"
-                                                                                        >
-                                                                                            <div className="flex items-center gap-2">
-                                                                                                <Pencil className="size-3 text-tatt-lime" />
-                                                                                                <span>Edit</span>
-                                                                                            </div>
-                                                                                        </DropdownItem>
-                                                                                    ) : null}
-                                                                                    {canDeleteComment(reply.author) ? (
-                                                                                        <DropdownItem
-                                                                                            key="delete"
-                                                                                            onPress={() => handleDeleteComment(reply.id)}
-                                                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
-                                                                                        >
-                                                                                            <div className="flex items-center gap-2 text-red-500">
-                                                                                                <Trash2 className="size-3" />
-                                                                                                <span>Delete</span>
-                                                                                            </div>
-                                                                                        </DropdownItem>
-                                                                                    ) : null}
-                                                                                </DropdownMenu>
-                                                                            </DropdownPopover>
-                                                                        </Dropdown>
+                                                                        <ActionDropdown
+                                                                            ariaLabel="Reply Options"
+                                                                            trigger={
+                                                                                <button className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
+                                                                                    <MoreHorizontal className="size-3.5" />
+                                                                                </button>
+                                                                            }
+                                                                            items={[
+                                                                                ...(canEditComment(reply.author) ? [{
+                                                                                    key: "edit",
+                                                                                    label: "Edit",
+                                                                                    icon: <Pencil className="size-3 text-tatt-lime" />,
+                                                                                    onPress: () => handleStartEditComment(reply.id, reply.content)
+                                                                                }] : []),
+                                                                                ...(canDeleteComment(reply.author) ? [{
+                                                                                    key: "delete",
+                                                                                    label: "Delete",
+                                                                                    icon: <Trash2 className="size-3" />,
+                                                                                    isDanger: true,
+                                                                                    onPress: () => handleDeleteComment(reply.id)
+                                                                                }] : [])
+                                                                            ]}
+                                                                        />
                                                                     )}
                                                                 </div>
 

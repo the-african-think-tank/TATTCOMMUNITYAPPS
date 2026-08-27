@@ -7,13 +7,7 @@ import {
     Pencil, Trash2, Repeat2, Flag, Highlighter, ArrowBigUp, ExternalLink,
     X, MoreHorizontal, Send, Image as ImageIcon, Heart, Share2, Eye
 } from "lucide-react";
-import {
-    Dropdown,
-    DropdownTrigger,
-    DropdownPopover,
-    DropdownMenu,
-    DropdownItem
-} from "@heroui/react";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
 import toast from "react-hot-toast";
@@ -482,51 +476,35 @@ export function PostCard({
                         )}
 
                         {/* Options Dropdown */}
-                        <Dropdown>
-                            <DropdownTrigger className="p-2 text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer outline-none">
-                                <MoreHorizontal className="size-5" />
-                            </DropdownTrigger>
-                            <DropdownPopover placement="bottom end" className="bg-surface border border-border rounded-2xl shadow-xl p-1.5 z-30">
-                                <DropdownMenu aria-label="Post Options">
-                                    {canManagePost ? (
-                                        <DropdownItem
-                                            key="edit"
-                                            onPress={handleStartEditPost}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Pencil className="size-4" />
-                                                <span>Edit Post</span>
-                                            </div>
-                                        </DropdownItem>
-                                    ) : null}
-                                    {!isStaff ? (
-                                        <DropdownItem
-                                            key="report"
-                                            onPress={handleReport}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Flag className="size-4" />
-                                                <span>Report Post</span>
-                                            </div>
-                                        </DropdownItem>
-                                    ) : null}
-                                    {canManagePost ? (
-                                        <DropdownItem
-                                            key="delete"
-                                            onPress={handleDeletePost}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-xl cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2 text-red-500">
-                                                <Trash2 className="size-4" />
-                                                <span>Delete Post</span>
-                                            </div>
-                                        </DropdownItem>
-                                    ) : null}
-                                </DropdownMenu>
-                            </DropdownPopover>
-                        </Dropdown>
+                        <ActionDropdown
+                            ariaLabel="Post Options"
+                            trigger={
+                                <button className="p-2 text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer outline-none">
+                                    <MoreHorizontal className="size-5" />
+                                </button>
+                            }
+                            items={[
+                                ...(canManagePost ? [{
+                                    key: "edit",
+                                    label: "Edit Post",
+                                    icon: <Pencil className="size-4" />,
+                                    onPress: handleStartEditPost
+                                }] : []),
+                                ...(!isStaff ? [{
+                                    key: "report",
+                                    label: "Report Post",
+                                    icon: <Flag className="size-4" />,
+                                    onPress: handleReport
+                                }] : []),
+                                ...(canManagePost ? [{
+                                    key: "delete",
+                                    label: "Delete Post",
+                                    icon: <Trash2 className="size-4" />,
+                                    isDanger: true,
+                                    onPress: handleDeletePost
+                                }] : [])
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -782,35 +760,29 @@ export function PostCard({
                                                 </div>
 
                                                 {canManageComment && editingCommentId !== c.id && (
-                                                    <Dropdown>
-                                                        <DropdownTrigger className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer outline-none">
-                                                            <MoreHorizontal className="size-4" />
-                                                        </DropdownTrigger>
-                                                        <DropdownPopover placement="bottom end" className="bg-surface border border-border rounded-xl shadow-lg p-1 z-50">
-                                                            <DropdownMenu aria-label="Comment Options">
-                                                                <DropdownItem
-                                                                    key="edit"
-                                                                    onPress={() => handleStartEditComment(c.id, c.content)}
-                                                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/5 rounded-lg cursor-pointer"
-                                                                >
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Pencil className="size-3.5" />
-                                                                        <span>Edit Comment</span>
-                                                                    </div>
-                                                                </DropdownItem>
-                                                                <DropdownItem
-                                                                    key="delete"
-                                                                    onPress={() => handleDeleteComment(c.id)}
-                                                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
-                                                                >
-                                                                    <div className="flex items-center gap-2 text-red-500">
-                                                                        <Trash2 className="size-3.5" />
-                                                                        <span>Delete Comment</span>
-                                                                    </div>
-                                                                </DropdownItem>
-                                                            </DropdownMenu>
-                                                        </DropdownPopover>
-                                                    </Dropdown>
+                                                    <ActionDropdown
+                                                        ariaLabel="Comment Options"
+                                                        trigger={
+                                                            <button className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer outline-none">
+                                                                <MoreHorizontal className="size-4" />
+                                                            </button>
+                                                        }
+                                                        items={[
+                                                            {
+                                                                key: "edit",
+                                                                label: "Edit Comment",
+                                                                icon: <Pencil className="size-3.5" />,
+                                                                onPress: () => handleStartEditComment(c.id, c.content)
+                                                            },
+                                                            {
+                                                                key: "delete",
+                                                                label: "Delete Comment",
+                                                                icon: <Trash2 className="size-3.5" />,
+                                                                isDanger: true,
+                                                                onPress: () => handleDeleteComment(c.id)
+                                                            }
+                                                        ]}
+                                                    />
                                                 )}
                                             </div>
 
@@ -905,35 +877,29 @@ export function PostCard({
                                                                     </div>
 
                                                                     {canManageReply && editingCommentId !== r.id && (
-                                                                        <Dropdown>
-                                                                            <DropdownTrigger className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer outline-none">
-                                                                                <MoreHorizontal className="size-3.5" />
-                                                                            </DropdownTrigger>
-                                                                            <DropdownPopover placement="bottom end" className="bg-surface border border-border rounded-xl shadow-lg p-1 z-50">
-                                                                                <DropdownMenu aria-label="Reply Options">
-                                                                                    <DropdownItem
-                                                                                        key="edit"
-                                                                                        onPress={() => handleStartEditComment(r.id, r.content)}
-                                                                                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/5 rounded-lg cursor-pointer"
-                                                                                    >
-                                                                                        <div className="flex items-center gap-2">
-                                                                                            <Pencil className="size-3.5" />
-                                                                                            <span>Edit Reply</span>
-                                                                                        </div>
-                                                                                    </DropdownItem>
-                                                                                    <DropdownItem
-                                                                                        key="delete"
-                                                                                        onPress={() => handleDeleteComment(r.id)}
-                                                                                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
-                                                                                    >
-                                                                                        <div className="flex items-center gap-2 text-red-500">
-                                                                                            <Trash2 className="size-3.5" />
-                                                                                            <span>Delete Reply</span>
-                                                                                        </div>
-                                                                                    </DropdownItem>
-                                                                                </DropdownMenu>
-                                                                            </DropdownPopover>
-                                                                        </Dropdown>
+                                                                        <ActionDropdown
+                                                                            ariaLabel="Reply Options"
+                                                                            trigger={
+                                                                                <button className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer outline-none">
+                                                                                    <MoreHorizontal className="size-3.5" />
+                                                                                </button>
+                                                                            }
+                                                                            items={[
+                                                                                {
+                                                                                    key: "edit",
+                                                                                    label: "Edit Reply",
+                                                                                    icon: <Pencil className="size-3.5" />,
+                                                                                    onPress: () => handleStartEditComment(r.id, r.content)
+                                                                                },
+                                                                                {
+                                                                                    key: "delete",
+                                                                                    label: "Delete Reply",
+                                                                                    icon: <Trash2 className="size-3.5" />,
+                                                                                    isDanger: true,
+                                                                                    onPress: () => handleDeleteComment(r.id)
+                                                                                }
+                                                                            ]}
+                                                                        />
                                                                     )}
                                                                 </div>
 
