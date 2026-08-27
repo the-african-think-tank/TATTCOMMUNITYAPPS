@@ -209,8 +209,8 @@ export default function NetworkPage() {
 
     const handleSendInvite = async () => {
         if (!modal.member) return;
-        if (connectMessage.trim().length < 20) {
-            setSendError("Please write at least 20 characters so the recipient knows why you want to connect.");
+        if (connectMessage.trim().length < 1) {
+            setSendError("Please write a message so the recipient knows why you want to connect.");
             return;
         }
         setSending(true);

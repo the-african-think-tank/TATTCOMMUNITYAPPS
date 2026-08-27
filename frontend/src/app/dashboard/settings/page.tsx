@@ -626,7 +626,7 @@ export default function SettingsPage() {
 
     const handleSave = async () => {
         setLoading(true);
-        toast.loading("Saving profile settings...", { id: "profile-save" });
+        const loadingToast = toast.loading("Saving profile settings...");
         try {
             const { employer, ...payload } = formData;
             const cleanedPayload = cleanPayload({
@@ -638,12 +638,12 @@ export default function SettingsPage() {
 
             // Update auth context with new user data
             updateUser(response.data);
-            toast.success("Profile settings saved successfully!", { id: "profile-save" });
+            toast.success("Profile settings saved successfully!", { id: loadingToast });
         } catch (error: any) {
             console.error("Failed to update profile", error);
             const apiMsg = error?.response?.data?.message;
             const formattedErrorMsg = Array.isArray(apiMsg) ? apiMsg.join(", ") : apiMsg || "Failed to update profile. Please try again.";
-            toast.error(formattedErrorMsg, { id: "profile-save" });
+            toast.error(formattedErrorMsg, { id: loadingToast });
         } finally {
             setLoading(false);
         }

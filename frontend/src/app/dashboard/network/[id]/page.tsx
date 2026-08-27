@@ -122,8 +122,8 @@ export default function MemberProfilePage() {
 
     const handleSendInvite = async () => {
         if (!member) return;
-        if (connectMessage.trim().length < 20) {
-            setSendError("Please write at least 20 characters so the recipient knows why you want to connect.");
+        if (connectMessage.trim().length < 1) {
+            setSendError("Please write a message so the recipient knows why you want to connect.");
             return;
         }
         setSending(true);
@@ -318,7 +318,7 @@ export default function MemberProfilePage() {
                                     </div>
                                 </div>
                                 
-                                <div className="flex gap-3 w-full md:w-auto mt-6 md:mt-0">
+                                <div className="flex gap-3 w-full md:w-auto shrink-0 flex-wrap items-center mt-6 md:mt-0">
                                     {user?.id !== member.id && (
                                         <>
                                             {status?.status === "ACCEPTED" ? (
@@ -326,8 +326,7 @@ export default function MemberProfilePage() {
                                                     <button
                                                         onClick={handleRemoveConnection}
                                                         disabled={disconnecting}
-                                                        className="flex-1 md:flex-none px-6 py-2.5 bg-green-500/10 text-green-600 font-bold rounded-lg text-sm justify-center gap-2 flex items-center hover:bg-red-500/10 hover:text-red-500 transition-all group cursor-pointer border border-green-500/20 hover:border-red-500/30"
-                                                        title="Click to remove connection"
+                                                        className="flex-1 md:flex-none px-6 py-2.5 bg-green-500/10 text-green-600 font-bold rounded-lg text-sm justify-center gap-2 flex items-center hover:bg-red-500/10 hover:text-red-500 transition-all group cursor-pointer border border-green-500/20 hover:border-red-500/30 shrink-0"
                                                     >
                                                         {disconnecting ? (
                                                             <Loader2 className="h-5 w-5 animate-spin" />
@@ -336,11 +335,11 @@ export default function MemberProfilePage() {
                                                                 <UserCheck className="h-5 w-5 group-hover:hidden" />
                                                                 <UserX className="h-5 w-5 hidden group-hover:block text-red-500" />
                                                                 <span className="group-hover:hidden">Connected</span>
-                                                                <span className="hidden group-hover:inline text-red-500">Remove Connection</span>
+                                                                <span className="hidden group-hover:inline text-red-500">Remove</span>
                                                             </>
                                                         )}
                                                     </button>
-                                                    <button onClick={() => router.push("/dashboard/messages")} className="flex-1 md:flex-none px-6 py-2.5 bg-background border border-border text-foreground font-bold rounded-lg text-sm hover:bg-surface transition-all justify-center gap-2 flex items-center cursor-pointer">
+                                                    <button onClick={() => router.push("/dashboard/messages")} className="flex-1 md:flex-none px-6 py-2.5 bg-background border border-border text-foreground font-bold rounded-lg text-sm hover:bg-surface transition-all justify-center gap-2 flex items-center cursor-pointer shrink-0">
                                                         <Mail className="h-5 w-5" /> Message
                                                     </button>
                                                 </>
