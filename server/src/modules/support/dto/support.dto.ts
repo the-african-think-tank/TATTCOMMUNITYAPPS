@@ -41,13 +41,39 @@ export class CreateFaqDto {
     @IsNotEmpty()
     answer: string;
 
-    @ApiProperty()
+    @ApiPropertyOptional()
     @IsString()
-    @IsNotEmpty()
-    category: string;
+    @IsOptional()
+    category?: string;
+
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    categoryId?: string;
 
     @ApiPropertyOptional()
     @IsBoolean()
     @IsOptional()
     isActive?: boolean;
+}
+
+export class CreateCategoryDto {
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    category: string;
+}
+
+export class UpdateCategoryDto {
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    category: string;
+}
+
+export class DeleteCategoryDto {
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    targetCategoryId?: string;
 }

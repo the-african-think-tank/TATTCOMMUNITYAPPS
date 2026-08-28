@@ -34,6 +34,7 @@ export default function SupportCenterPage() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [loadingTickets, setLoadingTickets] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("ALL");
     const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
     useEffect(() => {
@@ -63,7 +64,16 @@ export default function SupportCenterPage() {
         fetchTickets();
     }, []);
 
-    const filteredFaqs = searchQuery.trim() === "" ? faqs : faqs.map(cat => {
+    const filteredFaqs = faqs.map(cat => {
+        const matchesCategoryFilter = 
+            selectedCategoryFilter === "ALL" || 
+            cat.id === selectedCategoryFilter || 
+            cat.category.toLowerCase() === selectedCategoryFilter.toLowerCase();
+        
+        if (!matchesCategoryFilter) return null;
+
+        if (searchQuery.trim() === "") return cat;
+
         const matchesCategory = cat.category.toLowerCase().includes(searchQuery.toLowerCase());
         const matchedQuestions = cat.questions.filter(faq => 
             faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -192,11 +202,24 @@ export default function SupportCenterPage() {
                     {/* FAQ Section */}
                     {(loadingFaqs || filteredFaqs.length > 0) && (
                         <div className="space-y-8 pt-8 border-t border-border">
-                            <div className="flex items-end justify-between pb-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
                                 <div>
                                     <h3 className="text-3xl font-black tracking-tighter">Common FAQs</h3>
                                 </div>
-                                <Link href="#" className="text-xs font-bold text-tatt-lime hover:underline transition-all underline-offset-4">Browse All</Link>
+                                <div className="flex items-center gap-3">
+                                    <select 
+                                        value={selectedCategoryFilter}
+                                        onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                                        className="bg-surface border border-border px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-foreground outline-none cursor-pointer"
+                                    >
+                                        <option value="ALL" className="bg-surface text-foreground">All Categories</option>
+                                        {faqs.map(c => (
+                                            <option key={c.id || c.category} value={c.id || c.category} className="bg-surface text-foreground font-semibold">
+                                                {c.category.replace('_', ' ')} ({c.questions?.length || 0})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             {loadingFaqs ? (

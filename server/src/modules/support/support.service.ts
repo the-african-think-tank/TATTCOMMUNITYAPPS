@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { NotificationsService } from '../notifications/services/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
 import { InjectModel } from '@nestjs/sequelize';
@@ -246,16 +246,107 @@ export class SupportService {
     }
 
     // --- FAQS ---
-    async createFaq(dto: CreateFaqDto) {
-        const formattedCategory = dto.category.toUpperCase().trim();
-        const [categoryRecord] = await this.categoryRepo.findOrCreate({
+    async getCategories() {
+        const categories = await this.categoryRepo.findAll({
+            include: [{
+                model: SupportFaq,
+                required: false
+            }],
+            order: [['category', 'ASC']]
+        });
+        return categories.map(cat => ({
+            id: cat.id,
+            category: cat.category,
+            questionCount: cat.questions ? cat.questions.length : 0
+        }));
+    }
+
+    async createCategory(categoryName: string) {
+        if (!categoryName || !categoryName.trim()) {
+            throw new BadRequestException('Category name cannot be empty');
+        }
+        const formattedCategory = categoryName.toUpperCase().trim();
+        const [category, created] = await this.categoryRepo.findOrCreate({
             where: { category: formattedCategory }
         });
+        return category;
+    }
+
+    async updateCategory(id: string, categoryName: string) {
+        if (!categoryName || !categoryName.trim()) {
+            throw new BadRequestException('Category name cannot be empty');
+        }
+        const category = await this.categoryRepo.findByPk(id);
+        if (!category) throw new NotFoundException('Category not found');
+
+        const formattedCategory = categoryName.toUpperCase().trim();
+        
+        // Check if another category with the same name exists
+        const existing = await this.categoryRepo.findOne({ where: { category: formattedCategory } });
+        if (existing && existing.id !== id) {
+            throw new BadRequestException('Category with this name already exists');
+        }
+
+        category.category = formattedCategory;
+        await category.save();
+        return category;
+    }
+
+    async deleteCategory(id: string, targetCategoryId?: string) {
+        const category = await this.categoryRepo.findByPk(id);
+        if (!category) throw new NotFoundException('Category not found');
+
+        const questionsCount = await this.faqRepo.count({
+            where: { categoryId: id }
+        });
+
+        if (questionsCount > 0) {
+            if (!targetCategoryId) {
+                throw new BadRequestException(
+                    'Cannot delete category with attached FAQs. Please reassign questions to another category first.'
+                );
+            }
+
+            if (targetCategoryId === id) {
+                throw new BadRequestException('Target category must be different from category being deleted');
+            }
+
+            const targetCategory = await this.categoryRepo.findByPk(targetCategoryId);
+            if (!targetCategory) {
+                throw new NotFoundException('Target category for reassignment not found');
+            }
+
+            // Reassign all questions to the target category
+            await this.faqRepo.update(
+                { categoryId: targetCategoryId },
+                { where: { categoryId: id } }
+            );
+        }
+
+        await category.destroy();
+        return { message: 'Category deleted successfully' };
+    }
+
+    async createFaq(dto: CreateFaqDto) {
+        let categoryId = dto.categoryId;
+
+        if (!categoryId && dto.category) {
+            const formattedCategory = dto.category.toUpperCase().trim();
+            const [categoryRecord] = await this.categoryRepo.findOrCreate({
+                where: { category: formattedCategory }
+            });
+            categoryId = categoryRecord.id;
+        }
+
+        if (!categoryId) {
+            throw new BadRequestException('Category or Category ID must be provided');
+        }
+
         return this.faqRepo.create({
             question: dto.question,
             answer: dto.answer,
             isActive: dto.isActive !== undefined ? dto.isActive : true,
-            categoryId: categoryRecord.id
+            categoryId
         } as any);
     }
 
@@ -276,6 +367,7 @@ export class SupportService {
                 question: q.question,
                 answer: q.answer,
                 category: cat.category,
+                categoryId: cat.id,
                 isActive: q.isActive
             }))
         }));
@@ -283,10 +375,13 @@ export class SupportService {
 
     async updateFaq(id: string, dto: Partial<CreateFaqDto>) {
         const faq = await this.faqRepo.findByPk(id);
-        if (!faq) throw new Error('FAQ not found');
+        if (!faq) throw new NotFoundException('FAQ not found');
         
         const updateData: any = { ...dto };
-        if (dto.category) {
+        if (dto.categoryId) {
+            updateData.categoryId = dto.categoryId;
+            delete updateData.category;
+        } else if (dto.category) {
             const formattedCategory = dto.category.toUpperCase().trim();
             const [categoryRecord] = await this.categoryRepo.findOrCreate({
                 where: { category: formattedCategory }
@@ -299,20 +394,8 @@ export class SupportService {
 
     async deleteFaq(id: string) {
         const faq = await this.faqRepo.findByPk(id);
-        if (!faq) throw new Error('FAQ not found');
+        if (!faq) throw new NotFoundException('FAQ not found');
         await faq.destroy();
         return { message: 'FAQ deleted successfully' };
-    }
-
-    async deleteCategory(id: string) {
-        const category = await this.categoryRepo.findByPk(id);
-        if (!category) throw new Error('Category not found');
-        
-        await this.faqRepo.destroy({
-            where: { categoryId: id }
-        });
-        
-        await category.destroy();
-        return { message: 'Category and all associated FAQs deleted successfully' };
     }
 }
