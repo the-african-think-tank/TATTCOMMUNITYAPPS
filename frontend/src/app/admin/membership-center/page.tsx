@@ -31,6 +31,7 @@ import {
     Shield,
     Save
 } from "lucide-react";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 import api from "@/services/api";
 import toast from "react-hot-toast";
 
@@ -363,12 +364,12 @@ export default function MembershipCenterPage() {
                                             {data.tiers.map((tier: any) => (
                                                 <tr key={tier.id} className="hover:bg-tatt-lime/[0.02] transition-colors group">
                                                     <td className="px-4 py-4">
-                                                        <input 
-                                                            className="bg-transparent border-none p-0 text-sm font-black focus:ring-0 w-full focus:bg-background rounded px-2 -ml-2 transition-all" 
-                                                            type="text" 
-                                                            value={tier.name} 
-                                                            readOnly 
-                                                        />
+                                                        <button 
+                                                            onClick={() => router.push('/admin/membership-center/' + (tier.tier?.toLowerCase() || tier.id))}
+                                                            className="text-left text-sm font-black text-foreground hover:text-tatt-lime transition-colors cursor-pointer outline-none group-hover:underline"
+                                                        >
+                                                            {tier.name}
+                                                        </button>
                                                     </td>
                                                     <td className="px-4 py-4">
                                                         <div className="flex items-center space-x-1">
@@ -381,39 +382,47 @@ export default function MembershipCenterPage() {
                                                             {[...(tier.features || []), ...(tier.accessControls || []).filter((a: any) => a.enabled).map((a: any) => a.title)].slice(0, 3).map((perk: any, i: number) => (
                                                                 <span key={i} className="bg-background border border-border px-2 py-0.5 rounded text-[10px] font-bold flex items-center group/perk">
                                                                     {perk}
-                                                                    <button className="ml-1 text-tatt-gray hover:text-red-500 opacity-0 group-hover/perk:opacity-100 transition-all">×</button>
                                                                 </span>
                                                             ))}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4 text-right">
-                                                        <div className="flex items-center justify-end space-x-1">
-                                                            <button 
-                                                                onClick={async () => {
-                                                                    if(confirm('Are you sure you want to delete this plan?')) {
-                                                                        try {
-                                                                            await api.delete(`/membership-center/tiers/${tier.id}`);
-                                                                            toast.success("Plan deleted successfully");
-                                                                            fetchAllData();
-                                                                        } catch (err) {
-                                                                            toast.error("Failed to delete plan");
+                                                        <div className="flex items-center justify-end">
+                                                            <ActionDropdown
+                                                                ariaLabel={`Actions for ${tier.name}`}
+                                                                items={[
+                                                                    {
+                                                                        key: "edit",
+                                                                        label: "Edit Plan Details",
+                                                                        icon: <Edit2 size={14} />,
+                                                                        onPress: () => router.push('/admin/membership-center/' + (tier.tier?.toLowerCase() || tier.id))
+                                                                    },
+                                                                    {
+                                                                        key: "perks",
+                                                                        label: "Edit Perks & Benefits",
+                                                                        icon: <Ticket size={14} />,
+                                                                        onPress: () => router.push('/admin/membership-center/' + (tier.tier?.toLowerCase() || tier.id))
+                                                                    },
+                                                                    "divider",
+                                                                    {
+                                                                        key: "delete",
+                                                                        label: "Delete Plan",
+                                                                        icon: <Trash2 size={14} />,
+                                                                        isDanger: true,
+                                                                        onPress: async () => {
+                                                                            if (confirm('Are you sure you want to delete this plan?')) {
+                                                                                try {
+                                                                                    await api.delete(`/membership-center/tiers/${tier.id}`);
+                                                                                    toast.success("Plan deleted successfully");
+                                                                                    fetchAllData();
+                                                                                } catch (err) {
+                                                                                    toast.error("Failed to delete plan");
+                                                                                }
+                                                                            }
                                                                         }
                                                                     }
-                                                                }}
-                                                                className="p-1.5 text-tatt-gray hover:text-red-500 transition-all"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                            <div className="relative group/dropdown">
-                                                                <button className="p-1.5 text-tatt-gray hover:text-foreground transition-all">
-                                                                    <MoreVertical size={14} />
-                                                                </button>
-                                                                <div className="absolute right-0 top-full w-40 bg-surface border border-border rounded-xl shadow-xl opacity-0 pointer-events-none group-hover/dropdown:opacity-100 group-hover/dropdown:pointer-events-auto transition-all z-50 flex flex-col p-1 overflow-hidden">
-                                                                    <button onClick={() => router.push('/admin/membership-center/' + tier.id)} className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:bg-background hover:text-foreground rounded-lg transition-colors">Edit Plan</button>
-                                                                    <button onClick={() => router.push('/admin/membership-center/' + tier.id)} className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:bg-background hover:text-foreground rounded-lg transition-colors">Add New Perk</button>
-                                                                    <button onClick={() => router.push('/admin/membership-center/' + tier.id)} className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:bg-background hover:text-foreground rounded-lg transition-colors">Add Benefit</button>
-                                                                </div>
-                                                            </div>
+                                                                ]}
+                                                            />
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -443,12 +452,17 @@ export default function MembershipCenterPage() {
                                         <div key={tier.id} className="bg-surface rounded-2xl p-6 border border-border shadow-sm flex flex-col group hover:border-tatt-lime transition-all">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
-                                                    <h3 className="text-xl font-black text-foreground tracking-tight">{tier.name || 'Unnamed Plan'}</h3>
+                                                    <h3 
+                                                        onClick={() => router.push('/admin/membership-center/' + (tier.tier?.toLowerCase() || tier.id))}
+                                                        className="text-xl font-black text-foreground tracking-tight cursor-pointer hover:text-tatt-lime transition-colors"
+                                                    >
+                                                        {tier.name || 'Unnamed Plan'}
+                                                    </h3>
                                                     <span className="text-[10px] font-black uppercase text-tatt-lime tracking-widest">{tier.status}</span>
                                                 </div>
                                                 <button 
-                                                    onClick={() => router.push('/admin/membership-center/' + tier.id)}
-                                                    className="p-2 text-tatt-gray hover:text-foreground hover:bg-background rounded-lg transition-all"
+                                                    onClick={() => router.push('/admin/membership-center/' + (tier.tier?.toLowerCase() || tier.id))}
+                                                    className="p-2 text-tatt-gray hover:text-foreground hover:bg-background rounded-lg transition-all cursor-pointer active:scale-95"
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>

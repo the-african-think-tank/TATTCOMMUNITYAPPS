@@ -22,6 +22,13 @@ export class MembershipController {
         return this.membershipService.getTiers();
     }
 
+    @ApiOperation({ summary: 'Get a specific membership tier by ID or slug' })
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
+    @Get('tiers/:id')
+    async getTierByIdOrSlug(@Param('id') id: string) {
+        return this.membershipService.getPlanByIdOrSlug(id);
+    }
+
     @ApiOperation({ summary: 'Update a membership tier' })
     @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
     @Patch('tiers/:id')
