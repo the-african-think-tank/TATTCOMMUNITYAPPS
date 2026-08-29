@@ -3,10 +3,11 @@ import {
     Logger,
     NotFoundException,
     ForbiddenException,
+    OnApplicationBootstrap,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, WhereOptions } from 'sequelize';
-import { Resource, ResourceVisibility } from './entities/resource.entity';
+import { Resource, ResourceVisibility, ResourceType } from './entities/resource.entity';
 import { ResourceInteraction, ResourceInteractionAction } from './entities/resource-interaction.entity';
 import { User } from '../iam/entities/user.entity';
 import { CommunityTier, SystemRole } from '../iam/enums/roles.enum';
@@ -63,13 +64,45 @@ function canAccessResource(user: User, resource: Resource): boolean {
 }
 
 @Injectable()
-export class ResourcesService {
+export class ResourcesService implements OnApplicationBootstrap {
     private readonly logger = new Logger(ResourcesService.name);
 
     constructor(
         @InjectModel(Resource) private resourceRepository: typeof Resource,
         @InjectModel(ResourceInteraction) private interactionRepository: typeof ResourceInteraction,
     ) { }
+
+    async onApplicationBootstrap() {
+        try {
+            const sampleTitle = 'TATT Founders & Executive Mentorship Program';
+            const existing = await this.resourceRepository.findOne({ where: { title: sampleTitle } });
+            
+            if (!existing) {
+                this.logger.log('Seeding long text sample resources...');
+                await this.resourceRepository.create({
+                    title: sampleTitle,
+                    type: ResourceType.PARTNERSHIP,
+                    description: '1-on-1 mentorship sessions with senior African leaders and Fortune 500 executives across North America, Europe, and Africa.\n\nParticipants gain strategic guidance, high-impact career acceleration, investor readiness consulting, and direct entry into our exclusive global diaspora advisory network. Includes quarterly masterclasses, monthly group coaching, and private pitch clinics.',
+                    visibility: ResourceVisibility.PUBLIC,
+                    minTier: CommunityTier.FREE,
+                    tags: ['Mentorship', 'Leadership', 'Networking', 'Executive'],
+                    contentUrl: 'https://theafricanthinktank.org/mentorship'
+                });
+
+                await this.resourceRepository.create({
+                    title: 'Global Diaspora Venture & Angel Investment Playbook',
+                    type: ResourceType.GUIDE,
+                    description: 'A comprehensive, multi-chapter guide outlining cross-border syndication models, regulatory compliance across jurisdictions, tax-efficient structuring, and due diligence frameworks for African tech investments.\n\nDesigned for active angel investors, corporate venture partners, and chapter investment leads seeking high-growth portfolio opportunities.',
+                    visibility: ResourceVisibility.PUBLIC,
+                    minTier: CommunityTier.FREE,
+                    tags: ['Venture Capital', 'Angel Investing', 'Legal', 'Startups'],
+                    contentUrl: 'https://theafricanthinktank.org/playbook'
+                });
+            }
+        } catch (err: any) {
+            this.logger.error('Failed to seed sample resources:', err?.message);
+        }
+    }
 
     async create(dto: CreateResourceDto, _user: User) {
         try {

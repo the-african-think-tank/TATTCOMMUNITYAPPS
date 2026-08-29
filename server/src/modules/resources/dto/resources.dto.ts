@@ -20,9 +20,10 @@ export class CreateResourceDto {
     @IsEnum(ResourceType)
     type: ResourceType;
 
-    @ApiPropertyOptional({ description: 'Brief summary (HTML supported)', example: '<p>Essential contract clauses for startups.</p>' })
+    @ApiPropertyOptional({ description: 'Brief summary (HTML supported)', example: '<p>Essential contract clauses for startups.</p>', maxLength: 1000 })
     @IsOptional()
     @IsString()
+    @MaxLength(1000)
     description?: string;
 
     @ApiPropertyOptional({ description: 'URL to document, video, or partnership portal', example: 'https://example.com/guide' })
@@ -91,9 +92,10 @@ export class UpdateResourceDto {
     @IsEnum(ResourceType)
     type?: ResourceType;
 
-    @ApiPropertyOptional({ description: 'Brief summary (HTML supported)' })
+    @ApiPropertyOptional({ description: 'Brief summary (HTML supported)', maxLength: 1000 })
     @IsOptional()
     @IsString()
+    @MaxLength(1000)
     description?: string;
 
     @ApiPropertyOptional({ description: 'URL to document, video, or partnership portal' })

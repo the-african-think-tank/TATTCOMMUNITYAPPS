@@ -2,22 +2,25 @@
 
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Loader2,
   Folder,
-  Search,
+  BookOpen,
   FileText,
   Video,
   Handshake,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
+  Search,
   Lock,
+  ExternalLink,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  Eye,
+  X
 } from "lucide-react";
 import type { ResourceCard, ResourcesListResponse, ResourceType } from "@/types/resources";
+import { AppModal } from "@/components/modals/app-modal";
 
 const RESOURCE_TYPES: { value: ResourceType | ""; label: string; icon: typeof FileText }[] = [
   { value: "", label: "All", icon: Folder },
@@ -54,69 +57,31 @@ export default function ResourcesPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
+  // Quick View Preview Modal State
+  const [previewResource, setPreviewResource] = useState<ResourceCard | null>(null);
+
   const fetchResources = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number> = { page, limit: 12 };
-      
-      let resourceData: any[] = [];
-      let partnershipData: any[] = [];
-      let totalItems = 0;
-
-      // Fetch regular resources
-      if (!typeFilter || typeFilter !== "PARTNERSHIP") {
-        if (typeFilter) params.type = typeFilter;
-        const { data } = await api.get<ResourcesListResponse>("/resources", { params });
-        resourceData = (Array.isArray(data?.data) ? data.data : []).map(r => ({...r, isPartnership: false}));
-        totalItems = data?.meta?.total ?? 0;
-      }
-
-      // Fetch partnerships if applicable
-      if (!typeFilter || typeFilter === "PARTNERSHIP") {
-        const { data } = await api.get("/partnerships/my-benefits");
-        partnershipData = (Array.isArray(data) ? data : []).map(p => ({
-          ...p,
-          id: p.id,
-          title: p.name,
-          type: "PARTNERSHIP",
-          thumbnailUrl: p.logoUrl,
-          description: p.description,
-          tags: [p.category],
-          isPartnership: true
-        }));
-        
-        if (typeFilter === "PARTNERSHIP") {
-          totalItems = partnershipData.length;
-        } else {
-          totalItems += partnershipData.length;
-        }
-      }
-
-      const combined = typeFilter === "PARTNERSHIP" 
-        ? partnershipData 
-        : [...partnershipData.slice(0, 4), ...resourceData]; // Priority to some partnerships on "All"
-
-      setItems(combined);
-      setMeta({
-          total: totalItems,
-          page,
-          limit: 12,
-          totalPages: Math.ceil(totalItems / 12)
-      });
+      const params: Record<string, string | number> = { page, limit: 20 };
+      if (typeFilter) params.type = typeFilter;
+      const { data } = await api.get<ResourcesListResponse>("/resources", { params });
+      setItems(data?.data ?? []);
+      setMeta(data?.meta ?? null);
     } catch (err: unknown) {
-      const res =
+      const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string }; status?: number } }).response
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
-      setError(res?.data?.message ?? "Failed to load resources.");
+      setError(typeof msg === "string" ? msg : "Failed to load resources.");
       setItems([]);
       setMeta(null);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, page, typeFilter]);
+  }, [user?.id, typeFilter, page]);
 
   useEffect(() => {
     fetchResources();
@@ -128,22 +93,33 @@ export default function ResourcesPage() {
     setPage(1);
   };
 
-  const filteredItems = search.trim()
-    ? items.filter(
-        (r) =>
-          r.title.toLowerCase().includes(search.toLowerCase()) ||
-          r.tags?.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-      )
-    : items;
-  const displayMeta = search.trim() ? { total: filteredItems.length, page: 1, limit: 12, totalPages: 1 } : meta;
+  const filteredItems = useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase();
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        (item.tags && item.tags.some((t) => t.toLowerCase().includes(q))) ||
+        (item.description && stripHtml(item.description).toLowerCase().includes(q))
+    );
+  }, [items, search]);
+
+  const displayMeta = search.trim() ? null : meta;
+
+  const handleOpenQuickView = (resource: ResourceCard, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPreviewResource(resource);
+  };
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground">
-      <div className="border-b border-border bg-surface px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="min-h-screen w-full bg-background text-foreground pb-12">
+      {/* Top Banner */}
+      <div className="border-b border-border bg-surface px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="max-w-[1920px] mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="size-10 sm:size-12 rounded-xl bg-tatt-lime flex items-center justify-center text-tatt-black shrink-0">
+              <div className="p-3 rounded-xl bg-tatt-lime/10 text-tatt-lime border border-tatt-lime/20">
                 <Folder className="h-5 w-5 sm:h-6 w-6" />
               </div>
               <div>
@@ -187,7 +163,7 @@ export default function ResourcesPage() {
                   setTypeFilter(value);
                   setPage(1);
                 }}
-                className={`inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-lg font-bold text-sm transition-colors ${
+                className={`inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-lg font-bold text-sm transition-all cursor-pointer active:scale-95 ${
                   typeFilter === value
                     ? "bg-tatt-lime text-tatt-black"
                     : "bg-tatt-gray/20 text-foreground hover:bg-tatt-gray/30"
@@ -215,59 +191,102 @@ export default function ResourcesPage() {
         ) : (
           <>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {filteredItems.map((resource) => (
-                <li key={resource.id}>
-                  <Link
-                    href={resource.isPartnership ? (resource.isLocked ? "/dashboard/upgrade" : `/dashboard/partnerships/${resource.id}`) : `/dashboard/resources/${resource.id}`}
-                    target="_self"
-                    className={`relative block h-full rounded-xl border border-border bg-surface p-4 sm:p-5 hover:border-tatt-lime/50 hover:shadow-md transition-all text-left ${resource.isLocked ? "opacity-80 grayscale-[0.5]" : ""}`}
-                  >
-                    {resource.isLocked && (
-                      <div className="absolute top-4 right-4 z-10 p-1.5 bg-background/80 rounded-full border border-border">
-                        <Lock className="size-3.5 text-tatt-gray" />
-                      </div>
-                    )}
-                    <div className="flex items-start gap-3 mb-3">
-                      {resource.thumbnailUrl ? (
-                        <img
-                          src={resource.thumbnailUrl}
-                          alt=""
-                          className="size-12 sm:size-14 rounded-lg object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="size-12 sm:size-14 rounded-lg bg-tatt-gray/20 flex items-center justify-center shrink-0">
-                          <ResourceTypeIcon type={resource.type} />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-foreground truncate">{resource.title}</h3>
-                        <span className="text-xs text-tatt-gray uppercase tracking-wide">{resource.type}</span>
-                      </div>
-                    </div>
-                    {resource.description && (
-                      <p className="text-sm text-tatt-gray line-clamp-2 mb-3">
-                        {stripHtml(resource.description)}
-                      </p>
-                    )}
-                    {resource.tags?.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-3">
-                        {resource.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-xs px-2 py-0.5 rounded bg-tatt-lime/20 text-tatt-green-deep font-medium"
+              {filteredItems.map((resource) => {
+                const cleanDesc = stripHtml(resource.description);
+
+                return (
+                  <li key={resource.id} className="relative">
+                    <Link
+                      href={resource.isPartnership ? (resource.isLocked ? "/dashboard/upgrade" : `/dashboard/partnerships/${resource.id}`) : `/dashboard/resources/${resource.id}`}
+                      target="_self"
+                      className={`relative flex flex-col justify-between h-full rounded-xl border border-border bg-surface p-4 sm:p-5 hover:border-tatt-lime/50 hover:shadow-md transition-all text-left group ${resource.isLocked ? "opacity-80 grayscale-[0.5]" : ""}`}
+                    >
+                      <div>
+                        {/* Top Header: Lock / Quick View */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            {resource.isLocked && (
+                              <div className="p-1 bg-background rounded-full border border-border" title="Tier Locked">
+                                <Lock className="size-3 text-tatt-gray" />
+                              </div>
+                            )}
+                            <span className="text-[10px] font-black text-tatt-gray uppercase tracking-widest">{resource.type}</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenQuickView(resource, e)}
+                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider p-1.5 rounded-lg bg-tatt-gray/10 hover:bg-tatt-lime hover:text-tatt-black text-tatt-gray transition-all cursor-pointer active:scale-95"
+                            title="Quick View full description & details"
                           >
-                            {tag}
-                          </span>
-                        ))}
+                            <Eye className="size-3.5" /> Preview
+                          </button>
+                        </div>
+
+                        {/* Title & Icon */}
+                        <div className="flex items-center gap-2.5 mb-3">
+                          {resource.thumbnailUrl ? (
+                            <img
+                              src={resource.thumbnailUrl}
+                              alt=""
+                              className="size-8 sm:size-9 rounded-lg object-cover shrink-0 border border-border mt-0.5"
+                            />
+                          ) : (
+                            <div className="size-8 sm:size-9 rounded-lg bg-tatt-lime/10 flex items-center justify-center shrink-0 border border-tatt-lime/20 mt-0.5">
+                              <ResourceTypeIcon type={resource.type} />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-bold text-foreground leading-snug whitespace-normal break-words text-sm sm:text-base">
+                              {resource.title}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Truncated Description on Grid Card */}
+                        {cleanDesc && (
+                          <div className="mb-3">
+                            <p className="text-sm text-tatt-gray transition-all leading-relaxed line-clamp-2">
+                              {cleanDesc}
+                            </p>
+                            {cleanDesc.length > 80 && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenQuickView(resource, e)}
+                                className="text-[11px] font-bold text-tatt-lime hover:underline mt-1.5 inline-block cursor-pointer"
+                              >
+                                Read more
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Tags */}
+                        {resource.tags?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-4">
+                            {resource.tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-xs px-2 py-0.5 rounded bg-tatt-lime/20 text-tatt-green-deep font-medium"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <span className="inline-flex items-center gap-1.5 text-sm font-bold text-tatt-lime mt-auto">
-                      {resource.isPartnership ? (resource.isLocked ? "Upgrade to Unlock" : (resource.buttonLabel || "Redeem Offer")) : "View resource"}
-                      {resource.isPartnership && !resource.isLocked ? <ExternalLink className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+
+                      {/* Footer Action CTA */}
+                      <div className="pt-3 border-t border-border flex items-center justify-between mt-auto">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tatt-lime group-hover:underline">
+                          {resource.isPartnership ? (resource.isLocked ? "Upgrade to Unlock" : (resource.buttonLabel || "Redeem Offer")) : "View resource"}
+                        </span>
+                        {resource.isPartnership && !resource.isLocked ? <ExternalLink className="h-3.5 w-3.5 text-tatt-lime" /> : <ChevronRight className="h-3.5 w-3.5 text-tatt-lime group-hover:translate-x-1 transition-transform" />}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
 
             {displayMeta && displayMeta.totalPages > 1 && !search.trim() && (
@@ -276,19 +295,19 @@ export default function ResourcesPage() {
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="min-h-[44px] px-3 rounded-lg border border-border bg-surface text-foreground disabled:opacity-50 hover:bg-tatt-gray/10 transition-colors"
+                  className="min-h-[44px] px-3 rounded-lg border border-border bg-surface text-foreground disabled:opacity-50 hover:bg-tatt-gray/10 transition-colors cursor-pointer"
                   aria-label="Previous page"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <span className="min-h-[44px] px-4 flex items-center text-sm text-tatt-gray">
+                <span className="min-h-[44px] px-4 flex items-center text-sm text-tatt-gray font-bold">
                   Page {page} of {displayMeta.totalPages}
                 </span>
                 <button
                   type="button"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= displayMeta.totalPages}
-                  className="min-h-[44px] px-3 rounded-lg border border-border bg-surface text-foreground disabled:opacity-50 hover:bg-tatt-gray/10 transition-colors"
+                  className="min-h-[44px] px-3 rounded-lg border border-border bg-surface text-foreground disabled:opacity-50 hover:bg-tatt-gray/10 transition-colors cursor-pointer"
                   aria-label="Next page"
                 >
                   <ChevronRight className="h-5 w-5" />
@@ -298,6 +317,83 @@ export default function ResourcesPage() {
           </>
         )}
       </div>
+
+      {/* Hero UI AppModal Quick View */}
+      <AppModal
+        isOpen={!!previewResource}
+        onClose={() => setPreviewResource(null)}
+        size="lg"
+        headerExtra={
+          previewResource ? (
+            previewResource.thumbnailUrl ? (
+              <img
+                src={previewResource.thumbnailUrl}
+                alt={previewResource.title}
+                className="size-12 rounded-xl object-cover shrink-0 border border-border"
+              />
+            ) : (
+              <div className="size-12 rounded-xl bg-tatt-lime/10 border border-tatt-lime/20 flex items-center justify-center shrink-0">
+                <ResourceTypeIcon type={previewResource.type} />
+              </div>
+            )
+          ) : null
+        }
+        title={previewResource?.title}
+        footer={
+          previewResource ? (
+            <div className="flex items-center justify-between w-full">
+              <button
+                type="button"
+                onClick={() => setPreviewResource(null)}
+                className="px-5 py-2 text-xs font-black uppercase tracking-widest text-tatt-gray hover:text-foreground transition-colors cursor-pointer active:scale-95"
+              >
+                Close
+              </button>
+              <Link
+                href={previewResource.isPartnership ? (previewResource.isLocked ? "/dashboard/upgrade" : `/dashboard/partnerships/${previewResource.id}`) : `/dashboard/resources/${previewResource.id}`}
+                onClick={() => setPreviewResource(null)}
+                className="inline-flex items-center gap-2 bg-tatt-lime text-tatt-black px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-105 transition-all shadow-md cursor-pointer active:scale-95"
+              >
+                {previewResource.isPartnership ? (previewResource.isLocked ? "Upgrade to Unlock" : (previewResource.buttonLabel || "Access Offer")) : "Open Resource"}
+                <ExternalLink size={14} />
+              </Link>
+            </div>
+          ) : null
+        }
+      >
+        {previewResource && (
+          <div className="space-y-4">
+            
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-tatt-lime/20 text-tatt-green-deep border border-tatt-lime/30">
+                {previewResource.type}
+              </span>
+              {previewResource.isLocked && (
+                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-tatt-black text-tatt-lime border border-white/10 flex items-center gap-1">
+                  <Lock size={10} /> Tier Restricted
+                </span>
+              )}
+            </div>
+        
+            <div>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2">Full Description</h4>
+              <div className="text-sm sm:text-base text-tatt-gray leading-relaxed font-medium whitespace-pre-line">
+                {stripHtml(previewResource.description || "No description provided for this resource.")}
+              </div>
+            </div>
+
+            {previewResource.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+                {previewResource.tags.map((tag) => (
+                  <span key={tag} className="text-xs px-3 py-1 rounded-lg bg-tatt-lime/10 text-tatt-green-deep font-bold border border-tatt-lime/20">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </AppModal>
     </div>
   );
 }
