@@ -224,7 +224,7 @@ export default function ResourcesPage() {
                         </div>
 
                         {/* Title & Icon */}
-                        <div className="flex items-center gap-2.5 mb-3">
+                        <div className="flex items-start gap-2.5 mb-3">
                           {resource.thumbnailUrl ? (
                             <img
                               src={resource.thumbnailUrl}
@@ -323,6 +323,7 @@ export default function ResourcesPage() {
         isOpen={!!previewResource}
         onClose={() => setPreviewResource(null)}
         size="lg"
+        showCloseButton={false}
         headerExtra={
           previewResource ? (
             previewResource.thumbnailUrl ? (
