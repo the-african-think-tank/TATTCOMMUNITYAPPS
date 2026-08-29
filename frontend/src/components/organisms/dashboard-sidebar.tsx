@@ -1,30 +1,28 @@
 "use client";
 
+import { TATTLogo } from "@/components/atoms/logo";
+import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
 
 import {
+    Banknote,
+    Briefcase,
+    Building2,
+    Calendar,
+    Folder,
+    Handshake,
+    Headset,
+    HeartHandshake,
     LayoutDashboard,
     Mail as MailIcon,
     Rss,
-    Users,
-    Briefcase,
-    Store,
-    Folder,
-    Calendar,
-    HeartHandshake,
-    Building2,
     Settings as SettingsIcon,
     ShieldCheck,
-    Menu,
+    Store,
+    Users,
     X,
-    Trello,
-    Zap,
-    Banknote,
-    DollarSign,
-    Handshake,
-    Headset
+    Zap
 } from "lucide-react";
 
 export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (open: boolean) => void }) {
@@ -83,14 +81,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
                 <div className="p-6 flex items-center justify-between gap-3">
                     {/* <div className="flex items-center gap-3"> */}
                         <div className="w-full h-14 shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src="/assets/tatt-logo-full.webp"
-                                alt="TATT Logo"
-                                width={40}
-                                height={40}
-                                className="object-contain w-fit h-14"
-                            />
+                            <TATTLogo variant="full" />
                         </div>
                     {/* </div> */}
                     <button onClick={closeSidebar} className="lg:hidden text-white hover:text-tatt-lime">

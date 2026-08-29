@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import Image from "next/image";
 import { Menu, X, ArrowRight } from "lucide-react";
+import { TATTLogo } from "../atoms/logo";
 
 export function Navbar() {
     const { isAuthenticated, logout } = useAuth();
@@ -20,24 +21,11 @@ export function Navbar() {
 
     return (
         <>
-            <header className="sticky top-0 z-50 border-b border-white/10 bg-tatt-black">
+            <header className="sticky top-0 z-50 bg-tatt-black">
                 <div className="flex items-center justify-between px-4 lg:px-20 py-4 max-w-[1600px] mx-auto">
                     <div className="flex items-center gap-2 lg:gap-3 shrink-0">
                         <Link href="/" className="flex items-center gap-2 lg:gap-3 group">
-                            <div className="size-8 lg:size-10 flex items-center justify-center transition-transform group-hover:scale-110">
-                                <Image
-                                    src="/assets/tattlogoIcon.svg"
-                                    alt="TATT Logo"
-                                    width={40}
-                                    height={40}
-                                    className="object-contain"
-                                />
-                            </div>
-                            <div className="flex flex-col justify-center">
-                                <h1 className="text-sm sm:text-base lg:text-xl font-black tracking-tight uppercase text-white leading-none whitespace-nowrap">
-                                    The African Think Tank
-                                </h1>
-                            </div>
+                            <TATTLogo/>
                         </Link>
                     </div>
 
@@ -116,14 +104,7 @@ export function Navbar() {
                 <div className={`absolute inset-y-0 left-0 w-[85%] max-w-xs bg-tatt-black border-r border-white/10 flex flex-col transition-transform duration-300 ease-out ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
                     <div className="flex items-center justify-between p-6 border-b border-white/10">
                         <div className="flex items-center gap-3">
-                            <Image
-                                src="/assets/tattlogoIcon.svg"
-                                alt="TATT Logo"
-                                width={32}
-                                height={32}
-                                className="object-contain"
-                            />
-                            <span className="text-sm font-black text-white uppercase tracking-tight">The African Think Tank</span>
+                            <TATTLogo/>
                         </div>
                         <button 
                             onClick={() => setIsMenuOpen(false)}
