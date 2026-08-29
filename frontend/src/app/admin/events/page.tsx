@@ -286,7 +286,7 @@ export default function AdminEventsPage() {
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <StatCard
                     icon={<CalendarIcon className="text-tatt-lime-dark" />}
-                    label="Upcoming Gatherings"
+                    label="Upcoming Events"
                     value={events.filter(e => safeDate(e.dateTime) > new Date()).length.toString()}
                     trend="+2%"
                 />
