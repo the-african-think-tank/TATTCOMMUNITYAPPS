@@ -203,10 +203,6 @@ export default function VolunteerRoleDetailsPage() {
                                     <span className="text-tatt-gray text-[10px] font-black uppercase tracking-widest">Posted on</span>
                                     <span className="font-black text-foreground italic">{new Date(role.createdAt).toLocaleDateString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center bg-background p-4 rounded-2xl border border-border/50">
-                                    <span className="text-tatt-gray text-[10px] font-black uppercase tracking-widest">Vacancies</span>
-                                    <span className="font-black text-foreground italic">{role.spotsNeeded} Available</span>
-                                </div>
                             </div>
                             <div className="flex flex-col gap-4">
                                 {!isPreview && user?.systemRole === 'COMMUNITY_MEMBER' && (

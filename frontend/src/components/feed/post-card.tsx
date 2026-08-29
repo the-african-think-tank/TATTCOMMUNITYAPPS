@@ -478,11 +478,8 @@ export function PostCard({
                         {/* Options Dropdown */}
                         <ActionDropdown
                             ariaLabel="Post Options"
-                            trigger={
-                                <button className="p-2 text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer outline-none">
-                                    <MoreHorizontal className="size-5" />
-                                </button>
-                            }
+                            trigger={<MoreHorizontal className="size-5" />}
+                            triggerClassName="p-2 text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer outline-none"
                             items={[
                                 ...(canManagePost ? [{
                                     key: "edit",
@@ -762,11 +759,8 @@ export function PostCard({
                                                 {canManageComment && editingCommentId !== c.id && (
                                                     <ActionDropdown
                                                         ariaLabel="Comment Options"
-                                                        trigger={
-                                                            <button className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer outline-none">
-                                                                <MoreHorizontal className="size-4" />
-                                                            </button>
-                                                        }
+                                                        trigger={<MoreHorizontal className="size-4" />}
+                                                        triggerClassName="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer outline-none"
                                                         items={[
                                                             {
                                                                 key: "edit",

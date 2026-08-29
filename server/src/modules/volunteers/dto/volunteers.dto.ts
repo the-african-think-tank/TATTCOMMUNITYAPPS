@@ -37,10 +37,6 @@ export class CreateVolunteerRoleDto {
     @IsArray() @IsString({ each: true })
     requiredSkills: string[];
 
-    @ApiProperty({ example: 5 })
-    @IsInt() @IsNotEmpty()
-    spotsNeeded: number;
-
     @ApiProperty({ example: '2026-12-31' })
     @IsDateString() @IsNotEmpty()
     openUntil: string;

@@ -28,8 +28,7 @@ export class VolunteerRoleSchema {
     @ApiProperty({ type: [String] })
     requiredSkills: string[];
 
-    @ApiProperty({ example: 5 })
-    spotsNeeded: number;
+
 
     @ApiProperty()
     openUntil: Date;

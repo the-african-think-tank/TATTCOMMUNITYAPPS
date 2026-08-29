@@ -46,10 +46,21 @@ export function ActionDropdown({
     triggerClassName = "p-2 text-tatt-gray hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer outline-none",
     popoverClassName = "bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-48 max-h-80 overflow-y-auto"
 }: ActionDropdownProps) {
+    // If a button element is passed as trigger, unwrap its children to prevent nested <button><button> DOM hydration errors
+    let finalTrigger = trigger;
+    let finalClassName = triggerClassName;
+
+    if (React.isValidElement(trigger) && (trigger.type === "button" || (trigger.type as any) === "button")) {
+        finalTrigger = (trigger.props as any).children;
+        if ((trigger.props as any).className) {
+            finalClassName = (trigger.props as any).className;
+        }
+    }
+
     return (
         <Dropdown>
-            <DropdownTrigger className={triggerClassName}>
-                {trigger || <MoreVertical size={18} />}
+            <DropdownTrigger className={finalClassName}>
+                {finalTrigger || <MoreVertical size={18} />}
             </DropdownTrigger>
             <DropdownPopover placement={placement} className={popoverClassName}>
                 <DropdownMenu aria-label={ariaLabel}>

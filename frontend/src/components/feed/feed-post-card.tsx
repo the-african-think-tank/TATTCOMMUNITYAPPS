@@ -352,11 +352,8 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                         {canManagePost && (
                             <ActionDropdown
                                 ariaLabel="Post Actions"
-                                trigger={
-                                    <button className="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground outline-none" aria-label="Post options">
-                                        <MoreVertical className="h-4 w-4" />
-                                    </button>
-                                }
+                                trigger={<MoreVertical className="h-4 w-4" />}
+                                triggerClassName="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground outline-none"
                                 items={[
                                     {
                                         key: "edit",
@@ -534,11 +531,8 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                                                         {(canEditComment(c.author) || canDeleteComment(c.author)) && (
                                                             <ActionDropdown
                                                                 ariaLabel="Comment Options"
-                                                                trigger={
-                                                                    <button className="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
-                                                                        <MoreHorizontal className="size-4" />
-                                                                    </button>
-                                                                }
+                                                                trigger={<MoreHorizontal className="size-4" />}
+                                                                triggerClassName="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none"
                                                                 items={[
                                                                     ...(canEditComment(c.author) ? [{
                                                                         key: "edit",
