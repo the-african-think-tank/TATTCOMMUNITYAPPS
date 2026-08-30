@@ -21,7 +21,7 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import dayjs, { formatLocalTime } from "@/lib/dayjs";
 import { useRouter } from "next/navigation";
 
@@ -105,7 +105,6 @@ export default function EventsPage() {
 
     return (
         <div className="p-4 lg:p-8 max-w-7xl mx-auto min-h-screen">
-            <Toaster position="top-right" />
 
             <header className="mb-10">
                 <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground">Events & Mixers</h1>

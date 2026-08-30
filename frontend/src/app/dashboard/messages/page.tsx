@@ -6,7 +6,7 @@ import { Search, MessageSquare, Users, Clock, Hash, CheckCircle, XCircle, Send, 
 import api from "@/services/api";
 import { initiateSocket, disconnectSocket, getSocket } from "@/services/socket";
 import Picker from "emoji-picker-react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import MembershipCard from "@/components/molecules/MembershipCard";
 import { useAuth } from "@/context/auth-context";
@@ -982,8 +982,6 @@ export default function CommunicationsPage() {
             <section className="flex-1 bg-background h-[60vh] md:h-full overflow-hidden">
                 {renderRightPane()}
             </section>
-
-            <Toaster position="top-right" />
         </div>
     );
 }

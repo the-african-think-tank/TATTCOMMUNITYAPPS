@@ -21,7 +21,7 @@ import {
     Loader2
 } from "lucide-react";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 
 export default function FeedModerationPage() {
@@ -176,7 +176,6 @@ export default function FeedModerationPage() {
 
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto w-full pb-12">
-            <Toaster position="top-right" />
             
             <div className="flex items-center justify-between mb-8">
                 <div>

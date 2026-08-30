@@ -49,7 +49,7 @@ import { useTermsModal } from "@/context/terms-context";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 import { PostCard } from "@/components/feed/post-card";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { formatTimeAgo, formatForDateTimeLocal } from "@/utils/date";
 import { initiateFeedSocket, disconnectFeedSocket } from "@/services/feed-socket";
 import { usePostViewTracker } from "@/hooks/use-post-view-tracker";
@@ -371,7 +371,6 @@ export default function FeedPage() {
 
     return (
         <div className="p-4 lg:p-8 max-w-[1400px] mx-auto min-h-screen bg-transparent">
-            <Toaster position="top-right" />
 
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Main Feed Column */}

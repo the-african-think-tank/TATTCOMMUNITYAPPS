@@ -16,7 +16,7 @@ import {
     ChevronDown,
 } from "lucide-react";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 export default function EditResourcePage() {
     const router = useRouter();
@@ -167,7 +167,6 @@ export default function EditResourcePage() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
-            <Toaster position="top-right" />
             
             <div className="max-w-5xl mx-auto w-full p-4 lg:p-12">
                 <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-500 flex items-center gap-4">

@@ -10,7 +10,7 @@ import {
   ChevronRight, Loader2, Heart, MessageCircle, Plus, X,
   Megaphone, Lightbulb, Clock, AlertCircle, Send, Pencil, Trash2, ShieldCheck, ArrowRight
 } from "lucide-react";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { initiateFeedSocket, disconnectFeedSocket } from "@/services/feed-socket";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -347,7 +347,6 @@ export default function MyChapterPage() {
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-      <Toaster position="top-right" />
 
       {/* Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">

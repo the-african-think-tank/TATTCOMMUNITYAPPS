@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import dayjs, { formatInTimezone, formatLocalTime, TIMEZONE_GROUPS, toUtcIso, toNativeDateTimeInput, normalizeTimezone } from "@/lib/dayjs";
 import { useAuth } from "@/context/auth-context";
 
@@ -126,7 +126,6 @@ export default function EventDetailPage() {
 
     return (
         <div className="min-h-screen bg-background p-6 lg:p-12 animate-in fade-in duration-700">
-            <Toaster position="top-right" />
             
             {/* Redesigned Premium Header/Banner */}
             <div className="mb-12">

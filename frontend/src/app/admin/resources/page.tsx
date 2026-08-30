@@ -20,7 +20,7 @@ import {
     Pencil
 } from "lucide-react";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ResourcesAdminPage() {
@@ -89,7 +89,6 @@ export default function ResourcesAdminPage() {
 
     return (
         <div className="flex flex-col h-full">
-            <Toaster position="top-right" />
             
             <header className="pb-4 shrink-0">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8">

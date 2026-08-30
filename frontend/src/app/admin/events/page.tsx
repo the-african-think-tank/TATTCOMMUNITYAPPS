@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
@@ -227,7 +227,6 @@ export default function AdminEventsPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground p-8 lg:p-12">
-            <Toaster position="top-right" />
             
             {/* Header */}
             <header className="flex flex-wrap items-center justify-between gap-6 mb-8">
