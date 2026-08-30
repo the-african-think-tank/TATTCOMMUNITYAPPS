@@ -218,9 +218,16 @@ export class EventsService {
         const event = await this.getEvent(eventId);
 
         if (!event.isForAllMembers) {
-            if (!event.targetMembershipTiers.includes(user.communityTier)) {
+            if (!event.targetMembershipTiers?.includes(user.communityTier)) {
                 throw new ForbiddenException('This event is restricted to specific membership classes.');
             }
+        }
+
+        const existing = await this.eventRegistrationRepo.findOne({
+            where: { eventId: event.id, userId: user.id, status: 'COMPLETED' }
+        });
+        if (existing) {
+            return { registration: existing, message: 'You are already registered for this event.' };
         }
 
         let amountToPay = event.basePrice || 0;

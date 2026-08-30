@@ -168,6 +168,7 @@ export default function EventDetailPage() {
 
     const price = calculatePrice();
     const isEligible = event.isForAllMembers || (event.targetMembershipTiers && event.targetMembershipTiers.includes(user?.communityTier || ""));
+    const isAlreadyRegistered = registrationDone || (!!user && attendees.some(reg => reg.userId === user.id || reg.user?.id === user.id));
 
     return (
         <div className="min-h-screen w-full bg-background text-foreground">
@@ -296,7 +297,7 @@ export default function EventDetailPage() {
                     <div className="lg:col-span-1">
                         <div className="bg-surface rounded-xl border border-border p-6 sticky top-24">
                             <h2 className="text-lg font-bold text-foreground mb-4">Register</h2>
-                            {registrationDone ? (
+                            {isAlreadyRegistered ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3 text-tatt-lime font-medium">
                                         <CheckCircle className="h-6 w-6 shrink-0" />
