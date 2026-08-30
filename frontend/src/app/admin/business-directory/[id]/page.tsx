@@ -42,6 +42,24 @@ interface BusinessPartner {
   clickCount: number;
 }
 
+const BusinessLogoDetail = ({ src, name }: { src?: string; name: string }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return <Store className="text-tatt-black opacity-10" size={40} />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      className="size-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 export default function BusinessDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -273,11 +291,7 @@ export default function BusinessDetailsPage() {
           {/* Profile Snapshot */}
           <section className="bg-surface rounded-xl p-6 border border-border shadow-sm">
             <div className="w-full h-40 bg-background rounded-lg mb-4 overflow-hidden border border-border flex items-center justify-center">
-                {business.logoUrl ? (
-                    <img src={business.logoUrl} alt={business.name} className="size-full object-cover" />
-                ) : (
-                    <Store className="text-tatt-black opacity-10" size={40} />
-                )}
+                <BusinessLogoDetail src={business.logoUrl} name={business.name} />
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Associated Contact</span>
             <div className="mt-4 flex items-center gap-3">

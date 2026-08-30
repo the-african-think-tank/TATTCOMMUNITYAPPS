@@ -35,6 +35,24 @@ interface BusinessPartner {
   clickCount: number;
 }
 
+const BusinessLogo = ({ src, name }: { src?: string; name: string }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return <Store className="text-tatt-black opacity-10" size={24} />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      className="size-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 export default function AdminBusinessDirectory() {
   const [businesses, setBusinesses] = useState<BusinessPartner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,11 +194,7 @@ export default function AdminBusinessDirectory() {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="size-12 rounded-xl border border-border bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
-                          {biz.logoUrl ? (
-                            <img src={biz.logoUrl} alt={biz.name} className="size-full object-cover" />
-                          ) : (
-                            <Store className="text-tatt-black opacity-10" size={24} />
-                          )}
+                          <BusinessLogo src={biz.logoUrl} name={biz.name} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-black text-tatt-black">{biz.name}</p>
