@@ -15,7 +15,10 @@ import {
   Building2,
   Calendar,
   BadgeCheck,
-  Briefcase
+  Briefcase,
+  Upload,
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
@@ -72,12 +75,59 @@ export default function BusinessDetailsPage() {
   const [business, setBusiness] = useState<BusinessPartner | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviewerNotes, setReviewerNotes] = useState("");
+  const [isEditingLogo, setIsEditingLogo] = useState(false);
+  const [logoInput, setLogoInput] = useState("");
+  const [updatingLogo, setUpdatingLogo] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchBusiness();
     }
   }, [id]);
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleSaveLogo = async () => {
+    if (!business || !id) return;
+    try {
+      setUpdatingLogo(true);
+      await api.patch(`/business-directory/${id}`, {
+        logoUrl: logoInput.trim()
+      });
+      toast.success("Business logo updated successfully!");
+      setIsEditingLogo(false);
+      await fetchBusiness(); // Immediately refetch page data to show new logo everywhere!
+    } catch (error) {
+      console.error("Failed to update logo:", error);
+      toast.error("Failed to update logo URL.");
+    } finally {
+      setUpdatingLogo(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const uploadFormData = new FormData();
+    uploadFormData.append("files", file);
+
+    setIsUploading(true);
+    try {
+      toast.loading("Uploading logo image...", { id: "logo-upload" });
+      const response = await api.post("/uploads/media", uploadFormData);
+      const imageUrl = response.data.files?.[0]?.url;
+      if (imageUrl) {
+        setLogoInput(imageUrl);
+        toast.success("Logo uploaded successfully!", { id: "logo-upload" });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload logo file.", { id: "logo-upload" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fetchBusiness = async () => {
     try {
@@ -347,11 +397,37 @@ export default function BusinessDetailsPage() {
             </div>
           </section>
 
-          {/* Profile Snapshot */}
+          {/* Profile Snapshot & Brand Logo */}
           <section className="bg-surface rounded-xl p-6 border border-border shadow-sm">
-            <div className="w-full h-40 bg-background rounded-lg mb-4 overflow-hidden border border-border flex items-center justify-center">
-                <BusinessLogoDetail src={business.logoUrl} name={business.name} />
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Brand Logo</span>
+              <button
+                onClick={() => {
+                  setLogoInput(business.logoUrl || "");
+                  setIsEditingLogo(true);
+                }}
+                className="text-[10px] font-black uppercase tracking-widest text-tatt-lime hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                {business.logoUrl ? "Update Logo" : "Add Logo"}
+              </button>
             </div>
+
+            <div className="w-full h-44 bg-background rounded-xl mb-6 overflow-hidden border border-border flex items-center justify-center relative group p-2">
+                <BusinessLogoDetail src={business.logoUrl} name={business.name} />
+                <button
+                  onClick={() => {
+                    setLogoInput(business.logoUrl || "");
+                    setIsEditingLogo(true);
+                  }}
+                  className="absolute inset-0 bg-tatt-black/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2 cursor-pointer"
+                >
+                  <Upload size={22} className="text-tatt-lime" />
+                  <span className="text-xs font-black uppercase tracking-widest">
+                    {business.logoUrl ? "Change Logo URL" : "Set Logo URL"}
+                  </span>
+                </button>
+            </div>
+
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Associated Contact</span>
             <div className="mt-4 flex items-center gap-3">
               <div className="w-12 h-12 bg-tatt-secondary rounded-full flex items-center justify-center text-white font-black text-sm">
@@ -371,6 +447,95 @@ export default function BusinessDetailsPage() {
         </div>
       </div>
 
+      {/* Edit Logo Modal */}
+      {isEditingLogo && (
+        <div className="fixed inset-0 z-50 bg-tatt-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface border border-border rounded-2xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <ImageIcon size={20} className="text-tatt-lime" />
+                <h3 className="text-lg font-black text-tatt-black">
+                  {business.logoUrl ? "Update Business Logo" : "Add Business Logo"}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsEditingLogo(false)} 
+                className="text-tatt-gray hover:text-tatt-black cursor-pointer p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-5 mb-6">
+              {/* File Upload Option */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2">
+                  Option 1: Upload Image File from Device
+                </label>
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-tatt-lime rounded-xl p-4 bg-background/50 hover:bg-tatt-lime/5 transition-all cursor-pointer group">
+                  <Upload size={24} className="text-tatt-gray group-hover:text-tatt-lime mb-1" />
+                  <span className="text-xs font-bold text-tatt-black">
+                    {isUploading ? "Uploading image file..." : "Click to select image file"}
+                  </span>
+                  <span className="text-[10px] text-tatt-gray mt-0.5">PNG, JPG, WebP, SVG up to 10MB</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploading}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px bg-border flex-1"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">OR</span>
+                <div className="h-px bg-border flex-1"></div>
+              </div>
+
+              {/* URL Input Option */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5">
+                  Option 2: Image Web URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  value={logoInput}
+                  onChange={(e) => setLogoInput(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-tatt-black focus:outline-none focus:ring-2 focus:ring-tatt-lime/50 font-medium"
+                />
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="bg-background rounded-xl p-4 border border-border">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2 text-center">Live Preview</p>
+                <div className="size-20 bg-white rounded-xl border border-border flex items-center justify-center overflow-hidden mx-auto p-1 shadow-sm">
+                  <BusinessLogoDetail key={logoInput} src={logoInput} name={business.name} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setIsEditingLogo(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest border border-border hover:bg-background transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLogo}
+                disabled={updatingLogo || isUploading}
+                className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-tatt-lime text-tatt-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-tatt-lime/10 disabled:opacity-50 cursor-pointer"
+              >
+                {updatingLogo ? "Saving..." : "Save Logo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Administrative Actions Footer */}
       <footer className="fixed bottom-0 left-0 lg:left-72 right-0 bg-surface/90 backdrop-blur-md border-t border-border p-4 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -389,13 +554,13 @@ export default function BusinessDetailsPage() {
                 <>
                     <button 
                         onClick={() => handleStatusUpdate('DECLINED')}
-                        className="px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest border border-border hover:bg-red-50 hover:text-red-600 transition-all font-sans active:scale-95"
+                        className="px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest border border-border hover:bg-red-50 hover:text-red-600 transition-all font-sans active:scale-95 cursor-pointer"
                     >
                         Decline
                     </button>
                     <button 
                         onClick={() => handleStatusUpdate('APPROVED')}
-                        className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-lime text-tatt-black hover:brightness-110 transition-all shadow-lg shadow-tatt-lime/20 active:scale-95 whitespace-nowrap"
+                        className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-lime text-tatt-black hover:brightness-110 transition-all shadow-lg shadow-tatt-lime/20 active:scale-95 whitespace-nowrap cursor-pointer"
                     >
                         Approve Application
                     </button>
@@ -403,9 +568,9 @@ export default function BusinessDetailsPage() {
             ) : (
                 <button 
                     onClick={() => router.push("/admin/business-directory")}
-                    className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-black text-white transition-all shadow-lg active:scale-95"
+                    className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-black text-white transition-all shadow-lg active:scale-95 cursor-pointer"
                 >
-                    Back to Directory
+                    Back to Queue
                 </button>
             )}
           </div>

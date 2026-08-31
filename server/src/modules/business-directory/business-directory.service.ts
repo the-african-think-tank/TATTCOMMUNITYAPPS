@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { BusinessPartner } from './entities/business-partner.entity';
-import { CreateBusinessApplicationDto, UpdateBusinessStatusDto } from './dto/business-directory.dto';
+import { CreateBusinessApplicationDto, UpdateBusinessStatusDto, UpdateBusinessAdminDto } from './dto/business-directory.dto';
 import { MailService } from '../../common/mail/mail.service';
 import { User } from '../iam/entities/user.entity';
 import { Partnership } from '../partnerships/entities/partnership.entity';
@@ -295,5 +295,33 @@ export class BusinessDirectoryService {
         }
 
         return business;
+    }
+
+    async updateByAdmin(id: string, dto: UpdateBusinessAdminDto) {
+        const business = await this.businessPartnerModel.findByPk(id);
+        if (business) {
+            if (dto.logoUrl !== undefined) business.logoUrl = dto.logoUrl;
+            if (dto.name !== undefined) business.name = dto.name;
+            if (dto.category !== undefined) business.category = dto.category;
+            if (dto.website !== undefined) business.website = dto.website;
+            if (dto.locationText !== undefined) business.locationText = dto.locationText;
+            await business.save();
+            this.logger.log(`[BusinessDirectoryService] Admin updated business ${id} logo/fields.`);
+            return this.findOne(id);
+        }
+
+        if (this.partnershipModel) {
+            const p = await (this.partnershipModel as any).findByPk(id);
+            if (p) {
+                if (dto.logoUrl !== undefined) p.logoUrl = dto.logoUrl;
+                if (dto.name !== undefined) p.name = dto.name;
+                if (dto.website !== undefined) p.website = dto.website;
+                await p.save();
+                this.logger.log(`[BusinessDirectoryService] Admin updated partnership ${id} logo/fields.`);
+                return this.findOne(id);
+            }
+        }
+
+        throw new NotFoundException('Business partner not found');
     }
 }
