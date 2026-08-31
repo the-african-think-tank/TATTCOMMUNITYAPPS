@@ -47,7 +47,7 @@ export class BusinessDirectoryService {
         return business;
     }
 
-    async findAll(status?: string, category?: string, chapterId?: string) {
+    async findAll(status?: string, category?: string, chapterId?: string, includeStrategic = true) {
         const where: any = {};
         if (status) where.status = status;
         if (category && category !== 'All Categories') where.category = category;
@@ -59,9 +59,9 @@ export class BusinessDirectoryService {
             order: [['createdAt', 'DESC']],
         });
 
-        // Only include active strategic partnerships if view is all or approved
+        // Only include active strategic partnerships if requested and view is all or approved
         let partnerships: any[] = [];
-        if (!chapterId && (!status || status === 'APPROVED') && this.partnershipModel) {
+        if (includeStrategic && !chapterId && (!status || status === 'APPROVED') && this.partnershipModel) {
             const pWhere: any = { status: 'ACTIVE' };
             if (category && category !== 'All Categories') pWhere.category = category;
             
@@ -96,13 +96,59 @@ export class BusinessDirectoryService {
         const business = await this.businessPartnerModel.findByPk(id, {
             include: ['submittedBy'],
         });
-        if (!business) throw new NotFoundException('Business partner not found');
-        return business;
+        if (business) return business;
+
+        if (this.partnershipModel) {
+            const p = await (this.partnershipModel as any).findByPk(id);
+            if (p) {
+                return {
+                    id: p.id,
+                    name: p.name,
+                    category: p.category,
+                    website: p.website,
+                    logoUrl: p.logoUrl,
+                    perkOffer: p.description || 'Exclusive TATT Partner',
+                    locationText: 'Global / Strategic Partner',
+                    status: p.status === 'ACTIVE' ? 'APPROVED' : 'INACTIVE',
+                    contactEmail: p.email,
+                    contactName: p.contactName || 'Strategic Partner Representative',
+                    contactPhone: '',
+                    isVolunteer: false,
+                    description: p.description || '',
+                    ownershipType: 'Corporate Strategic Partner',
+                    partnershipReason: 'Strategic Organizational Partner',
+                    missionAlignment: 'Aligned with TATT Global Ecosystem',
+                    benefitType: 'Exclusive Perk',
+                    offerDuration: 'Ongoing',
+                    typicalEngagement: 'Direct Partnership',
+                    additionalInfo: '',
+                    valuesAlignmentAgreed: true,
+                    contactAgreed: true,
+                    isStrategic: true,
+                    perkButtonLabel: p.buttonLabel,
+                    perkLink: p.redemptionLink,
+                    clickCount: 0,
+                    createdAt: p.createdAt,
+                    adminNotes: 'Strategic Partnership (Managed in Corporate Partnerships Hub)',
+                };
+            }
+        }
+
+        throw new NotFoundException('Business partner not found');
     }
 
     async updateStatus(id: string, dto: UpdateBusinessStatusDto) {
-        const business = await this.findOne(id);
-        
+        const business = await this.businessPartnerModel.findByPk(id);
+        if (!business && this.partnershipModel) {
+            const p = await (this.partnershipModel as any).findByPk(id);
+            if (p) {
+                p.status = dto.status === 'APPROVED' ? 'ACTIVE' : 'INACTIVE';
+                await p.save();
+                return this.findOne(id);
+            }
+        }
+        if (!business) throw new NotFoundException('Business partner not found');
+
         const oldStatus = business.status;
         business.status = dto.status;
         if (dto.adminNotes) {
@@ -142,11 +188,22 @@ export class BusinessDirectoryService {
     }
 
     async trackClick(id: string) {
-        const business = await this.findOne(id);
-        business.clickCount += 1;
-        await business.save();
-        this.logger.log(`[BusinessDirectoryService] Tracked click for ${business.name}. New count: ${business.clickCount}`);
-        return { success: true, newCount: business.clickCount };
+        const business = await this.businessPartnerModel.findByPk(id);
+        if (business) {
+            business.clickCount += 1;
+            await business.save();
+            this.logger.log(`[BusinessDirectoryService] Tracked click for ${business.name}. New count: ${business.clickCount}`);
+            return { success: true, newCount: business.clickCount };
+        }
+
+        if (this.partnershipModel) {
+            const p = await (this.partnershipModel as any).findByPk(id);
+            if (p) {
+                return { success: true, newCount: 0 };
+            }
+        }
+
+        throw new NotFoundException('Business partner not found');
     }
 
     async getStats() {

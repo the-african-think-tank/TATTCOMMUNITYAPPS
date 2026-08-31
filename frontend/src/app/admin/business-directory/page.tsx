@@ -33,6 +33,7 @@ interface BusinessPartner {
   contactName: string;
   createdAt: string;
   clickCount: number;
+  isStrategic?: boolean;
 }
 
 const BusinessLogo = ({ src, name }: { src?: string; name: string }) => {
@@ -197,7 +198,14 @@ export default function AdminBusinessDirectory() {
                           <BusinessLogo src={biz.logoUrl} name={biz.name} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-tatt-black">{biz.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black text-tatt-black">{biz.name}</p>
+                            {biz.isStrategic && (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest bg-tatt-black text-white shrink-0">
+                                Corporate Partner
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-tatt-lime font-bold uppercase tracking-widest">{biz.category}</p>
                         </div>
                       </div>

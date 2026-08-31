@@ -52,6 +52,28 @@ interface BusinessPartner {
   createdAt: string;
 }
 
+const DetailLogo = ({ src, name }: { src?: string; name: string }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return (
+      <div className="size-full bg-white flex items-center justify-center">
+        <Store className="text-tatt-black opacity-30" size={40} strokeWidth={1.5} />
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      className="size-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 export default function MemberBusinessDetails() {
   const { id } = useParams();
   const router = useRouter();
@@ -101,7 +123,7 @@ export default function MemberBusinessDetails() {
   if (!business) return null;
 
   return (
-    <div className="animate-in fade-in duration-700 pb-20">
+    <div className="p-4 lg:p-8 space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Top Breadcrumb/Header */}
       <div className="mb-8 flex items-center justify-between">
         <button 
@@ -115,92 +137,97 @@ export default function MemberBusinessDetails() {
         </button>
       </div>
 
-      {/* Hero Section */}
-      <section className="mb-12">
-        <div className="relative rounded-[32px] overflow-hidden min-h-[300px] flex items-end">
-          <div className="absolute inset-0 z-0">
-            {/* Using a TATT themed background pattern if no image */}
-            <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-tatt-lime via-transparent to-transparent"></div>
-                <div className="grid grid-cols-12 w-full h-full opacity-5">
-                    {[...Array(24)].map((_, i) => (
-                        <div key={i} className="border border-white/20 h-32"></div>
-                    ))}
-                </div>
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/40 to-transparent"></div>
-          </div>
-          <div className="relative z-10 p-8 lg:p-12 flex flex-col md:flex-row items-start md:items-end justify-between w-full gap-8">
-            <div className="flex items-center gap-8">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-white p-1 rounded-3xl shadow-2xl flex-shrink-0">
-                <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center rounded-2xl overflow-hidden">
-                  {business.logoUrl ? (
-                    <img src={business.logoUrl} alt={business.name} className="size-full object-cover" />
-                  ) : (
-                    <span className="text-tatt-lime font-black text-4xl">
-                      {business.name.substring(0, 2).toUpperCase()}
-                    </span>
-                  )}
+      {/* Hero Header Section */}
+      <section className="mb-8">
+        <div className="bg-surface border border-border rounded-3xl p-6 sm:p-10 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+              <div className="size-20 sm:size-24 bg-white rounded-2xl p-1.5 shadow-md border border-border shrink-0 overflow-hidden">
+                <div className="size-full rounded-xl overflow-hidden flex items-center justify-center">
+                  <DetailLogo src={business.logoUrl} name={business.name} />
                 </div>
               </div>
               <div>
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                  <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">{business.name}</h1>
-                  <span className="flex items-center gap-1.5 bg-tatt-lime text-tatt-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-tatt-lime/20">
+                <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{business.name}</h1>
+                  <span className="inline-flex items-center gap-1.5 bg-tatt-lime/10 text-tatt-lime border border-tatt-lime/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                     <CheckCircle2 size={12} strokeWidth={3} />
                     Verified Partner
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-white/70 font-bold text-lg italic">{business.category}</p>
-                  <span className="text-white/30 font-black">•</span>
-                  <p className="text-white/70 font-black text-sm uppercase tracking-widest">Est. {business.foundingYear}</p>
+                <div className="flex flex-wrap items-center gap-2 text-tatt-gray text-xs font-semibold">
+                  <span>{business.category}</span>
+                  {business.foundingYear && (
+                    <>
+                      <span className="text-border">•</span>
+                      <span>Est. {business.foundingYear}</span>
+                    </>
+                  )}
+                  {business.locationText && (
+                    <>
+                      <span className="text-border">•</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin size={12} className="text-tatt-lime shrink-0" />
+                        {business.locationText}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
-            <button 
-              onClick={handleRedeem}
-              className="bg-tatt-lime text-tatt-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:scale-105 active:scale-95 transition-all shadow-xl shadow-tatt-lime/30 flex items-center gap-3 whitespace-nowrap"
-            >
-              Visit Website
-              <ExternalLink size={18} strokeWidth={3} />
-            </button>
+            {business.website && (
+              <button 
+                onClick={handleRedeem}
+                className="bg-tatt-lime text-tatt-black px-6 py-3.5 rounded-xl font-black uppercase tracking-widest text-xs hover:brightness-110 active:scale-95 transition-all shadow-md shadow-tatt-lime/20 flex items-center gap-2 whitespace-nowrap cursor-pointer self-stretch sm:self-auto justify-center"
+              >
+                Visit Website
+                <ExternalLink size={15} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
         </div>
       </section>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column (Main Info) */}
-        <div className="lg:col-span-2 space-y-10">
+        <div className="lg:col-span-2 space-y-8">
           
           {/* Active Member Perk - Highlighted */}
-          <section className="bg-surface border border-tatt-black/5 rounded-[32px] p-8 md:p-12 shadow-sm flex flex-col md:flex-row items-center justify-between relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-tatt-lime/10 rounded-full -mr-32 -mt-32 blur-[80px] group-hover:bg-tatt-lime/20 transition-all duration-1000"></div>
+          <section className="bg-surface border border-tatt-lime/30 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-tatt-lime/5 rounded-full -mr-32 -mt-32 blur-[60px] pointer-events-none"></div>
             
-            <div className="relative z-10 flex items-center gap-8 mb-8 md:mb-0">
-              <div className="size-20 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime shrink-0">
-                <PartyPopper size={40} strokeWidth={2.5} />
+            <div className="relative z-10 flex items-start gap-4 sm:gap-6 flex-1 min-w-0">
+              <div className="size-14 rounded-2xl bg-tatt-lime/10 border border-tatt-lime/20 flex items-center justify-center text-tatt-lime shrink-0">
+                <Zap size={28} className="fill-tatt-lime" />
               </div>
-              <div className="max-w-md">
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-tatt-lime mb-2 block">Exclusive TATT Community Offer</span>
-                <h2 className="text-2xl md:text-3xl font-black text-tatt-black tracking-tight leading-none mb-3 italic">
-                  "{business.perkOffer}"
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-lime mb-1.5 block">Exclusive Member Perk</span>
+                <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight leading-snug mb-3">
+                  {business.perkOffer}
                 </h2>
-                <p className="text-tatt-gray font-medium text-sm">
-                  Available for all verified TATT members. 
-                  <span className="mx-2 text-tatt-lime/40">•</span>
-                  Type: <span className="text-tatt-black font-bold">{business.benefitType}</span>
-                  <span className="mx-2 text-tatt-lime/40">•</span>
-                  Honored for <span className="text-tatt-black font-bold">{business.offerDuration || '12 months'}</span>.
-                </p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-tatt-gray font-medium">
+                  <span>Available for all verified TATT members</span>
+                  {business.benefitType && (
+                    <>
+                      <span className="text-border">•</span>
+                      <span>Type: <strong className="text-foreground font-bold">{business.benefitType}</strong></span>
+                    </>
+                  )}
+                  {business.offerDuration && (
+                    <>
+                      <span className="text-border">•</span>
+                      <span>Duration: <strong className="text-foreground font-bold">{business.offerDuration}</strong></span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             
             <button 
                onClick={handleRedeem}
-               className="relative z-10 bg-tatt-black text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+               className="relative z-10 bg-tatt-black text-white hover:bg-tatt-lime hover:text-tatt-black px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95 whitespace-nowrap cursor-pointer shrink-0 self-stretch md:self-auto"
             >
                Redeem Community Perk
             </button>

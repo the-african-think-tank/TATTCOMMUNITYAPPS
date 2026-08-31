@@ -60,7 +60,7 @@ export class BusinessDirectoryController {
         @Query('category') category?: string,
         @Query('chapterId') chapterId?: string,
     ) {
-        return this.businessDirectoryService.findAll(status, category, chapterId);
+        return this.businessDirectoryService.findAll(status, category, chapterId, true);
     }
 
     @Get('list')
