@@ -4,7 +4,7 @@ PROD_API_URL ?= https://community.theafricanthinktank.com/api
 STAGING_STRIPE_KEY ?= pk_test_51TrcC0PFrQabPyhVDEB07cQJLylaqBQgRTim936glLCu9ZlUJsl1V8a1CjmUrkE4O2iq7dG6lqUJ8a4CUeQQFAq500naAa01Dt
 PROD_STRIPE_KEY ?= pk_live_your_production_stripe_key
 
-.PHONY: help install-all dev dev-build down logs db-deploy infra-synth infra-diff infra-deploy clean \
+.PHONY: help install-all ensure-docker dev dev-build down logs db-deploy infra-synth infra-diff infra-deploy clean \
 	build-staging-api build-staging-frontend push-staging build-push-staging pull-staging deploy-staging \
 	build-prod-api build-prod-frontend push-prod build-push-prod pull-prod deploy-prod
 
@@ -45,10 +45,34 @@ install-all:
 	cd server && pnpm install
 	cd infra && pnpm install
 
-dev:
+ensure-docker:
+	@if ! docker info >/dev/null 2>&1; then \
+		echo "Docker daemon is not running. Starting Docker..."; \
+		if [ "$$(uname)" = "Darwin" ]; then \
+			open -a Docker; \
+		elif command -v systemctl >/dev/null 2>&1; then \
+			sudo systemctl start docker; \
+		else \
+			echo "Unable to start Docker automatically. Please start Docker manually."; \
+			exit 1; \
+		fi; \
+		echo "Waiting for Docker daemon to initialize..."; \
+		counter=0; \
+		while ! docker info >/dev/null 2>&1; do \
+			sleep 1; \
+			counter=$$((counter + 1)); \
+			if [ $$counter -ge 60 ]; then \
+				echo "Timed out waiting for Docker daemon to start."; \
+				exit 1; \
+			fi; \
+		done; \
+		echo "Docker is ready."; \
+	fi
+
+dev: ensure-docker
 	docker compose -f docker-compose.dev.yml up
 
-dev-build:
+dev-build: ensure-docker
 	docker compose -f docker-compose.dev.yml up --build --renew-anon-volumes
 
 down:
