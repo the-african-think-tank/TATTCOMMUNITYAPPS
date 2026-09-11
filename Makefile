@@ -59,10 +59,10 @@ logs:
 
 # --- Staging Build & Push Targets ---
 build-staging-api:
-	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $(DOCKER_USER)/tatt-api:staging -f server/Dockerfile ./server
+	DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/amd64 -t $(DOCKER_USER)/tatt-api:staging -f server/Dockerfile ./server
 
 build-staging-frontend:
-	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 \
+	DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL="$(STAGING_API_URL)" \
 		--build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$(STAGING_STRIPE_KEY)" \
 		-t $(DOCKER_USER)/tatt-frontend:staging \
@@ -79,14 +79,14 @@ pull-staging:
 	docker pull $(DOCKER_USER)/tatt-frontend:staging
 
 deploy-staging: pull-staging
-	docker compose --env-file .env -p tatt-staging -f docker-compose.ec2.yml up -d
+	docker compose --env-file .env -p tatt-staging -f docker-compose.ec2.yml up -d --force-recreate
 
 # --- Production Build & Push Targets ---
 build-prod-api:
-	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t $(DOCKER_USER)/tatt-api:production -f server/Dockerfile ./server
+	DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/amd64 -t $(DOCKER_USER)/tatt-api:production -f server/Dockerfile ./server
 
 build-prod-frontend:
-	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 \
+	DOCKER_BUILDKIT=1 docker build --progress=plain --platform linux/amd64 \
 		--build-arg NEXT_PUBLIC_API_URL="$(PROD_API_URL)" \
 		--build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="$(PROD_STRIPE_KEY)" \
 		-t $(DOCKER_USER)/tatt-frontend:production \
@@ -103,7 +103,7 @@ pull-prod:
 	docker pull $(DOCKER_USER)/tatt-frontend:production
 
 deploy-prod: pull-prod
-	docker compose --env-file .env.production -p tatt-production -f docker-compose.ksd.yml up -d
+	docker compose --env-file .env.production -p tatt-production -f docker-compose.ksd.yml up -d --force-recreate
 
 db-deploy:
 	cd server && pnpm run db:deploy
