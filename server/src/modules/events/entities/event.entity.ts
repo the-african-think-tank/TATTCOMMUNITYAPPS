@@ -51,6 +51,13 @@ export class Event extends Model<Event> {
     imageUrl?: string;
 
     @Column({
+        type: DataType.STRING,
+        allowNull: true,
+        defaultValue: 'America/Los_Angeles',
+    })
+    timezone?: string;
+
+    @Column({
         type: DataType.BOOLEAN,
         defaultValue: true,
     })

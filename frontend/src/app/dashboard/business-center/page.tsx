@@ -31,6 +31,24 @@ interface BusinessPartner {
 
 // --- Custom Components ---
 
+const CardLogo = ({ src, name }: { src?: string; name: string }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return <Store className="text-tatt-black opacity-20" size={36} strokeWidth={1.5} />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      className="size-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 const FilterSelect = ({
   label,
   value,
@@ -251,57 +269,58 @@ export default function MemberBusinessCenter() {
             <Link href="/dashboard/business-center/apply" className="mt-8 inline-flex text-tatt-lime font-bold hover:underline">Apply now</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredBusinesses.map((biz) => (
-            <div key={biz.id} className="relative bg-surface border border-border rounded-[32px] p-8 hover:border-tatt-lime transition-all group overflow-hidden flex flex-col shadow-sm hover:shadow-xl hover:shadow-tatt-lime/5">
+            <div key={biz.id} className="relative bg-surface border border-border rounded-2xl p-5 hover:border-tatt-lime/50 transition-all duration-300 group overflow-hidden flex flex-col shadow-sm hover:shadow-md hover:-translate-y-0.5">
               
               {/* Card Content */}
               <div className="relative z-10 flex-1 flex flex-col items-center text-center">
-                <div className="size-24 bg-white rounded-[24px] flex items-center justify-center overflow-hidden mb-6 shadow-lg group-hover:scale-110 transition-transform duration-500 border border-border group-hover:border-tatt-lime/30">
-                  {biz.logoUrl ? (
-                    <img src={biz.logoUrl} alt={biz.name} className="size-full object-cover" />
-                  ) : (
-                    <Store className="text-tatt-black opacity-20" size={40} />
-                  )}
+                <div className="size-14 bg-white rounded-xl flex items-center justify-center overflow-hidden mb-3 shadow-sm group-hover:scale-105 transition-transform duration-300 border border-border group-hover:border-tatt-lime/30 shrink-0">
+                  <CardLogo src={biz.logoUrl} name={biz.name} />
                 </div>
                 
-                <p className="text-tatt-lime text-[10px] font-black uppercase tracking-widest mb-1">{biz.category}</p>
-                <h3 className="text-2xl font-black text-foreground group-hover:text-tatt-black transition-colors mb-4">{biz.name}</h3>
+                <span className="text-tatt-lime text-[9px] font-black uppercase tracking-[0.18em] mb-2 px-2.5 py-0.5 bg-tatt-lime/10 border border-tatt-lime/20 rounded-full">
+                  {biz.category}
+                </span>
                 
-                <div className="flex items-center gap-4 text-tatt-gray text-[10px] font-black uppercase tracking-widest mb-8">
-                  <div className="flex items-center gap-1.5 line-clamp-1">
-                    <MapPin size={12} className="text-tatt-lime" />
-                    <span>{biz.locationText || 'Global'}</span>
+                <h3 className="text-base font-black text-foreground group-hover:text-tatt-black transition-colors mb-2 line-clamp-2 min-h-[2.5rem] flex items-center justify-center tracking-tight leading-snug">
+                  {biz.name}
+                </h3>
+                
+                <div className="flex flex-wrap items-center justify-center gap-1.5 text-tatt-gray text-[9px] font-black uppercase tracking-wider mb-4">
+                  <div className="flex items-center gap-1 bg-background border border-border/80 px-2.5 py-0.5 rounded-full">
+                    <MapPin size={10} className="text-tatt-lime shrink-0" />
+                    <span className="truncate max-w-[100px]">{biz.locationText || 'Global'}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 line-clamp-1 border-l border-border pl-4">
-                    <Building2 size={12} className="text-tatt-lime" />
-                    <span>{biz.chapter?.name || 'TATT HQ'}</span>
+                  <div className="flex items-center gap-1 bg-background border border-border/80 px-2.5 py-0.5 rounded-full">
+                    <Building2 size={10} className="text-tatt-lime shrink-0" />
+                    <span className="truncate max-w-[100px]">{biz.chapter?.name || 'TATT HQ'}</span>
                   </div>
                 </div>
 
-                <div className="w-full bg-background border border-border rounded-2xl p-6 mb-8 text-left relative group/perk shadow-inner">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Zap size={16} className="text-tatt-lime fill-tatt-lime" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Member Perk</span>
+                <div className="w-full bg-background/60 border border-border/80 rounded-xl p-3.5 mb-4 text-left relative group/perk">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Zap size={12} className="text-tatt-lime fill-tatt-lime" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-tatt-gray">Member Perk</span>
                   </div>
-                  <p className="text-sm font-bold text-foreground line-clamp-3 leading-relaxed">
+                  <p className="text-xs font-medium text-foreground/90 line-clamp-2 leading-relaxed">
                     {biz.perkOffer}
                   </p>
                 </div>
               </div>
 
-              <div className="relative z-10 pt-6 border-t border-border flex items-center justify-between">
+              <div className="relative z-10 pt-3 border-t border-border/80 flex items-center justify-between gap-3">
                 <Link 
                   href={`/dashboard/business-center/${biz.id}`}
-                  className="text-xs font-black uppercase tracking-widest text-tatt-gray hover:text-foreground transition-colors flex items-center gap-2 font-sans"
+                  className="text-[11px] font-black uppercase tracking-wider text-tatt-gray hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  <Globe size={16} /> View Details
+                  <Globe size={13} /> View Details
                 </Link>
                 <button 
                   onClick={() => handleTrackClick(biz.id, biz.website)}
-                  className="bg-tatt-lime text-tatt-black font-black text-[10px] uppercase tracking-widest px-6 py-3 rounded-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-md shadow-tatt-lime/10"
+                  className="bg-tatt-lime text-tatt-black font-black text-[9px] uppercase tracking-widest px-4 py-2 rounded-lg flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-sm shadow-tatt-lime/10 cursor-pointer whitespace-nowrap"
                 >
-                  Redeem Perk <ArrowRight size={14} strokeWidth={3} />
+                  Redeem Perk <ArrowRight size={12} strokeWidth={3} />
                 </button>
               </div>
             </div>

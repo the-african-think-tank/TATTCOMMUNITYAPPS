@@ -22,6 +22,13 @@ export class MembershipController {
         return this.membershipService.getTiers();
     }
 
+    @ApiOperation({ summary: 'Get a specific membership tier by ID or slug' })
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
+    @Get('tiers/:id')
+    async getTierByIdOrSlug(@Param('id') id: string) {
+        return this.membershipService.getPlanByIdOrSlug(id);
+    }
+
     @ApiOperation({ summary: 'Update a membership tier' })
     @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
     @Patch('tiers/:id')
@@ -83,10 +90,11 @@ export class MembershipController {
         @Query('tier') tier?: CommunityTier,
         @Query('billingCycle') billingCycle?: 'MONTHLY' | 'YEARLY',
         @Query('search') search?: string,
+        @Query('role') role?: 'COMMUNITY_MEMBER' | 'STAFF',
         @Query('page') page: number = 1,
         @Query('limit') limit: number = 10,
     ) {
-        const filters = { chapterId, tier, billingCycle, search, page: Number(page), limit: Number(limit) };
+        const filters = { chapterId, tier, billingCycle, search, role, page: Number(page), limit: Number(limit) };
         return this.membershipService.getSubscribedMembers(filters);
     }
 

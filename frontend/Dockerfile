@@ -28,7 +28,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
-RUN node --max-old-space-size=4096 node_modules/.bin/next build
+RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm build
 
 # --- Production Stage ---
 FROM node:20-bookworm-slim AS runner

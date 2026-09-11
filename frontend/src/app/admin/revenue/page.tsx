@@ -193,7 +193,7 @@ export default function RevenueCenterPage() {
     );
   }
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-tatt-lime selection:text-tatt-black">
@@ -566,7 +566,7 @@ export default function RevenueCenterPage() {
                     <td className="px-6 py-6">
                       <span className="flex items-center gap-2">
                         <div className={`size-8 rounded-lg flex items-center justify-center border ${tx.type === 'SUBSCRIPTION' ? 'bg-tatt-lime/10 text-tatt-lime border-tatt-lime/10' : 'bg-tatt-bronze/10 text-tatt-bronze border-tatt-bronze/10'}`}>
-                          {tx.type === 'SUBSCRIPTION' ? <MaterialIcon icon="subscriptions" /> : <MaterialIcon icon="shopping_bag" />}
+                          {tx.type === 'SUBSCRIPTION' ? <CreditCard className="size-4" /> : <ShoppingBag className="size-4" />}
                         </div>
                         <span className="text-xs font-bold uppercase tracking-widest text-foreground">{tx.type}</span>
                       </span>

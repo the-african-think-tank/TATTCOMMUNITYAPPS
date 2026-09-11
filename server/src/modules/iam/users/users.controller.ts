@@ -1,6 +1,6 @@
-import { Controller, Get, Query, UseGuards, Param, Patch, Body, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards, Param, Patch, Body, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { UpdateUserDto } from './dto/users.dto';
+import { UpdateUserDto, CreateUserWithPasswordDto } from './dto/users.dto';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -72,5 +72,13 @@ export class UsersController {
     @Delete(':id')
     async remove(@Param('id') id: string) {
         return this.usersService.remove(id);
+    }
+
+    @ApiOperation({ summary: 'Create user with auto-generated credentials (SUPERADMIN only)' })
+    @ApiResponse({ status: 201, description: 'User created successfully with generated credentials.' })
+    @Roles(SystemRole.SUPERADMIN)
+    @Post('create-with-password')
+    async createWithPassword(@Body() dto: CreateUserWithPasswordDto) {
+        return this.usersService.createWithPassword(dto);
     }
 }

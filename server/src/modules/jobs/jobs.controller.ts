@@ -16,6 +16,7 @@ export class JobsController {
     @ApiQuery({ name: 'category', required: false })
     @ApiQuery({ name: 'type', required: false })
     @ApiQuery({ name: 'location', required: false })
+    @ApiQuery({ name: 'datePosted', required: false, description: 'all, 24h, 7d, 30d' })
     @ApiQuery({ name: 'search', required: false })
     @ApiQuery({ name: 'page', required: false, type: Number })
     @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -23,12 +24,13 @@ export class JobsController {
         @Query('category') category?: string,
         @Query('type') type?: string,
         @Query('location') location?: string,
+        @Query('datePosted') datePosted?: string,
         @Query('search') search?: string,
         @Query('page') page?: string,
         @Query('limit') limit?: string,
     ) {
         return this.jobsService.getListings({
-            category, type, location, search,
+            category, type, location, datePosted, search,
             page: page ? parseInt(page, 10) : 1,
             limit: limit ? parseInt(limit, 10) : 10,
         });
@@ -67,6 +69,14 @@ export class JobsController {
     @ApiOperation({ summary: 'Get saved job IDs only' })
     async getSavedIds(@Request() req: any) {
         return this.jobsService.getSavedJobIds(req.user.id);
+    }
+
+    @Get('applied-ids')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get applied job IDs only' })
+    async getAppliedIds(@Request() req: any) {
+        return this.jobsService.getAppliedJobIds(req.user.id);
     }
 
     @Get('alerts')
@@ -124,6 +134,14 @@ export class JobsController {
     async unsave(@Param('id') id: string, @Request() req: any) {
         await this.jobsService.toggleSaved(req.user.id, id);
         return { message: 'Removed from saved roles.' };
+    }
+
+    @Post('sources/submit')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Community: submit an employer Greenhouse career link' })
+    async submitSource(@Body('url') url: string, @Request() req: any) {
+        return this.jobsService.submitCommunitySource(url, req.user.id);
     }
 }
 
@@ -214,5 +232,48 @@ export class AdminJobsController {
     @ApiOperation({ summary: 'Admin: get single application detail' })
     async getApplicationDetail(@Param('id') id: string) {
         return this.jobsService.getApplicationById(id);
+    }
+
+    // ─── HARVEST & INGESTION MANAGEMENT ──────────────────────────────────────
+    @Post('ingest')
+    @ApiOperation({ summary: 'Admin: trigger on-demand job harvest' })
+    @ApiQuery({ name: 'company', required: false, description: 'Optional specific company board token' })
+    async triggerIngest(@Query('company') company?: string) {
+        return this.jobsService.triggerHarvest(company);
+    }
+
+    @Get('sources')
+    @ApiOperation({ summary: 'Admin: list configured harvest company sources' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    async getSources(@Query('page') page?: string, @Query('limit') limit?: string) {
+        return this.jobsService.getCompanySources(
+            page ? parseInt(page, 10) : 1,
+            limit ? parseInt(limit, 10) : 50
+        );
+    }
+
+    @Post('sources')
+    @ApiOperation({ summary: 'Admin: add a new company harvest source' })
+    async addSource(
+        @Body() body: { companyName: string; boardToken: string; websiteUrl?: string },
+        @Request() req: any
+    ) {
+        return this.jobsService.addCompanySource({
+            ...body,
+            submittedById: req.user.id,
+        });
+    }
+
+    @Patch('sources/:id/toggle')
+    @ApiOperation({ summary: 'Admin: toggle company source active status' })
+    async toggleSource(@Param('id') id: string) {
+        return this.jobsService.toggleCompanySource(id);
+    }
+
+    @Delete('sources/:id')
+    @ApiOperation({ summary: 'Admin: delete a company source' })
+    async deleteSource(@Param('id') id: string) {
+        return this.jobsService.deleteCompanySource(id);
     }
 }

@@ -133,7 +133,11 @@ export class Post extends Model<Post> {
     @Column({ type: DataType.STRING, allowNull: true })
     eventUrl?: string;
 
-    // ─── PUBLISH STATE ────────────────────────────────────────────────────────
+    // ─── METRICS & PUBLISH STATE ──────────────────────────────────────────────
+    @Default(0)
+    @Column({ type: DataType.INTEGER, allowNull: false })
+    viewsCount: number;
+
     @Default(true)
     @Column(DataType.BOOLEAN)
     isPublished: boolean;

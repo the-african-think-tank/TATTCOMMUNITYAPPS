@@ -208,15 +208,19 @@ export class ChaptersService implements OnApplicationBootstrap {
         return chapter;
     }
 
-    async getChapterMembers(chapterId: string, _viewerId?: string) {
+    async getChapterMembers(chapterId: string, viewerId?: string, excludeSelf = false) {
         await this.getChapterById(chapterId); // ensure chapter exists
+        const where: any = { chapterId };
+        if (excludeSelf && viewerId) {
+            where.id = { [Op.ne]: viewerId };
+        }
         const [members, total] = await Promise.all([
             this.userRepository.findAll({
-                where: { chapterId, isActive: true },
-                attributes: ['id', 'firstName', 'lastName', 'profilePicture', 'professionTitle', 'industry', 'communityTier'],
+                where,
+                attributes: ['id', 'firstName', 'lastName', 'profilePicture', 'professionTitle', 'communityTier', 'chapterId'],
                 limit: 50,
             }),
-            this.userRepository.count({ where: { chapterId, isActive: true } }),
+            this.userRepository.count({ where }),
         ]);
         return { members, total };
     }
@@ -381,12 +385,17 @@ export class ChaptersService implements OnApplicationBootstrap {
 
     // ── CHAPTER FEED (community member posts within this chapter) ─────────────────
 
-    async getChapterFeed(chapterId: string, viewer: User, page = 1, limit = 20) {
+    async getChapterFeed(chapterId: string, viewer: User, page = 1, limit = 20, excludeSelf = false) {
         await this.getChapterById(chapterId);
         const offset = (page - 1) * limit;
 
+        const where: any = { chapterId, isPublished: true };
+        if (excludeSelf && viewer?.id) {
+            where.authorId = { [Op.ne]: viewer.id };
+        }
+
         const { count, rows: posts } = await this.postRepository.findAndCountAll({
-            where: { chapterId, isPublished: true },
+            where,
             include: [
                 { model: User, as: 'author', attributes: [...POST_AUTHOR_ATTRS] },
                 {

@@ -10,6 +10,8 @@ import {
     CheckCircle2, AlertTriangle, ShieldAlert, Users,
     MapPin, Clock, Building2,
 } from "lucide-react";
+import { RichTextView } from "@/components/shared/rich-text-view";
+import { JOB_CATEGORIES } from "@/types/jobs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,7 +53,7 @@ interface Stats {
 
 type ModalMode = "view" | "action" | null;
 
-const CATEGORIES = ["Green Energy", "FinTech", "Sustainability", "Policy & Govt", "AgriTech", "Technology", "NGO", "Finance", "Strategy"];
+const CATEGORIES = [...JOB_CATEGORIES];
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Seasonal", "Internship"];
 
 function initials(name: string) {
@@ -220,7 +222,7 @@ function JobDetailDrawer({ job, onClose, onAction }: { job: AdminJob; onClose: (
                     {job.description && (
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2">Description</p>
-                            <p className="text-sm text-foreground/80 leading-relaxed">{job.description}</p>
+                            <RichTextView content={job.description} />
                         </div>
                     )}
 
@@ -668,7 +670,8 @@ export default function AdminJobsCenterPage() {
 
                             {selectedApp.resumeUrl && (
                                 <a
-                                    href={selectedApp.resumeUrl} target="_blank" rel="noreferrer"
+                                    href={selectedApp.resumeUrl.startsWith("http") ? selectedApp.resumeUrl : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").replace(/\/api$/, "")}${selectedApp.resumeUrl.startsWith("/") ? "" : "/"}${selectedApp.resumeUrl}`}
+                                    target="_blank" rel="noreferrer"
                                     className="block w-full py-4 rounded-2xl bg-foreground text-background font-black uppercase tracking-[0.2em] text-[10px] text-center hover:opacity-90 transition-all shadow-lg"
                                 >
                                     View / Download Resume

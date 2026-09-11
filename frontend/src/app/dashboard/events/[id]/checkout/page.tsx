@@ -16,7 +16,7 @@ import {
     Trophy
 } from "lucide-react";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/auth-context";
 
 const fmt = (n: number) => {
@@ -93,7 +93,6 @@ function EventCheckoutContent() {
 
     return (
         <div className="p-4 lg:p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
-            <Toaster position="top-right" />
             
             <button
                 onClick={() => router.push(`/dashboard/events/${id}`)}

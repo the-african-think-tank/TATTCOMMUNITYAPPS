@@ -17,13 +17,13 @@ export class SendConnectionRequestDto {
     @ApiProperty({
         description:
             'A personalised message to accompany the request — this is shown to the recipient so they can decide whether to connect.',
-        example: 'Hi Jane, I loved your presentation at the Nairobi chapter summit. I would love to add you to my network!',
-        minLength: 20,
+        example: 'Hi Jane, I would love to connect!',
+        minLength: 1,
         maxLength: 500,
     })
     @IsString()
-    @IsNotEmpty()
-    @MinLength(20, { message: 'Your connection message must be at least 20 characters.' })
+    @IsNotEmpty({ message: 'Your connection message is required.' })
+    @MinLength(1, { message: 'Your connection message is required.' })
     @MaxLength(500, { message: 'Your connection message cannot exceed 500 characters.' })
     message: string;
 }

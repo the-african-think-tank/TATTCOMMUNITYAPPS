@@ -3,10 +3,11 @@ import {
     Logger,
     NotFoundException,
     ForbiddenException,
+    OnApplicationBootstrap,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op, WhereOptions } from 'sequelize';
-import { Resource, ResourceVisibility } from './entities/resource.entity';
+import { Resource, ResourceVisibility, ResourceType } from './entities/resource.entity';
 import { ResourceInteraction, ResourceInteractionAction } from './entities/resource-interaction.entity';
 import { User } from '../iam/entities/user.entity';
 import { CommunityTier, SystemRole } from '../iam/enums/roles.enum';
@@ -43,8 +44,18 @@ function isContentAdmin(user: User): boolean {
 
 /** For view/read/activate: user must meet minTier and (if resource has chapterId) belong to that chapter */
 function canAccessResource(user: User, resource: Resource): boolean {
-    if (!meetsTierRequirement(user.communityTier, resource.minTier)) {
-        return false;
+    if (resource.allowedTiers && resource.allowedTiers.length > 0) {
+        const lowestAllowedTier = resource.allowedTiers.reduce((lowest, current) => {
+            return tierOrder(current as CommunityTier) < tierOrder(lowest as CommunityTier) ? current : lowest;
+        }, resource.allowedTiers[0]);
+
+        if (tierOrder(user.communityTier) < tierOrder(lowestAllowedTier as CommunityTier)) {
+            return false;
+        }
+    } else {
+        if (!meetsTierRequirement(user.communityTier, resource.minTier)) {
+            return false;
+        }
     }
     if (resource.chapterId != null) {
         return user.chapterId === resource.chapterId;
@@ -53,13 +64,45 @@ function canAccessResource(user: User, resource: Resource): boolean {
 }
 
 @Injectable()
-export class ResourcesService {
+export class ResourcesService implements OnApplicationBootstrap {
     private readonly logger = new Logger(ResourcesService.name);
 
     constructor(
         @InjectModel(Resource) private resourceRepository: typeof Resource,
         @InjectModel(ResourceInteraction) private interactionRepository: typeof ResourceInteraction,
     ) { }
+
+    async onApplicationBootstrap() {
+        try {
+            const sampleTitle = 'TATT Founders & Executive Mentorship Program';
+            const existing = await this.resourceRepository.findOne({ where: { title: sampleTitle } });
+            
+            if (!existing) {
+                this.logger.log('Seeding long text sample resources...');
+                await this.resourceRepository.create({
+                    title: sampleTitle,
+                    type: ResourceType.PARTNERSHIP,
+                    description: '1-on-1 mentorship sessions with senior African leaders and Fortune 500 executives across North America, Europe, and Africa.\n\nParticipants gain strategic guidance, high-impact career acceleration, investor readiness consulting, and direct entry into our exclusive global diaspora advisory network. Includes quarterly masterclasses, monthly group coaching, and private pitch clinics.',
+                    visibility: ResourceVisibility.PUBLIC,
+                    minTier: CommunityTier.FREE,
+                    tags: ['Mentorship', 'Leadership', 'Networking', 'Executive'],
+                    contentUrl: 'https://theafricanthinktank.org/mentorship'
+                });
+
+                await this.resourceRepository.create({
+                    title: 'Global Diaspora Venture & Angel Investment Playbook',
+                    type: ResourceType.GUIDE,
+                    description: 'A comprehensive, multi-chapter guide outlining cross-border syndication models, regulatory compliance across jurisdictions, tax-efficient structuring, and due diligence frameworks for African tech investments.\n\nDesigned for active angel investors, corporate venture partners, and chapter investment leads seeking high-growth portfolio opportunities.',
+                    visibility: ResourceVisibility.PUBLIC,
+                    minTier: CommunityTier.FREE,
+                    tags: ['Venture Capital', 'Angel Investing', 'Legal', 'Startups'],
+                    contentUrl: 'https://theafricanthinktank.org/playbook'
+                });
+            }
+        } catch (err: any) {
+            this.logger.error('Failed to seed sample resources:', err?.message);
+        }
+    }
 
     async create(dto: CreateResourceDto, _user: User) {
         try {
@@ -72,6 +115,7 @@ export class ResourcesService {
                 chapterId: dto.chapterId ?? undefined,
                 visibility: dto.visibility ?? ResourceVisibility.PUBLIC,
                 minTier: dto.minTier ?? CommunityTier.FREE,
+                allowedTiers: dto.allowedTiers ?? [],
                 tags: dto.tags ?? [],
                 metadata: dto.metadata,
             });
@@ -93,6 +137,7 @@ export class ResourcesService {
             ...(dto.chapterId !== undefined && { chapterId: dto.chapterId || null }),
             ...(dto.visibility !== undefined && { visibility: dto.visibility }),
             ...(dto.minTier !== undefined && { minTier: dto.minTier }),
+            ...(dto.allowedTiers !== undefined && { allowedTiers: dto.allowedTiers }),
             ...(dto.tags !== undefined && { tags: dto.tags }),
             ...(dto.metadata !== undefined && { metadata: dto.metadata }),
         });
@@ -133,25 +178,39 @@ export class ResourcesService {
                 const visibilityCondition = user.chapterId
                     ? {
                         [Op.or]: [
-                            // Always show PUBLIC resources (regardless of minTier)
                             { visibility: ResourceVisibility.PUBLIC },
-                            // Show RESTRICTED resources only if user's tier qualifies
                             {
                                 visibility: ResourceVisibility.RESTRICTED,
-                                minTier: { [Op.in]: allowedMinTiers },
-                                [Op.or]: [{ chapterId: null }, { chapterId: user.chapterId }],
+                                [Op.and]: [
+                                    {
+                                        [Op.or]: [
+                                            { minTier: { [Op.in]: allowedMinTiers } },
+                                            { allowedTiers: { [Op.overlap]: allowedMinTiers } },
+                                        ],
+                                    },
+                                    {
+                                        [Op.or]: [{ chapterId: null }, { chapterId: user.chapterId }],
+                                    }
+                                ]
                             },
                         ],
                     }
                     : {
                         [Op.or]: [
-                            // Always show PUBLIC resources (regardless of minTier)
                             { visibility: ResourceVisibility.PUBLIC },
-                            // Show RESTRICTED resources only if user's tier qualifies
                             {
                                 visibility: ResourceVisibility.RESTRICTED,
-                                minTier: { [Op.in]: allowedMinTiers },
-                                chapterId: null,
+                                [Op.and]: [
+                                    {
+                                        [Op.or]: [
+                                            { minTier: { [Op.in]: allowedMinTiers } },
+                                            { allowedTiers: { [Op.overlap]: allowedMinTiers } },
+                                        ],
+                                    },
+                                    {
+                                        chapterId: null,
+                                    }
+                                ]
                             },
                         ],
                     };
@@ -218,7 +277,7 @@ export class ResourcesService {
 
     private toCardSchema(resource: Resource, user?: User) {
         const isLocked = user
-            ? !meetsTierRequirement(user.communityTier, resource.minTier)
+            ? !canAccessResource(user, resource)
             : false;
         return {
             id: resource.id,
@@ -229,6 +288,7 @@ export class ResourcesService {
             chapterId: resource.chapterId ?? null,
             visibility: resource.visibility,
             minTier: resource.minTier,
+            allowedTiers: resource.allowedTiers ?? [],
             tags: resource.tags ?? [],
             isLocked,
             createdAt: resource.createdAt?.toISOString(),

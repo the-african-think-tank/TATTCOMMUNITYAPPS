@@ -26,8 +26,8 @@ import { CommunityTier, SystemRole, AccountFlags } from '../iam/enums/roles.enum
 import {
     FeedQueryDto, FeedFilter,
     CreatePostDto, UpdatePostDto,
-    AddCommentDto, GetCommentsQueryDto,
-    ReportPostDto,
+    AddCommentDto, UpdateCommentDto, GetCommentsQueryDto,
+    ReportPostDto, RecordViewsDto,
 } from './dto/feed.dto';
 import { FeedGateway } from './feed.gateway';
 import { NotificationsService } from '../notifications/services/notifications.service';
@@ -153,6 +153,7 @@ function applyPremiumGate(
         likesCount: post.likes?.length ?? 0,
         upvotesCount: post.upvotes?.length ?? 0,
         commentsCount: post.comments?.length ?? 0,
+        viewsCount: post.viewsCount ?? 0,
         isLikedByMe: likedPostIds.has(post.id),
         isUpvotedByMe: upvotedPostIds.has(post.id),
         isBookmarked: bookmarkedPostIds.has(post.id),
@@ -460,10 +461,17 @@ export class FeedService {
             ...(dto.tags !== undefined && { tags: dto.tags }),
             ...(dto.isPremium !== undefined && { isPremium: dto.isPremium }),
             ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
+            ...(dto.topicId !== undefined && { topicId: dto.topicId || null }),
+            ...(dto.jobCompany !== undefined && { jobCompany: dto.jobCompany }),
+            ...(dto.jobLocation !== undefined && { jobLocation: dto.jobLocation }),
+            ...(dto.jobLink !== undefined && { jobLink: dto.jobLink }),
+            ...(dto.eventType !== undefined && { eventType: dto.eventType }),
+            ...(dto.eventDate !== undefined && { eventDate: dto.eventDate }),
+            ...(dto.eventUrl !== undefined && { eventUrl: dto.eventUrl }),
         });
 
         await post.save();
-        return { message: 'Post updated.' };
+        return this.getPost(viewer, postId);
     }
 
     async deletePost(viewer: User, postId: string) {
@@ -477,14 +485,6 @@ export class FeedService {
             throw new ForbiddenException('You are not authorized to delete this post.');
         }
 
-        // Only enforce 30-minute window for authors (staff can delete anytime)
-        if (isOwner && !isStaffUser) {
-            const minutesSinceCreation = (new Date().getTime() - new Date(post.createdAt).getTime()) / 60000;
-            if (minutesSinceCreation > 30) {
-                throw new ForbiddenException('Posts can only be deleted within 30 minutes of publishing.');
-            }
-        }
-
         await post.destroy();
         return { message: 'Post removed.' };
     }
@@ -492,7 +492,6 @@ export class FeedService {
     async toggleLike(viewer: User, postId: string) {
         const post = await this.postRepo.findByPk(postId);
         if (!post || !post.isPublished) throw new NotFoundException('Post not found.');
-        if (post.authorId === viewer.id) throw new BadRequestException('You cannot like your own post.');
 
         if (post.isPremium && !canSeePremium(viewer)) throw new ForbiddenException('Upgrade required.');
 
@@ -506,7 +505,6 @@ export class FeedService {
     async toggleUpvote(viewer: User, postId: string) {
         const post = await this.postRepo.findByPk(postId);
         if (!post || !post.isPublished) throw new NotFoundException('Post not found.');
-        if (post.authorId === viewer.id) throw new BadRequestException('You cannot upvote your own post.');
 
         const existing = await this.upvoteRepo.findOne({ where: { userId: viewer.id, postId } });
         if (existing) { await existing.destroy(); return { upvoted: false }; }
@@ -552,10 +550,26 @@ export class FeedService {
             where: { postId, parentId: null },
             include: [
                 { model: User, as: 'author', attributes: [...AUTHOR_ATTRS] },
-                { model: PostComment, as: 'replies', required: false, where: { deletedAt: null }, include: [{ model: User, as: 'author', attributes: [...AUTHOR_ATTRS] }] },
+                {
+                    model: PostComment,
+                    as: 'replies',
+                    required: false,
+                    where: { deletedAt: null },
+                    include: [{ model: User, as: 'author', attributes: [...AUTHOR_ATTRS] }],
+                },
             ],
-            order: [['createdAt', 'DESC']],
+            order: [
+                ['createdAt', 'ASC'],
+                [{ model: PostComment, as: 'replies' }, 'createdAt', 'ASC'],
+            ],
             limit, offset, distinct: true,
+        });
+
+        // Ensure nested replies are sorted chronologically
+        rows.forEach(comment => {
+            if (comment.replies && Array.isArray(comment.replies)) {
+                comment.replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            }
         });
 
         return { data: rows, meta: { total: count, page, limit, totalPages: Math.ceil(count / limit) } };
@@ -583,6 +597,21 @@ export class FeedService {
         this.feedGateway.broadcastNewComment(postId, fullComment);
 
         return { message: 'Comment added.', commentId: comment.id };
+    }
+
+    async updateComment(viewer: User, commentId: string, dto: UpdateCommentDto) {
+        const comment = await this.commentRepo.findByPk(commentId);
+        if (!comment) throw new NotFoundException('Comment not found.');
+        if (comment.authorId !== viewer.id && !isStaff(viewer)) {
+            throw new ForbiddenException('You can only edit your own comments.');
+        }
+        comment.content = dto.content;
+        await comment.save();
+
+        const updatedComment = await this.commentRepo.findByPk(commentId, {
+            include: [{ model: User, as: 'author', attributes: [...AUTHOR_ATTRS] }],
+        });
+        return { message: 'Comment updated successfully.', comment: updatedComment };
     }
 
     async deleteComment(viewer: User, commentId: string) {
@@ -805,5 +834,25 @@ export class FeedService {
         }
 
         this.logger.log('[TATT-Digest] Daily digest completed.');
+    }
+
+    async recordViews(viewer: User, dto: RecordViewsDto) {
+        if (!dto.postIds || dto.postIds.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        const uniquePostIds = Array.from(new Set(dto.postIds.filter(id => Boolean(id))));
+        if (uniquePostIds.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        await this.postRepo.increment('viewsCount', {
+            by: 1,
+            where: {
+                id: { [Op.in]: uniquePostIds }
+            }
+        });
+
+        return { success: true, count: uniquePostIds.length };
     }
 }

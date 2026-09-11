@@ -21,8 +21,8 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
-import { toast, Toaster } from "react-hot-toast";
-import { format } from "date-fns";
+import { toast } from "react-hot-toast";
+import dayjs, { formatLocalTime } from "@/lib/dayjs";
 import { useRouter } from "next/navigation";
 
 interface Event {
@@ -105,7 +105,6 @@ export default function EventsPage() {
 
     return (
         <div className="p-4 lg:p-8 max-w-7xl mx-auto min-h-screen">
-            <Toaster position="top-right" />
 
             <header className="mb-10">
                 <h1 className="text-3xl md:text-5xl font-black tracking-tight text-foreground">Events & Mixers</h1>
@@ -186,10 +185,10 @@ export default function EventsPage() {
 
                                     <div className="absolute bottom-4 right-4 bg-tatt-black/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 text-white text-center min-w-[60px]">
                                         <p className="text-[10px] font-black uppercase tracking-tighter opacity-70 leading-none">
-                                            {format(safeDate(event.dateTime), "MMM")}
+                                            {dayjs(event.dateTime).format("MMM")}
                                         </p>
                                         <p className="text-xl font-black leading-none mt-1">
-                                            {format(safeDate(event.dateTime), "dd")}
+                                            {dayjs(event.dateTime).format("DD")}
                                         </p>
                                     </div>
                                 </div>
@@ -203,7 +202,7 @@ export default function EventsPage() {
                                         <div className="space-y-2 mb-6">
                                             <div className="flex items-center gap-2 text-xs font-medium text-tatt-gray">
                                                 <Clock className="size-3.5 text-tatt-lime" />
-                                                <span>{format(safeDate(event.dateTime), "HH:mm")} • Local Time</span>
+                                                <span>{formatLocalTime(event.dateTime)}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-xs font-medium text-tatt-gray">
                                                 <MapPin className="size-3.5 text-tatt-lime" />

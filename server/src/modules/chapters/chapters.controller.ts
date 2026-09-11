@@ -42,10 +42,15 @@ export class ChaptersController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get chapter members' })
     @ApiParam({ name: 'id', format: 'uuid' })
+    @ApiQuery({ name: 'excludeSelf', required: false, type: Boolean })
     @UseGuards(JwtAuthGuard)
     @Get(':id/members')
-    async getMembers(@Param('id') id: string, @Request() req) {
-        return this.chaptersService.getChapterMembers(id, req.user?.id);
+    async getMembers(
+        @Param('id') id: string,
+        @Request() req,
+        @Query('excludeSelf') excludeSelf?: string,
+    ) {
+        return this.chaptersService.getChapterMembers(id, req.user?.id, excludeSelf === 'true');
     }
 
     @ApiBearerAuth()
@@ -87,6 +92,7 @@ export class ChaptersController {
     @ApiParam({ name: 'id', format: 'uuid', description: 'Chapter UUID' })
     @ApiQuery({ name: 'page', required: false, type: Number })
     @ApiQuery({ name: 'limit', required: false, type: Number })
+    @ApiQuery({ name: 'excludeSelf', required: false, type: Boolean })
     @UseGuards(JwtAuthGuard)
     @Get(':id/feed')
     async getChapterFeed(
@@ -94,8 +100,9 @@ export class ChaptersController {
         @Request() req,
         @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
         @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+        @Query('excludeSelf') excludeSelf?: string,
     ) {
-        return this.chaptersService.getChapterFeed(id, req.user, page, limit);
+        return this.chaptersService.getChapterFeed(id, req.user, page, limit, excludeSelf === 'true');
     }
 
     @ApiBearerAuth()

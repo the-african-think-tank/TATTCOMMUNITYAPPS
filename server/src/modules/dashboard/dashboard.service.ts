@@ -149,7 +149,7 @@ export class DashboardService {
         return {
             kpis: {
                 totalMembers: {
-                    value: `${totalMembers.toLocaleString()}+`,
+                    value: `${totalMembers.toLocaleString()}`,
                     trend: '+12.5%', // Hardcoded trend logic for UI aesthetic purposes as requested.
                     trendType: 'up',
                 },
@@ -159,7 +159,7 @@ export class DashboardService {
                     trendType: 'up',
                 },
                 monthlyRevenue: {
-                    value: `$${monthlyRevenue.toLocaleString()}`,
+                    value: `$${monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                     trend: '+8.0%',
                     trendType: 'up',
                 },

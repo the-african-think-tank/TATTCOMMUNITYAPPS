@@ -571,7 +571,7 @@ export default function PartnershipsPage() {
                             Ensure partners are properly assigned to maintain the exclusivity of membership levels. This reflects the percentage of active partners accessible by each tier.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                            <UsageRow label="Free Tier (Public)" current={getTierDistribution("FREE")} color="bg-tatt-gray" />
+                            <UsageRow label="Sankofa Tier (Public)" current={getTierDistribution("FREE")} color="bg-tatt-gray" />
                             <UsageRow label="Ubuntu Tier (Inclusive)" current={getTierDistribution("UBUNTU")} color="bg-blue-500" />
                             <UsageRow label="Imani Tier (Enhanced)" current={getTierDistribution("IMANI")} color="bg-tatt-bronze" />
                             <UsageRow label="Kiongozi Tier (Elite)" current={getTierDistribution("KIONGOZI")} color="bg-tatt-lime" />

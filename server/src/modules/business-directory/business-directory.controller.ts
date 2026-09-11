@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Request, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { BusinessDirectoryService } from './business-directory.service';
-import { CreateBusinessApplicationDto, UpdateBusinessStatusDto } from './dto/business-directory.dto';
+import { CreateBusinessApplicationDto, UpdateBusinessStatusDto, UpdateBusinessAdminDto } from './dto/business-directory.dto';
 import { JwtAuthGuard } from '../iam/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -60,7 +60,7 @@ export class BusinessDirectoryController {
         @Query('category') category?: string,
         @Query('chapterId') chapterId?: string,
     ) {
-        return this.businessDirectoryService.findAll(status, category, chapterId);
+        return this.businessDirectoryService.findAll(status, category, chapterId, true);
     }
 
     @Get('list')
@@ -95,6 +95,14 @@ export class BusinessDirectoryController {
     async updateStatus(@Param('id') id: string, @Body() dto: UpdateBusinessStatusDto) {
         this.logger.log(`Updating status for ${id} to ${dto.status} by moderator/admin`);
         return this.businessDirectoryService.updateStatus(id, dto);
+    }
+
+    @Patch(':id')
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN, SystemRole.MODERATOR)
+    @ApiOperation({ summary: 'Update business entry details (e.g. logo, website)' })
+    async updateByAdmin(@Param('id') id: string, @Body() dto: UpdateBusinessAdminDto) {
+        this.logger.log(`Admin updating business entry ${id}`);
+        return this.businessDirectoryService.updateByAdmin(id, dto);
     }
 
     @Post(':id/click')

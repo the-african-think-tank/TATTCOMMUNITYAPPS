@@ -12,8 +12,8 @@ import { FeedService } from './feed.service';
 import {
     FeedQueryDto, FeedFilter,
     CreatePostDto, UpdatePostDto,
-    AddCommentDto, GetCommentsQueryDto,
-    ReportPostDto,
+    AddCommentDto, UpdateCommentDto, GetCommentsQueryDto,
+    ReportPostDto, RecordViewsDto,
 } from './dto/feed.dto';
 import {
     PostCardSchema, PostAuthorSchema, PostChapterSchema,
@@ -110,6 +110,13 @@ export class FeedController {
     @Get('curation/active')
     async getActiveCuration() {
         return this.feedService.getActiveCuration();
+    }
+
+    @ApiOperation({ summary: 'Batch record feed post views (impressions)' })
+    @HttpCode(HttpStatus.OK)
+    @Post('views')
+    async recordViews(@Request() req, @Body() dto: RecordViewsDto) {
+        return this.feedService.recordViews(req.user, dto);
     }
 
     @ApiOperation({ summary: 'Get available feed topics' })
@@ -421,8 +428,31 @@ export class FeedController {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //  COMMENTS — delete
+    //  COMMENTS — edit & delete
     // ═══════════════════════════════════════════════════════════════════════════
+
+    @ApiOperation({
+        summary: 'Edit a comment',
+        description: 'Updates comment text content. Only the comment author or moderators can edit.',
+    })
+    @ApiParam({
+        name: 'commentId',
+        format: 'uuid',
+        description: 'UUID of the comment to edit',
+    })
+    @ApiBody({ type: UpdateCommentDto })
+    @ApiResponse({ status: 200, description: 'Comment updated.' })
+    @ApiResponse({ status: 403, description: 'Not the comment author.' })
+    @ApiResponse({ status: 404, description: 'Comment not found.' })
+    @Patch('comment/:commentId')
+    @HttpCode(HttpStatus.OK)
+    async updateComment(
+        @Request() req,
+        @Param('commentId', ParseUUIDPipe) commentId: string,
+        @Body() dto: UpdateCommentDto,
+    ) {
+        return this.feedService.updateComment(req.user, commentId, dto);
+    }
 
     @ApiOperation({
         summary: 'Delete a comment',

@@ -18,8 +18,8 @@ export class JobApplication extends Model<JobApplication> {
     @Column({ type: DataType.UUID, allowNull: false })
     userId: string;
 
-    @BelongsTo(() => User)
-    user: User;
+    @BelongsTo(() => User, { as: 'applicant', foreignKey: 'userId' })
+    applicant: User;
 
     @ForeignKey(() => JobListing)
     @Column({ type: DataType.UUID, allowNull: false })

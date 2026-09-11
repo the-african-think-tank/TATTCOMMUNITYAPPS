@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsEnum, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsArray, IsBoolean, IsEmail, IsNotEmpty, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { SystemRole, AccountFlags, ConnectionPreference } from '../../enums/roles.enum';
+import { SystemRole, AccountFlags, ConnectionPreference, CommunityTier } from '../../enums/roles.enum';
 
 export class UpdateUserDto {
     @ApiProperty({ required: false })
@@ -53,6 +53,11 @@ export class UpdateUserDto {
     @IsOptional()
     systemRole?: SystemRole;
 
+    @ApiProperty({ description: 'The community membership tier', enum: CommunityTier, required: false })
+    @IsEnum(CommunityTier)
+    @IsOptional()
+    communityTier?: CommunityTier;
+
     @ApiProperty({ description: 'Array of account flags/permissions', enum: [AccountFlags], isArray: true, required: false })
     @IsArray()
     @IsEnum(AccountFlags, { each: true })
@@ -72,50 +77,62 @@ export class UpdateUserDto {
 
 export class UpdateProfileDto {
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     firstName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     lastName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     countryOfOrigin?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     countryOfResidence?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     dateOfBirth?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     professionTitle?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     industryId?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     professionalHighlight?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     companyName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     expertise?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     profilePicture?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     chapterId?: string;
 
@@ -130,22 +147,72 @@ export class UpdateProfileDto {
     interests?: string[];
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     businessName?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     businessRole?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     businessProfileLink?: string;
 
     @ApiProperty({ required: false })
+    @ValidateIf((_, v) => v !== null && v !== undefined)
     @IsString() @IsOptional()
     linkedInProfileUrl?: string;
 
     @ApiProperty({ required: false })
     @IsBoolean() @IsOptional()
     hasAutoPayEnabled?: boolean;
+}
+
+export class CreateUserWithPasswordDto {
+    @ApiProperty()
+    @IsEmail()
+    email: string;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    firstName: string;
+
+    @ApiProperty()
+    @IsString()
+    @IsNotEmpty()
+    lastName: string;
+
+    @ApiProperty({ required: false, enum: SystemRole })
+    @IsOptional()
+    @IsEnum(SystemRole)
+    systemRole?: SystemRole;
+
+    @ApiProperty({ required: false, enum: CommunityTier })
+    @IsOptional()
+    @IsEnum(CommunityTier)
+    communityTier?: CommunityTier;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    phoneNumber?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    professionTitle?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    location?: string;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsString()
+    chapterId?: string;
 }

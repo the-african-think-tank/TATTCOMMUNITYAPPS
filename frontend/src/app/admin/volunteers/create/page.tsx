@@ -36,7 +36,6 @@ export default function CreateVolunteerRolePage() {
         description: "",
         responsibilities: [] as string[],
         requiredSkills: [] as string[],
-        spotsNeeded: 5,
         openUntil: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0],
         grade: "Contributor"
     });
@@ -136,8 +135,7 @@ export default function CreateVolunteerRolePage() {
                 isActive: !draft,
                 // Ensure number types for backend compatibility
                 weeklyHours: Number(formData.weeklyHours),
-                durationMonths: Number(formData.durationMonths),
-                spotsNeeded: Number(formData.spotsNeeded)
+                durationMonths: Number(formData.durationMonths)
             });
             toast.success(draft ? "Role saved as draft" : "Volunteer role published successfully!");
             router.push("/admin/volunteers");

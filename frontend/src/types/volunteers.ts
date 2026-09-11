@@ -6,7 +6,7 @@ export interface VolunteerRole {
   description: string;
   responsibilities: string[];
   requiredSkills: string[];
-  spotsNeeded: number;
+
   weeklyHours: number;
   durationMonths: number;
   openUntil: string;

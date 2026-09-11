@@ -15,6 +15,7 @@ export enum TicketCategory {
     TECHNICAL = 'TECHNICAL',
     MEMBERSHIP = 'MEMBERSHIP',
     EVENTS = 'EVENTS',
+    PARTNERSHIP = 'PARTNERSHIP',
     OTHER = 'OTHER'
 }
 

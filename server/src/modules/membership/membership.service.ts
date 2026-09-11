@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
@@ -6,7 +6,7 @@ import { MembershipTier } from './entities/membership-tier.entity';
 import { MembershipPlan } from './entities/membership-plan.entity';
 import { Discount, DiscountType, DiscountDuration } from './entities/discount.entity';
 import { User } from '../iam/entities/user.entity';
-import { CommunityTier } from '../iam/enums/roles.enum';
+import { CommunityTier, SystemRole } from '../iam/enums/roles.enum';
 import { Chapter } from '../chapters/entities/chapter.entity';
 import { Sequelize } from 'sequelize-typescript';
 import Stripe from 'stripe';
@@ -54,8 +54,8 @@ export class MembershipService implements OnApplicationBootstrap {
         const plans = [
             {
                 tier: CommunityTier.FREE,
-                name: 'Karibu',
-                tagline: 'Join the community for free',
+                name: 'Sankofa',
+                tagline: 'Join the community and connect with the African diaspora',
                 monthlyPrice: 0,
                 yearlyPrice: 0,
                 features: ['Access to chapter events', 'Basic community forums', 'Newsletter updates'],
@@ -138,45 +138,115 @@ export class MembershipService implements OnApplicationBootstrap {
 
     // --- Membership Plans (Onboarding & Admin) ---
 
+    // --- Membership Plans (Onboarding & Admin) ---
+
+    async findPlanByIdOrSlug(idOrSlug: string) {
+        if (!idOrSlug) return null;
+
+        const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        const isUuid = uuidRegex.test(idOrSlug);
+
+        if (isUuid) {
+            const planByPk = await this.planRepo.findByPk(idOrSlug);
+            if (planByPk) return planByPk;
+        }
+
+        const formattedSlug = idOrSlug.toUpperCase().replace(/-/g, '_');
+        const formattedName = idOrSlug.toLowerCase().replace(/-/g, ' ');
+
+        const conditions: any[] = [
+            { tier: formattedSlug },
+            Sequelize.where(Sequelize.fn('LOWER', Sequelize.col('name')), formattedName)
+        ];
+
+        if (isUuid) {
+            conditions.unshift({ id: idOrSlug });
+        }
+
+        return this.planRepo.findOne({
+            where: {
+                [Op.or]: conditions
+            }
+        });
+    }
+
+    async getPlanByIdOrSlug(idOrSlug: string) {
+        const plan = await this.findPlanByIdOrSlug(idOrSlug);
+        if (!plan) throw new NotFoundException(`Membership plan '${idOrSlug}' not found`);
+        return plan;
+    }
+
     async getPlans() {
         return this.planRepo.findAll({
             order: [['monthlyPrice', 'ASC']]
         });
     }
 
-    async updatePlan(id: string, dto: any) {
-        const plan = await this.planRepo.findByPk(id);
-        if (!plan) throw new Error('Plan not found');
-        return plan.update(dto);
+    async updatePlan(idOrSlug: string, dto: any) {
+        const plan = await this.getPlanByIdOrSlug(idOrSlug);
+        
+        const perksArray = dto.features || dto.perks || [];
+        const cleanedPerks = Array.isArray(perksArray) 
+            ? perksArray.filter((p: any) => typeof p === 'string' && p.trim() !== '')
+            : [];
+
+        const updateData: any = {
+            ...dto,
+            features: cleanedPerks,
+        };
+
+        try {
+            const legacyTier = await this.tierRepo.findOne({
+                where: { tier: plan.tier as any }
+            });
+            if (legacyTier) {
+                await legacyTier.update({
+                    name: dto.name || plan.name,
+                    perks: cleanedPerks,
+                    monthlyPrice: dto.monthlyPrice !== undefined ? Math.round(dto.monthlyPrice * 100) : legacyTier.monthlyPrice,
+                    yearlyPrice: dto.yearlyPrice !== undefined ? Math.round(dto.yearlyPrice * 100) : legacyTier.yearlyPrice
+                });
+            }
+        } catch (err) {
+            this.logger.warn(`Could not sync legacy tier entity: ${err}`);
+        }
+
+        return plan.update(updateData);
     }
 
     async createPlan(dto: any) {
-        return this.planRepo.create(dto);
+        const perksArray = dto.features || dto.perks || [];
+        const cleanedPerks = Array.isArray(perksArray) 
+            ? perksArray.filter((p: any) => typeof p === 'string' && p.trim() !== '')
+            : [];
+
+        return this.planRepo.create({
+            ...dto,
+            features: cleanedPerks
+        });
     }
 
-    async removePlan(id: string) {
-        const plan = await this.planRepo.findByPk(id);
-        if (!plan) throw new Error('Plan not found');
+    async removePlan(idOrSlug: string) {
+        const plan = await this.getPlanByIdOrSlug(idOrSlug);
         return plan.destroy();
     }
 
     // --- Legacy Tiers (Internal logic) ---
 
     async getTiers() {
-        // Redirection to use the rich plans table instead of the simple tier table
         return this.getPlans();
     }
 
-    async updateTier(id: string, dto: any) {
-        return this.updatePlan(id, dto);
+    async updateTier(idOrSlug: string, dto: any) {
+        return this.updatePlan(idOrSlug, dto);
     }
 
     async createTier(dto: any) {
         return this.createPlan(dto);
     }
 
-    async removeTier(id: string) {
-        return this.removePlan(id);
+    async removeTier(idOrSlug: string) {
+        return this.removePlan(idOrSlug);
     }
 
     // --- Discounts ---
@@ -269,7 +339,7 @@ export class MembershipService implements OnApplicationBootstrap {
     // --- Members Management ---
 
     async getSubscribedMembers(filters: any) {
-        const { chapterId, tier, billingCycle, search, page = 1, limit = 10 } = filters;
+        const { chapterId, tier, billingCycle, search, role, page = 1, limit = 10 } = filters;
         const where: any = {};
         const offset = (page - 1) * limit;
 
@@ -283,6 +353,14 @@ export class MembershipService implements OnApplicationBootstrap {
 
         if (billingCycle) {
             where.billingCycle = billingCycle;
+        }
+
+        if (role) {
+            if (role === 'COMMUNITY_MEMBER') {
+                where.systemRole = SystemRole.COMMUNITY_MEMBER;
+            } else if (role === 'STAFF') {
+                where.systemRole = { [Op.ne]: SystemRole.COMMUNITY_MEMBER };
+            }
         }
 
         if (search) {

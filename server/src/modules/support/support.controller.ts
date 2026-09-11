@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Param, Put, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Patch, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SupportService } from './support.service';
 import { JwtAuthGuard } from '../iam/auth/guards/jwt-auth.guard';
-import { CreateTicketDto, ResolveTicketDto, CreateFaqDto } from './dto/support.dto';
+import { CreateTicketDto, ResolveTicketDto, CreateFaqDto, CreateCategoryDto, UpdateCategoryDto } from './dto/support.dto';
 
 @ApiTags('Support Center')
 @Controller('support')
@@ -76,6 +76,33 @@ export class SupportController {
 
 
     // --- FAQS ---
+    @Get('faqs/categories')
+    @ApiOperation({ summary: 'Get all FAQ categories with question counts' })
+    async getCategories() {
+        return this.supportService.getCategories();
+    }
+
+    @Post('faqs/categories')
+    @ApiOperation({ summary: 'Create a new FAQ Category' })
+    async createCategory(@Body() dto: CreateCategoryDto) {
+        return this.supportService.createCategory(dto.category);
+    }
+
+    @Patch('faqs/categories/:id')
+    @ApiOperation({ summary: 'Rename/update an FAQ Category' })
+    async updateCategory(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
+        return this.supportService.updateCategory(id, dto.category);
+    }
+
+    @Delete('faqs/categories/:id')
+    @ApiOperation({ summary: 'Delete an FAQ category (requires reassigning questions if any exist)' })
+    async deleteCategory(
+        @Param('id') id: string,
+        @Query('targetCategoryId') targetCategoryId?: string
+    ) {
+        return this.supportService.deleteCategory(id, targetCategoryId);
+    }
+
     @Post('faqs')
     @ApiOperation({ summary: 'Create a new FAQ (Org Members)' })
     async createFaq(@Body() dto: CreateFaqDto) {
@@ -86,5 +113,17 @@ export class SupportController {
     @ApiOperation({ summary: 'Get all active FAQs' })
     async getFaqs() {
         return this.supportService.getFaqs();
+    }
+
+    @Patch('faqs/:id')
+    @ApiOperation({ summary: 'Update an FAQ' })
+    async updateFaq(@Param('id') id: string, @Body() dto: Partial<CreateFaqDto>) {
+        return this.supportService.updateFaq(id, dto);
+    }
+
+    @Delete('faqs/:id')
+    @ApiOperation({ summary: 'Delete an FAQ' })
+    async deleteFaq(@Param('id') id: string) {
+        return this.supportService.deleteFaq(id);
     }
 }

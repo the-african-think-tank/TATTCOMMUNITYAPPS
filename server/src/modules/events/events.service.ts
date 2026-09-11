@@ -50,6 +50,7 @@ export class EventsService {
             title: dto.title,
             description: dto.description,
             dateTime: new Date(dto.dateTime),
+            timezone: dto.timezone || 'America/Los_Angeles',
             type: dto.type,
             imageUrl: dto.imageUrl,
             isForAllMembers: dto.isForAllMembers,
@@ -93,6 +94,7 @@ export class EventsService {
             title: dto.title,
             description: dto.description,
             dateTime: new Date(dto.dateTime),
+            timezone: dto.timezone || 'America/Los_Angeles',
             type: dto.type,
             imageUrl: dto.imageUrl,
             isForAllMembers: dto.isForAllMembers,
@@ -172,23 +174,32 @@ export class EventsService {
         }
     }
 
-    async getEvents(viewer: User, upcoming?: boolean) {
-        // Optionally filter by membership if we want to hide restricted events from the list
-        // Requirement says "it should show up in the events and workshops page", implying it might be visible but maybe locked?
-        // Usually restricted events are only visible to those who can join.
-        // Let's allow everyone to see them for now, but restrict registration.
+    async getEvents(viewer: User, upcoming?: boolean, limit?: number, chapterId?: string) {
         const where: any = {};
         if (upcoming) {
             where.dateTime = { [Op.gt]: new Date() };
         }
 
+        let targetChapterId: string | null = null;
+        if (chapterId && chapterId !== 'all' && chapterId !== 'global' && chapterId.trim() !== '') {
+            targetChapterId = chapterId;
+        }
+
+        const include: any[] = [
+            {
+                model: EventChapter,
+                as: 'locations',
+                include: [{ model: Chapter, as: 'chapter' }],
+                ...(targetChapterId ? { where: { chapterId: targetChapterId }, required: true } : {})
+            },
+            { model: User, as: 'featuredGuests', attributes: ['id', 'firstName', 'lastName', 'profilePicture'], through: { attributes: [] } },
+        ];
+
         return this.eventRepo.findAll({
             where,
-            include: [
-                { model: EventChapter, as: 'locations', include: [{ model: Chapter, as: 'chapter' }] },
-                { model: User, as: 'featuredGuests', attributes: ['id', 'firstName', 'lastName', 'profilePicture'], through: { attributes: [] } },
-            ],
+            include,
             order: [['dateTime', 'ASC']],
+            limit: limit && !isNaN(limit) && limit > 0 ? limit : undefined,
         });
     }
 
@@ -207,9 +218,16 @@ export class EventsService {
         const event = await this.getEvent(eventId);
 
         if (!event.isForAllMembers) {
-            if (!event.targetMembershipTiers.includes(user.communityTier)) {
+            if (!event.targetMembershipTiers?.includes(user.communityTier)) {
                 throw new ForbiddenException('This event is restricted to specific membership classes.');
             }
+        }
+
+        const existing = await this.eventRegistrationRepo.findOne({
+            where: { eventId: event.id, userId: user.id, status: 'COMPLETED' }
+        });
+        if (existing) {
+            return { registration: existing, message: 'You are already registered for this event.' };
         }
 
         let amountToPay = event.basePrice || 0;

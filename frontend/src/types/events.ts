@@ -25,6 +25,7 @@ export type EventItem = {
     dateTime: string;
     type: EventType;
     imageUrl?: string | null;
+    timezone?: string | null;
     isForAllMembers: boolean;
     targetMembershipTiers?: string[] | null;
     basePrice: number;

@@ -26,7 +26,7 @@ import {
     ShieldCheck,
 } from "lucide-react";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import Link from "next/link";
 
 interface Broadcast {
@@ -217,7 +217,6 @@ export default function PlatformManagement() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <Toaster position="top-right" />
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div className="space-y-1">

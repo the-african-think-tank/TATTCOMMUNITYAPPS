@@ -16,6 +16,10 @@ export interface JobListing {
   qualifications?: string | null;
   isNew?: boolean;
   isActive?: boolean;
+  source?: string;
+  externalId?: string | null;
+  externalUrl?: string | null;
+  region?: string | null;
   postedById?: string | null;
   postedBy?: {
     id: string;
@@ -43,6 +47,21 @@ export interface MarketInsights {
   topEmployers: { name: string; initials: string }[];
 }
 
+export const JOB_CATEGORIES = [
+  "Technology & Software",
+  "Finance & Banking",
+  "Agriculture & Agribusiness",
+  "Healthcare & Medicine",
+  "Operations & Logistics",
+  "Non-Profit & Social Impact",
+  "Sales & Marketing",
+  "Legal & Public Policy",
+  "Education & Academia",
+  "Other Opportunities",
+] as const;
+
+export type JobCategory = (typeof JOB_CATEGORIES)[number];
+
 export interface ApplyJobPayload {
   fullName: string;
   email: string;
@@ -50,3 +69,4 @@ export interface ApplyJobPayload {
   resumeUrl?: string | undefined;
   coverLetter?: string | undefined;
 }
+

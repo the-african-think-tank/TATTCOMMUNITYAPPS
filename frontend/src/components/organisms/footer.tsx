@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Linkedin, Facebook, Instagram } from "lucide-react";
 import { useTermsModal } from "@/context/terms-context";
+import { TATTLogo } from "../atoms/logo";
 
 
 const LOGO_ICON_SRC = "/assets/tattlogoIcon.svg";
@@ -20,11 +21,6 @@ export function Footer() {
                 {/* Column 1: Branding - Full width on mobile/tablet */}
                 <div className="col-span-2 md:col-span-1 lg:col-span-1 space-y-4 flex flex-col items-center md:items-start">
                     <div className="flex items-center gap-4">
-                        <img src={LOGO_ICON_SRC} alt="TATT Logo" className="h-16 w-16" />
-                        <div className="text-left">
-                            <h3 className="text-xl font-bold tracking-tight text-tatt-white">The African Think Tank</h3>
-                            <p className="text-sm italic text-gray-400">Together, we thrive</p>
-                        </div>
                     </div>
                 </div>
 

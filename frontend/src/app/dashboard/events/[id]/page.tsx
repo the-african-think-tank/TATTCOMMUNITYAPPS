@@ -16,33 +16,23 @@ import {
     CheckCircle,
     ExternalLink,
     Lock,
-    Trophy
+    Trophy,
+    Edit2
 } from "lucide-react";
+import dayjs, { formatLocalTimeString } from "@/lib/dayjs";
 import type { EventItem } from "@/types/events";
 
 function formatDate(dateTime: string) {
     try {
-        return new Date(dateTime).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-        });
+        return dayjs(dateTime).format("dddd, MMMM D, YYYY");
     } catch {
         return "";
     }
 }
 
 function formatTime(dateTime: string) {
-    try {
-        return new Date(dateTime).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-        });
-    } catch {
-        return "";
-    }
+    if (!dateTime) return "";
+    return formatLocalTimeString(dateTime);
 }
 
 function typeLabel(type: string): string {
@@ -178,16 +168,28 @@ export default function EventDetailPage() {
 
     const price = calculatePrice();
     const isEligible = event.isForAllMembers || (event.targetMembershipTiers && event.targetMembershipTiers.includes(user?.communityTier || ""));
+    const isAlreadyRegistered = registrationDone || (!!user && attendees.some(reg => reg.userId === user.id || reg.user?.id === user.id));
 
     return (
         <div className="min-h-screen w-full bg-background text-foreground">
             <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                <Link
-                    href="/dashboard/events"
-                    className="inline-flex items-center gap-2 text-tatt-gray hover:text-tatt-lime font-medium text-sm mb-6"
-                >
-                    <ArrowLeft className="h-4 w-4" /> Back to Workshops &amp; Events
-                </Link>
+                <div className="flex items-center justify-between gap-4 mb-6">
+                    <Link
+                        href="/dashboard/events"
+                        className="inline-flex items-center gap-2 text-tatt-gray hover:text-tatt-lime font-medium text-sm"
+                    >
+                        <ArrowLeft className="h-4 w-4" /> Back to Workshops &amp; Events
+                    </Link>
+
+                    {user && (user.systemRole === "SUPER_ADMIN" || user.systemRole === "REGIONAL_ADMIN") && (
+                        <Link
+                            href={`/admin/events/${event.id}`}
+                            className="inline-flex items-center gap-2 bg-tatt-lime text-tatt-black px-4 py-2 rounded-xl font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-md"
+                        >
+                            <Edit2 className="h-3.5 w-3.5" /> Edit Event
+                        </Link>
+                    )}
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
@@ -295,7 +297,7 @@ export default function EventDetailPage() {
                     <div className="lg:col-span-1">
                         <div className="bg-surface rounded-xl border border-border p-6 sticky top-24">
                             <h2 className="text-lg font-bold text-foreground mb-4">Register</h2>
-                            {registrationDone ? (
+                            {isAlreadyRegistered ? (
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3 text-tatt-lime font-medium">
                                         <CheckCircle className="h-6 w-6 shrink-0" />

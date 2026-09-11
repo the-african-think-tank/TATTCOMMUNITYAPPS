@@ -108,7 +108,7 @@ export default function SupportCenterOverview() {
                 <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm border-l-4 border-l-tatt-error">
                     <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-tatt-gray mb-4">Unresolved Urgent</p>
                     <div className="flex items-baseline gap-3">
-                        <span className="text-4xl font-black tracking-tighter text-tatt-error">{String(overview.unresolvedUrgent).padStart(2, '0')}</span>
+                        <span className="text-4xl font-black tracking-tighter text-tatt-error">{overview.unresolvedUrgent}</span>
                         <span className="text-tatt-gray text-[10px] uppercase font-bold tracking-widest">Requires Action</span>
                     </div>
                     <div className="mt-4 flex gap-1">
@@ -222,9 +222,9 @@ export default function SupportCenterOverview() {
                                     <p className="text-sm text-tatt-gray font-medium mb-4">No topics configured yet.</p>
                                     <button 
                                         onClick={() => router.push('/admin/support-center/faqs')} 
-                                        className="text-[10px] bg-tatt-lime/10 px-3 py-2 rounded-lg font-bold uppercase tracking-widest text-tatt-lime hover:bg-tatt-lime/20 transition-colors"
+                                        className="text-[10px] bg-tatt-lime/10 px-3 py-2 cursor-pointer rounded-lg font-bold uppercase tracking-widest text-tatt-lime hover:bg-tatt-lime/20 transition-colors"
                                     >
-                                        Create First Topic
+                                        Create First FAQ Topic
                                     </button>
                                 </div>
                             )}

@@ -15,7 +15,7 @@ export class JobListing extends Model<JobListing> {
     })
     id: string;
 
-    @Column({ type: DataType.STRING, allowNull: false })
+    @Column({ type: DataType.STRING(512), allowNull: false })
     title: string;
 
     @Column({ type: DataType.STRING, allowNull: false })
@@ -24,7 +24,7 @@ export class JobListing extends Model<JobListing> {
     @Column({ type: DataType.STRING, allowNull: true })
     companyLogoUrl?: string;
 
-    @Column({ type: DataType.STRING, allowNull: false })
+    @Column({ type: DataType.STRING(1024), allowNull: false })
     location: string;
 
     @Column({ type: DataType.STRING, allowNull: true })
@@ -59,6 +59,25 @@ export class JobListing extends Model<JobListing> {
 
     @Column({ type: DataType.BOOLEAN, defaultValue: true })
     isActive: boolean;
+
+    // ─── INGESTION & SOURCING ────────────────────────────────────────────────
+    @Column({ type: DataType.STRING(64), allowNull: false, defaultValue: 'manual' })
+    source: string; // 'manual', 'greenhouse', etc.
+
+    @Column({ type: DataType.STRING(255), allowNull: true })
+    externalId?: string;
+
+    @Column({ type: DataType.STRING(1024), allowNull: true })
+    externalUrl?: string;
+
+    @Column({ type: DataType.STRING(128), allowNull: true })
+    fingerprint?: string;
+
+    @Column({ type: DataType.STRING(64), defaultValue: 'Other' })
+    region: string; // 'US', 'Africa', 'Remote-Global', 'Other'
+
+    @Column({ type: DataType.JSONB, allowNull: true })
+    rawMetadata?: Record<string, any>;
 
     // ─── MODERATION ───────────────────────────────────────────────────────────
     @Column({ type: DataType.BOOLEAN, defaultValue: false })

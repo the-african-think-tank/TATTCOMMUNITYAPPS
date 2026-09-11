@@ -16,10 +16,11 @@ import {
     Loader2,
     X,
     ExternalLink,
-    AlertCircle
+    AlertCircle,
+    Pencil
 } from "lucide-react";
 import api from "@/services/api";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ResourcesAdminPage() {
@@ -88,7 +89,6 @@ export default function ResourcesAdminPage() {
 
     return (
         <div className="flex flex-col h-full">
-            <Toaster position="top-right" />
             
             <header className="pb-4 shrink-0">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -217,12 +217,16 @@ export default function ResourcesAdminPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5">
-                                                <span className={`text-sm font-bold px-3 py-1 rounded border ${
-                                                    resource.minTier === 'FREE' ? 'border-slate-200 text-slate-600 bg-slate-50' :
-                                                    'border-tatt-lime-dark/20 text-tatt-lime-dark bg-tatt-lime/10'
-                                                }`}>
-                                                    {resource.minTier}
-                                                </span>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {(resource.allowedTiers && resource.allowedTiers.length > 0 ? resource.allowedTiers : [resource.minTier]).map((t: string) => (
+                                                        <span key={t} className={`text-xs font-bold px-2.5 py-0.5 rounded border ${
+                                                            t === 'FREE' ? 'border-slate-200 text-slate-600 bg-slate-50' :
+                                                            'border-tatt-lime-dark/20 text-tatt-lime-dark bg-tatt-lime/10'
+                                                        }`}>
+                                                            {t}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-5 text-right">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -231,6 +235,13 @@ export default function ResourcesAdminPage() {
                                                             <ExternalLink size={18} />
                                                         </a>
                                                     )}
+                                                    <button 
+                                                        onClick={() => router.push(`/admin/resources/edit/${resource.id}`)}
+                                                        className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors" 
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil size={18} />
+                                                    </button>
                                                     <button onClick={() => handleDeleteResource(resource.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Archive">
                                                         <X size={18} />
                                                     </button>

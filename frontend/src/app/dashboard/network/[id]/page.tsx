@@ -15,6 +15,7 @@ import {
     Mail,
     UserPlus,
     UserCheck,
+    UserX,
     Clock,
     X,
     AlertCircle,
@@ -31,6 +32,7 @@ import api from "@/services/api";
 import MembershipCard from "@/components/molecules/MembershipCard";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface MemberProfile {
     id: string;
@@ -102,10 +104,26 @@ export default function MemberProfilePage() {
         setSendError(null);
     };
 
+    const [disconnecting, setDisconnecting] = useState(false);
+
+    const handleRemoveConnection = async () => {
+        if (!status?.connectionId) return;
+        setDisconnecting(true);
+        try {
+            await api.delete(`/connections/${status.connectionId}`);
+            setStatus({ status: "NOT_CONNECTED", connectionId: null });
+            toast.success("Connection removed successfully");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to remove connection");
+        } finally {
+            setDisconnecting(false);
+        }
+    };
+
     const handleSendInvite = async () => {
         if (!member) return;
-        if (connectMessage.trim().length < 20) {
-            setSendError("Please write at least 20 characters so the recipient knows why you want to connect.");
+        if (connectMessage.trim().length < 1) {
+            setSendError("Please write a message so the recipient knows why you want to connect.");
             return;
         }
         setSending(true);
@@ -300,15 +318,28 @@ export default function MemberProfilePage() {
                                     </div>
                                 </div>
                                 
-                                <div className="flex gap-3 w-full md:w-auto mt-6 md:mt-0">
+                                <div className="flex gap-3 w-full md:w-auto shrink-0 flex-wrap items-center mt-6 md:mt-0">
                                     {user?.id !== member.id && (
                                         <>
                                             {status?.status === "ACCEPTED" ? (
                                                 <>
-                                                    <button className="flex-1 md:flex-none px-6 py-2.5 bg-green-500/10 text-green-600 font-bold rounded-lg text-sm justify-center gap-2 flex items-center cursor-default">
-                                                        <UserCheck className="h-5 w-5" /> Connected
+                                                    <button
+                                                        onClick={handleRemoveConnection}
+                                                        disabled={disconnecting}
+                                                        className="flex-1 md:flex-none px-6 py-2.5 bg-green-500/10 text-green-600 font-bold rounded-lg text-sm justify-center gap-2 flex items-center hover:bg-red-500/10 hover:text-red-500 transition-all group cursor-pointer border border-green-500/20 hover:border-red-500/30 shrink-0"
+                                                    >
+                                                        {disconnecting ? (
+                                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                <UserCheck className="h-5 w-5 group-hover:hidden" />
+                                                                <UserX className="h-5 w-5 hidden group-hover:block text-red-500" />
+                                                                <span className="group-hover:hidden">Connected</span>
+                                                                <span className="hidden group-hover:inline text-red-500">Remove</span>
+                                                            </>
+                                                        )}
                                                     </button>
-                                                    <button onClick={() => router.push("/dashboard/messages")} className="flex-1 md:flex-none px-6 py-2.5 bg-background border border-border text-foreground font-bold rounded-lg text-sm hover:bg-surface transition-all justify-center gap-2 flex items-center">
+                                                    <button onClick={() => router.push("/dashboard/messages")} className="flex-1 md:flex-none px-6 py-2.5 bg-background border border-border text-foreground font-bold rounded-lg text-sm hover:bg-surface transition-all justify-center gap-2 flex items-center cursor-pointer shrink-0">
                                                         <Mail className="h-5 w-5" /> Message
                                                     </button>
                                                 </>
@@ -529,14 +560,15 @@ export default function MemberProfilePage() {
                         {/* Modal Body */}
                         <div className="p-8 flex flex-col gap-6 bg-background">
                             <div className="flex flex-col gap-3">
-                                <label className="text-[15px] font-bold text-foreground" htmlFor="connect-msg">
-                                    Add a personalized message
+                                <label className="text-[15px] font-bold text-foreground flex items-center gap-1" htmlFor="connect-msg">
+                                    Add a personalized message <span className="text-red-500 font-bold">*</span>
                                 </label>
                                 <textarea
                                     id="connect-msg"
                                     rows={4}
+                                    required
                                     className="w-full p-5 bg-surface border border-border rounded-2xl text-foreground placeholder:text-tatt-gray text-[15px] focus:ring-2 focus:ring-tatt-lime outline-none transition-all resize-none shadow-inner"
-                                    placeholder={`Hi ${member.firstName}, I'd love to connect...`}
+                                    placeholder={`Hi ${member.firstName}, I'd love to connect... (Required)`}
                                     value={connectMessage}
                                     onChange={(e) => { setConnectMessage(e.target.value); setSendError(null); }}
                                     maxLength={500}
@@ -551,8 +583,8 @@ export default function MemberProfilePage() {
                             <div className="flex flex-col sm:flex-row gap-4 mt-2">
                                 <button
                                     onClick={handleSendInvite}
-                                    disabled={sending || connectMessage.trim().length < 20}
-                                    className="flex-1 flex items-center justify-center py-4 bg-tatt-lime text-tatt-black text-[13px] font-black rounded-xl uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={sending || !connectMessage.trim()}
+                                    className="flex-1 flex items-center justify-center py-4 bg-tatt-lime text-tatt-black text-[13px] font-black rounded-xl uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                     Send Invitation

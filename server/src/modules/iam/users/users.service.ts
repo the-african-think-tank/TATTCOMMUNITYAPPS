@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../entities/user.entity';
 import { SystemRole, CommunityTier, AccountFlags } from '../enums/roles.enum';
@@ -6,7 +6,9 @@ import { Op } from 'sequelize';
 import { Chapter } from '../../chapters/entities/chapter.entity';
 import { ProfessionalInterest } from '../../interests/entities/interest.entity';
 import { CommunityIndustry } from '../../industries/entities/industry.entity';
-import { UpdateProfileDto } from './dto/users.dto';
+import { UpdateProfileDto, CreateUserWithPasswordDto } from './dto/users.dto';
+import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -182,6 +184,52 @@ export class UsersService {
             activeAdmins,
             pendingApprovals,
             regionalChapters,
+        };
+    }
+
+    async createWithPassword(dto: CreateUserWithPasswordDto) {
+        const existingEmail = await this.userRepository.findOne({ where: { email: dto.email } });
+        if (existingEmail) {
+            throw new ConflictException('A user with this email already exists.');
+        }
+
+        const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+            password += characters.charAt(crypto.randomInt(0, characters.length));
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        const user = await this.userRepository.create({
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            email: dto.email,
+            phoneNumber: dto.phoneNumber || null,
+            professionTitle: dto.professionTitle || null,
+            location: dto.location || null,
+            chapterId: dto.chapterId || null,
+            password: hashedPassword,
+            systemRole: dto.systemRole ?? SystemRole.COMMUNITY_MEMBER,
+            communityTier: dto.communityTier ?? CommunityTier.FREE,
+            isActive: true,
+            isApproved: true,
+            passwordChangedAt: new Date(),
+        });
+
+        return {
+            message: 'User created successfully',
+            credentials: {
+                email: user.email,
+                password,
+            },
+            user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                systemRole: user.systemRole,
+                communityTier: user.communityTier,
+            }
         };
     }
 }

@@ -202,7 +202,7 @@ export default function AdminDashboardOverview() {
 
                     <div className="space-y-4">
                         {[
-                            { label: "Free", value: subscriberBreakdown.freeTier, color: "bg-tatt-gray/20 border border-border/10" },
+                            { label: "Sankofa", value: subscriberBreakdown.freeTier, color: "bg-tatt-gray/20 border border-border/10" },
                             { label: "Ubuntu", value: subscriberBreakdown.ubuntuTier, color: "bg-tatt-lime/10" },
                             { label: "Imani", value: subscriberBreakdown.imaniTier, color: "bg-tatt-lime/40" },
                             { label: "Kiongozi", value: subscriberBreakdown.kiongoziTier, color: "bg-tatt-lime shadow-sm shadow-tatt-lime/20" }

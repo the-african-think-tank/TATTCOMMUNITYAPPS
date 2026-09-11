@@ -353,7 +353,7 @@ export default function DashboardPage() {
                     {/* Upcoming Events */}
                     <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
                         <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-bold text-foreground">Upcoming Gatherings</h4>
+                            <h4 className="font-bold text-foreground">Upcoming Events</h4>
                             <Link href="/dashboard/events" className="text-[10px] font-black text-tatt-lime hover:underline uppercase">
                                 View All
                             </Link>

@@ -6,12 +6,15 @@ import {
     ShieldCheck, MessageSquare, AlertCircle, Trash2, CheckCircle2,
     Ban, ExternalLink, RefreshCcw, Zap, TrendingUp, Calendar, Clock,
     Megaphone, Rocket, X, Loader2, Search, Settings, Pin, MoreVertical, Image as ImageIcon,
-    Plus, Heart, ChevronUp, ChevronDown, Share2
+    Plus, Heart, ChevronUp, ChevronDown, Share2, Pencil
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
 import { formatTimeAgo } from "@/utils/date";
 import { useAuth } from "@/context/auth-context";
+import { AppModal } from "@/components/modals/app-modal";
+import { CreatePostModal } from "@/components/feed/create-post-modal";
+import { PostCard } from "@/components/feed/post-card";
 
 export default function CommunityFeedPage() {
     const { user } = useAuth();
@@ -38,17 +41,7 @@ export default function CommunityFeedPage() {
     const [isRotating, setIsRotating] = useState(false);
 
     // Post Creation State
-    const [adminPostContent, setAdminPostContent] = useState("");
-    const [adminPostType, setAdminPostType] = useState<"GENERAL" | "ANNOUNCEMENT" | "EVENT" | "RESOURCE" | "JOB">("ANNOUNCEMENT");
-    const [isPosting, setIsPosting] = useState(false);
-
-    const ADMIN_POST_TYPES: { id: "GENERAL" | "ANNOUNCEMENT" | "EVENT" | "RESOURCE" | "JOB"; label: string; icon: any }[] = [
-        { id: "ANNOUNCEMENT", label: "Announcement", icon: AlertCircle },
-        { id: "GENERAL", label: "News", icon: Megaphone },
-        { id: "EVENT", label: "Event", icon: Calendar },
-        { id: "RESOURCE", label: "Resource", icon: TrendingUp },
-        { id: "JOB", label: "Job Post", icon: Rocket },
-    ];
+    const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -88,43 +81,6 @@ export default function CommunityFeedPage() {
         setRefreshing(true);
         await fetchData();
         setRefreshing(false);
-    };
-
-    const handlePostAsAdmin = async () => {
-        if (!adminPostContent.trim()) {
-            toast.error("Post content cannot be empty.");
-            return;
-        }
-        setIsPosting(true);
-        try {
-            const res = await api.post("/feed", {
-                content: adminPostContent,
-                type: adminPostType,
-                isPremium: false,
-                contentFormat: "PLAIN"
-            });
-            toast.success("Admin post published successfully.");
-            setAdminPostContent("");
-            // Ensure the new post has author information, unique ID, and timestamp for immediate UI consistency
-            const finalPost = {
-                ...res.data,
-                id: res.data?.id || `admin-post-${Date.now()}`,
-                authorId: res.data?.authorId || user?.id,
-                createdAt: res.data?.createdAt || new Date().toISOString(),
-                author: res.data?.author || {
-                    id: user?.id,
-                    firstName: user?.firstName || "TATT",
-                    lastName: user?.lastName || "Admin",
-                    profilePicture: user?.profilePicture || null,
-                    systemRole: user?.systemRole
-                }
-            };
-            setLiveFeed(prev => [finalPost, ...prev]);
-        } catch (error) {
-            toast.error("Failed to publish post.");
-        } finally {
-            setIsPosting(false);
-        }
     };
 
     const handleReportAction = async (reportId: string, action: 'RESOLVE' | 'DISMISS') => {
@@ -235,48 +191,24 @@ export default function CommunityFeedPage() {
             <div className="p-4 sm:p-8 xl:p-10 grid grid-cols-12 gap-8 max-w-[1920px] mx-auto">
                 <div className="col-span-12 lg:col-span-8 flex flex-col space-y-8">
                     
-                    {/* Admin Post Creation */}
-                    <div className="bg-surface rounded-xl shadow-sm border border-border p-6">
-                        <div className="flex flex-col sm:flex-row items-start gap-4">
+                    {/* Admin Post Creation Trigger */}
+                    <div className="bg-surface rounded-xl shadow-sm border border-border p-5">
+                        <div className="flex items-center gap-4">
                             <div className="w-10 h-10 bg-tatt-lime rounded-full flex items-center justify-center shrink-0">
                                 <ShieldCheck className="text-tatt-black size-5" />
                             </div>
-                            <div className="flex-1 w-full">
-                                <div className="text-[10px] tracking-[0.15em] uppercase font-bold text-tatt-lime mb-2">Create Community Post</div>
-                                <textarea 
-                                    className="w-full bg-background border border-border rounded-xl p-4 text-sm focus:ring-2 focus:ring-tatt-lime/20 focus:outline-none min-h-[100px] text-foreground" 
-                                    placeholder={
-                                        adminPostType === "ANNOUNCEMENT" ? "Write an official TATT announcement to the community..." :
-                                        adminPostType === "EVENT" ? "Describe the event, date, location and how members can participate..." :
-                                        adminPostType === "RESOURCE" ? "Share a strategic resource, whitepaper or guide with the community..." :
-                                        adminPostType === "JOB" ? "Describe the job opportunity, company, role and how to apply..." :
-                                        "Write a community update, news or general insight..."
-                                    }
-                                    value={adminPostContent}
-                                    onChange={e => setAdminPostContent(e.target.value)}
-                                ></textarea>
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 pt-4 border-t border-border gap-4">
-                                    <div className="flex flex-wrap gap-2">
-                                        {ADMIN_POST_TYPES.map(({ id, label, icon: Icon }) => (
-                                            <button
-                                                key={id}
-                                                onClick={() => setAdminPostType(id)}
-                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${adminPostType === id ? "border-tatt-lime text-tatt-lime bg-tatt-lime/10" : "border-border hover:bg-black/5"}`}
-                                            >
-                                                <Icon className="size-4" />
-                                                <span className="text-[10px] tracking-[0.15em] uppercase font-bold">{label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <button 
-                                        onClick={handlePostAsAdmin}
-                                        disabled={isPosting}
-                                        className="bg-tatt-lime text-tatt-black px-6 py-2 rounded-lg font-bold text-sm shadow-md active:scale-95 transition-all disabled:opacity-50 w-full sm:w-auto"
-                                    >
-                                        {isPosting ? "Posting..." : "Post"}
-                                    </button>
-                                </div>
-                            </div>
+                            <button
+                                onClick={() => setIsCreatePostModalOpen(true)}
+                                className="flex-1 text-left bg-background hover:bg-black/5 border border-border rounded-xl px-4 py-3 text-tatt-gray transition-colors cursor-pointer text-sm font-medium"
+                            >
+                                Write an official announcement, event, resource, or strategic post...
+                            </button>
+                            <button 
+                                onClick={() => setIsCreatePostModalOpen(true)}
+                                className="bg-tatt-lime text-tatt-black px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-md active:scale-95 transition-all cursor-pointer hidden sm:block"
+                            >
+                                Create Post
+                            </button>
                         </div>
                     </div>
 
@@ -306,57 +238,8 @@ export default function CommunityFeedPage() {
                                 <p className="text-tatt-gray text-sm italic">Feed is dormant.</p>
                             </div>
                         )}
-                        {liveFeed.map(post => (
-                            <article key={post.id} className="bg-surface rounded-xl shadow-sm border border-border relative overflow-hidden">
-                                {post.type === "ANNOUNCEMENT" && (
-                                    <div className="bg-tatt-lime/10 px-6 py-2 flex items-center justify-between border-b border-tatt-lime/20">
-                                        <div className="flex items-center gap-2 text-tatt-lime-dark font-bold">
-                                            <Pin className="size-4" />
-                                            <span className="text-[10px] tracking-[0.15em] uppercase">Pinned by Admin</span>
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-background border border-border overflow-hidden">
-                                                {post.author?.profilePicture ? (
-                                                    <img src={post.author.profilePicture} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-tatt-lime text-tatt-black font-bold">
-                                                        {post.author?.firstName?.[0] || 'A'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-sm tracking-tight">{post.author?.firstName || "Unknown"} {post.author?.lastName || "User"}</p>
-                                                <p className="text-[10px] tracking-[0.15em] uppercase font-bold text-tatt-gray flex gap-2">
-                                                    <span>
-                                                        {post.createdAt ? formatTimeAgo(post.createdAt) : "just now"}
-                                                    </span>
-                                                    {post.author?.chapterId && <span>• {post.author.chapter?.name || "Chapter Member"}</span>}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {canModerate && (
-                                            <div className="flex gap-1">
-                                                <button onClick={() => handleDeletePost(post.id)} className="p-2 hover:bg-red-50 text-tatt-gray hover:text-red-500 transition-all rounded-lg" title="Delete Post">
-                                                    <Trash2 className="size-4" />
-                                                </button>
-                                                <button onClick={() => handleShadowBanPost(post.id, post.isShadowBanned)} className={`p-2 transition-all rounded-lg ${post.isShadowBanned ? 'bg-orange-50 text-orange-500' : 'hover:bg-tatt-lime/10 text-tatt-gray hover:text-tatt-lime'}`} title={post.isShadowBanned ? "Restore Reach" : "Shadow Ban Post"}>
-                                                    <Zap className="size-4" />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-foreground leading-relaxed text-sm mb-6 whitespace-pre-wrap">
-                                        {post.content}
-                                    </div>
-
-                                    {/* Interactive Actions & Comments */}
-                                    <AdminPostCardActions post={post} currentUser={user} canModerate={canModerate} onDeletePost={handleDeletePost} onShadowBanPost={handleShadowBanPost} />
-                                </div>
-                            </article>
+                        {liveFeed.map((post, index) => (
+                            <PostCard key={post.id || `feed-item-${index}`} post={post} onPostDeleted={fetchData} allTopics={topics} />
                         ))}
 
                     </div>
@@ -535,297 +418,19 @@ export default function CommunityFeedPage() {
                     </div>
                 </div>
             )}
+
+            {/* Create Post Modal */}
+            <CreatePostModal
+                isOpen={isCreatePostModalOpen}
+                onClose={() => setIsCreatePostModalOpen(false)}
+                onPostCreated={(newPost) => {
+                    if (newPost) {
+                        setLiveFeed(prev => [newPost, ...prev]);
+                    }
+                    fetchData();
+                }}
+                topics={topics}
+            />
         </div>
     );
 }
-
-function AdminPostCardActions({ post, currentUser }: { post: any; currentUser?: any; canModerate: boolean; onDeletePost: any; onShadowBanPost: any }) {
-    const postAuthorId = post.authorId || post.author?.id;
-    const isOwnPost = Boolean(currentUser?.id && postAuthorId && currentUser.id === postAuthorId);
-    const commentInputRef = useRef<HTMLInputElement>(null);
-    const [liked, setLiked] = useState(!!post.isLikedByMe);
-    const [likesCount, setLikesCount] = useState(post.likesCount ?? post._count?.likes ?? 0);
-    const [commentsCount, setCommentsCount] = useState(post.commentsCount ?? post._count?.comments ?? 0);
-    const [liking, setLiking] = useState(false);
-    const [showComments, setShowComments] = useState(false);
-    const [comments, setComments] = useState<any[]>([]);
-    const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
-    const [commentsLoading, setCommentsLoading] = useState(false);
-
-    const handleStartReply = (commentId: string, authorName: string) => {
-        setReplyingTo({ id: commentId, authorName });
-        setTimeout(() => {
-            commentInputRef.current?.focus();
-        }, 50);
-    };
-    const [newComment, setNewComment] = useState("");
-    const [submittingComment, setSubmittingComment] = useState(false);
-
-    const handleLikeClick = async () => {
-        if (liking || isOwnPost) return;
-        setLiking(true);
-        try {
-            await api.post(`/feed/${post.id}/like`);
-            setLiked(!liked);
-            setLikesCount((prev: number) => (liked ? Math.max(0, prev - 1) : prev + 1));
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || "Failed to update reaction.");
-        } finally {
-            setLiking(false);
-        }
-    };
-
-    const loadComments = async () => {
-        setCommentsLoading(true);
-        try {
-            const { data } = await api.get<{ data: any[] }>(`/feed/${post.id}/comments`, { params: { limit: 20 } });
-            setComments(data.data ?? []);
-        } catch {
-            setComments([]);
-        } finally {
-            setCommentsLoading(false);
-        }
-    };
-
-    const handleToggleComments = () => {
-        const next = !showComments;
-        setShowComments(next);
-        if (next && comments.length === 0) {
-            loadComments();
-        }
-    };
-
-    const handleSubmitComment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const trimmed = newComment.trim();
-        if (!trimmed || submittingComment) return;
-
-        setSubmittingComment(true);
-        try {
-            await api.post(`/feed/${post.id}/comments`, {
-                content: trimmed,
-                parentId: replyingTo ? replyingTo.id : undefined,
-            });
-            setNewComment("");
-            setReplyingTo(null);
-            setCommentsCount((prev: number) => prev + 1);
-            toast.success(replyingTo ? "Reply posted." : "Comment posted.");
-            loadComments();
-        } catch {
-            toast.error("Failed to post comment.");
-        } finally {
-            setSubmittingComment(false);
-        }
-    };
-
-    return (
-        <div className="pt-4 border-t border-border -mx-6 -mb-6 px-6 pb-6 bg-background rounded-b-xl">
-            <div className="flex gap-6 items-center">
-                <button
-                    type="button"
-                    onClick={handleLikeClick}
-                    disabled={liking || isOwnPost}
-                    title={isOwnPost ? "You cannot like your own post" : undefined}
-                    className={`text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 transition-colors ${
-                        isOwnPost
-                            ? "opacity-50 cursor-not-allowed text-tatt-gray"
-                            : liked
-                            ? "text-tatt-lime"
-                            : "text-tatt-gray hover:text-tatt-lime"
-                    }`}
-                >
-                    {liking ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                        <Heart className={`size-3.5 ${liked ? "fill-current" : ""}`} />
-                    )}
-                    {likesCount} {likesCount === 1 ? "Reaction" : "Reactions"}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={handleToggleComments}
-                    className="text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray hover:text-tatt-lime transition-colors cursor-pointer"
-                >
-                    <MessageSquare className="size-3.5" />
-                    {commentsCount} {commentsCount === 1 ? "Comment" : "Comments"}
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => {
-                        const shareUrl = `${window.location.origin}/share/${post.id}`;
-                        if (navigator.share) {
-                            navigator.share({ title: post.title || "TATT Strategic Insight", url: shareUrl }).catch(() => {
-                                navigator.clipboard.writeText(shareUrl);
-                                toast.success("Share link copied!");
-                            });
-                        } else {
-                            navigator.clipboard.writeText(shareUrl);
-                            toast.success("Share link copied!");
-                        }
-                    }}
-                    className="text-[11px] tracking-[0.15em] uppercase font-bold flex items-center gap-1.5 text-tatt-gray hover:text-tatt-lime transition-colors cursor-pointer"
-                >
-                    <Share2 className="size-3.5" />
-                    Share
-                </button>
-            </div>
-
-            {showComments && (
-                <div className="mt-4 pt-4 border-t border-border space-y-4">
-                    {/* Header with Close option */}
-                    <div className="flex items-center justify-between pb-1 border-b border-border">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-tatt-gray">
-                            {commentsCount} {commentsCount === 1 ? "Comment" : "Comments"}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setShowComments(false);
-                                setReplyingTo(null);
-                            }}
-                            className="text-[11px] font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 transition-colors"
-                        >
-                            <ChevronUp className="size-3.5" /> Close Comments
-                        </button>
-                    </div>
-
-                    {/* Top Comment Input */}
-                    {!replyingTo && (
-                        <form onSubmit={handleSubmitComment} className="flex gap-2">
-                            <div className="flex-1 relative">
-                                <input
-                                    ref={commentInputRef}
-                                    type="text"
-                                    placeholder="Write an admin comment..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    className="w-full bg-black/5 border border-border rounded-xl pl-4 pr-16 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-tatt-lime text-foreground"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!newComment.trim() || submittingComment}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-black font-bold text-xs px-3 py-1.5 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all flex items-center gap-1"
-                                >
-                                    {submittingComment ? (
-                                        <Loader2 className="size-3.5 animate-spin" />
-                                    ) : (
-                                        <Rocket className="size-3.5" />
-                                    )}
-                                    Comment
-                                </button>
-                            </div>
-                        </form>
-                    )}
-
-                    {commentsLoading ? (
-                        <div className="flex justify-center py-4">
-                            <Loader2 className="size-5 animate-spin text-tatt-lime" />
-                        </div>
-                    ) : (
-                        <ul className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
-                            {comments.length === 0 && (
-                                <p className="text-xs text-tatt-gray italic">No comments yet. Be the first to comment!</p>
-                            )}
-                            {comments.map((c) => (
-                                <li key={c.id} className="space-y-2 bg-surface p-3 rounded-lg border border-border">
-                                    <div className="flex gap-3">
-                                        <div className="shrink-0 size-7 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-xs font-bold">
-                                            {c.author?.firstName?.charAt(0) || "?"}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-bold text-foreground">
-                                                {c.author?.firstName} {c.author?.lastName}
-                                            </p>
-                                            <p className="text-xs text-foreground/90 break-words mt-0.5">{c.content}</p>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <span className="text-[10px] text-tatt-gray">
-                                                    {c.createdAt ? formatTimeAgo(c.createdAt) : "just now"}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (replyingTo?.id === c.id) {
-                                                            setReplyingTo(null);
-                                                            setNewComment("");
-                                                        } else {
-                                                            handleStartReply(c.id, `${c.author?.firstName || "User"} ${c.author?.lastName || ""}`.trim());
-                                                        }
-                                                    }}
-                                                    className="text-[10px] font-bold text-tatt-lime hover:underline uppercase tracking-wider"
-                                                >
-                                                    {replyingTo?.id === c.id ? "Cancel Reply" : "Reply"}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Inline Reply Input under comment */}
-                                    {replyingTo?.id === c.id && (
-                                        <div className="mt-2 ml-7 border-l-2 border-tatt-lime pl-3">
-                                            <form onSubmit={handleSubmitComment} className="flex gap-2 items-center">
-                                                <div className="flex-1 relative">
-                                                    <input
-                                                        ref={commentInputRef}
-                                                        type="text"
-                                                        placeholder={`Reply to @${replyingTo.authorName}...`}
-                                                        value={newComment}
-                                                        onChange={(e) => setNewComment(e.target.value)}
-                                                        className="w-full bg-black/5 border border-tatt-lime/40 rounded-xl pl-4 pr-16 py-2.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
-                                                    />
-                                                    <button
-                                                        type="submit"
-                                                        disabled={!newComment.trim() || submittingComment}
-                                                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-tatt-lime text-black font-bold text-xs px-3 py-1 rounded-lg disabled:opacity-50 hover:brightness-95 transition-all"
-                                                    >
-                                                        Reply
-                                                    </button>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setReplyingTo(null);
-                                                        setNewComment("");
-                                                    }}
-                                                    className="text-tatt-gray hover:text-foreground text-xs font-bold px-1"
-                                                    title="Close reply"
-                                                >
-                                                    <X className="size-4" />
-                                                </button>
-                                            </form>
-                                        </div>
-                                    )}
-
-                                    {/* Nested replies in Admin view */}
-                                    {c.replies && c.replies.length > 0 && (
-                                        <ul className="pl-6 space-y-2 border-l-2 border-border ml-2 pt-1">
-                                            {c.replies.map((reply: any) => (
-                                                <li key={reply.id} className="flex gap-2">
-                                                    <div className="shrink-0 size-6 rounded-full bg-tatt-lime/20 flex items-center justify-center text-tatt-lime text-[10px] font-bold">
-                                                        {reply.author?.firstName?.charAt(0) || "?"}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[11px] font-bold text-foreground">
-                                                            {reply.author?.firstName} {reply.author?.lastName}
-                                                        </p>
-                                                        <p className="text-xs text-foreground/90 break-words">{reply.content}</p>
-                                                        <span className="text-[10px] text-tatt-gray">
-                                                            {reply.createdAt ? formatTimeAgo(reply.createdAt) : "just now"}
-                                                        </span>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
-
-

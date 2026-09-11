@@ -130,3 +130,30 @@ export class UpdateBusinessStatusDto {
     @IsOptional()
     adminNotes?: string;
 }
+
+export class UpdateBusinessAdminDto {
+    @ApiProperty({ example: 'https://link-to-logo.png' })
+    @IsString()
+    @IsOptional()
+    logoUrl?: string;
+
+    @ApiProperty({ example: 'Onyx Collective' })
+    @IsString()
+    @IsOptional()
+    name?: string;
+
+    @ApiProperty({ example: 'Architecture & Design' })
+    @IsString()
+    @IsOptional()
+    category?: string;
+
+    @ApiProperty({ example: 'https://onyx.com' })
+    @IsString()
+    @IsOptional()
+    website?: string;
+
+    @ApiProperty({ example: 'Nairobi, Kenya' })
+    @IsString()
+    @IsOptional()
+    locationText?: string;
+}

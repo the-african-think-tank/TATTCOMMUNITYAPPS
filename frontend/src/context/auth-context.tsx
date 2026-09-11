@@ -40,6 +40,7 @@ export type User = {
     hasAutoPayEnabled?: boolean;
     subscriptionExpiresAt?: string | Date | null;
     billingCycle?: string | null;
+    pendingTier?: string | null;
     createdAt?: string;
 };
 

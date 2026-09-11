@@ -1,39 +1,67 @@
 "use client";
 
-import { useState, useRef } from "react";
-import api from "@/services/api";
-import Link from "next/link";
-import {
-    Heart,
-    MessageCircle,
-    Lock,
-    Send,
-    Loader2,
-    MoreVertical,
-    Trash2,
-    AlertCircle
-} from "lucide-react";
+import { AppModal } from "@/components/modals/app-modal";
 import { useAuth } from "@/context/auth-context";
+import api from "@/services/api";
+import {
+    AlertCircle,
+    Briefcase,
+    Calendar,
+    ChevronDown,
+    ChevronUp,
+    Heart,
+    Image as ImageIcon,
+    Link2,
+    Loader2,
+    Lock,
+    MapPin,
+    MessageCircle,
+    MoreHorizontal,
+    MoreVertical,
+    Paperclip,
+    Pencil,
+    Trash2,
+    X
+} from "lucide-react";
+import Link from "next/link";
+import { useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 import type { FeedPost } from "@/types/feed";
 
 type FeedPostCardProps = {
     post: FeedPost;
-    onLikeToggle: () => void;
-    onCommentAdded: () => void;
+    onLikeToggle?: () => void;
+    onCommentAdded?: () => void;
     onDelete?: () => void;
+    onPostUpdated?: () => void;
 };
 
-import { formatTimeAgo } from "@/utils/date";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
+import { formatForDateTimeLocal, formatTimeAgo } from "@/utils/date";
 
 function formatDate(iso: string) {
     return formatTimeAgo(iso);
 }
 
-export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: FeedPostCardProps) {
+export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onPostUpdated }: FeedPostCardProps) {
     const { user } = useAuth();
-    const isStaff = user?.systemRole !== "COMMUNITY_MEMBER";
+    const isStaff = Boolean(user?.systemRole && user.systemRole !== "COMMUNITY_MEMBER");
     const isProfileComplete = isStaff || user?.flags?.includes("PROFILE_COMPLETED");
+
+    const postAuthorId = post.author?.id || (post as any).authorId;
+    const isPostAuthor = Boolean(user?.id && postAuthorId && String(postAuthorId) === String(user.id));
+    const canManagePost = isPostAuthor || isStaff;
+
+    const canEditComment = (commentAuthor: any) => {
+        const authorId = commentAuthor?.id || commentAuthor;
+        return Boolean(user?.id && authorId && String(authorId) === String(user.id)) || isStaff;
+    };
+
+    const canDeleteComment = (commentAuthor: any) => {
+        const authorId = commentAuthor?.id || commentAuthor;
+        return Boolean(user?.id && authorId && String(authorId) === String(user.id)) || isPostAuthor || isStaff;
+    };
 
     const [liking, setLiking] = useState(false);
 
@@ -42,9 +70,10 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
     const [comments, setComments] = useState<Array<{
         id: string;
         content: string;
-        author: { firstName: string; lastName: string; profilePicture: string | null };
+        author: { id?: string; firstName: string; lastName: string; profilePicture?: string | null };
         createdAt: string;
-        replies?: Array<{ id: string; content: string; author: { firstName: string; lastName: string }; createdAt: string }>;
+        updatedAt?: string;
+        replies?: Array<{ id: string; content: string; author: { id?: string; firstName: string; lastName: string }; createdAt: string; updatedAt?: string }> | undefined;
     }>>([]);
     const commentInputRef = useRef<HTMLInputElement>(null);
     const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string } | null>(null);
@@ -52,6 +81,26 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [submittingComment, setSubmittingComment] = useState(false);
+
+    // Post edit state
+    const [isEditingPost, setIsEditingPost] = useState(false);
+    const [editPostTitle, setEditPostTitle] = useState(post.title ?? "");
+    const [editPostContent, setEditPostContent] = useState(post.content ?? "");
+    const [editJobCompany, setEditJobCompany] = useState(post.jobCompany || "");
+    const [editJobLocation, setEditJobLocation] = useState(post.jobLocation || "");
+    const [editJobLink, setEditJobLink] = useState(post.jobLink || "");
+    const [editEventType, setEditEventType] = useState(post.eventType || "WEBINAR");
+    const [editEventDate, setEditEventDate] = useState(formatForDateTimeLocal(post.eventDate));
+    const [editEventUrl, setEditEventUrl] = useState(post.eventUrl || "");
+    const [editIsPremium, setEditIsPremium] = useState(post.isPremium || false);
+    const [editMediaUrls, setEditMediaUrls] = useState<string[]>(post.mediaUrls || []);
+    const [savingPost, setSavingPost] = useState(false);
+
+    // Comment edit state
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+    const [editCommentContent, setEditCommentContent] = useState("");
+    const [savingComment, setSavingComment] = useState(false);
+    const [activeCommentMenuId, setActiveCommentMenuId] = useState<string | null>(null);
 
     const toggleRepliesVisibility = (commentId: string) => {
         setCollapsedReplies(prev => ({
@@ -66,10 +115,6 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
             commentInputRef.current?.focus();
         }, 50);
     };
-    const [submittingComment, setSubmittingComment] = useState(false);
-
-    const authorName = `${post.author.firstName} ${post.author.lastName}`;
-    const authorInitials = `${post.author.firstName.charAt(0)}${post.author.lastName.charAt(0)}`;
 
     const loadComments = async () => {
         setCommentsLoading(true);
@@ -88,7 +133,7 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
         setLiking(true);
         try {
             await api.post(`/feed/${post.id}/like`);
-            onLikeToggle();
+            onLikeToggle?.();
         } finally {
             setLiking(false);
         }
@@ -109,28 +154,167 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
             });
             setNewComment("");
             setReplyingTo(null);
-            onCommentAdded();
+            onCommentAdded?.();
             loadComments();
         } finally {
             setSubmittingComment(false);
         }
     };
+
     const handleDelete = async () => {
         if (!window.confirm("Are you sure you want to delete this post?")) return;
         try {
             await api.delete(`/feed/${post.id}`);
+            toast.success("Post deleted");
             if (onDelete) onDelete();
-        } catch {
-            // handle error
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to delete post.");
         }
         setShowOptions(false);
     };
+
+    const handleStartEditPost = () => {
+        setEditPostTitle(post.title || "");
+        setEditPostContent(post.content || "");
+        setEditJobCompany(post.jobCompany || "");
+        setEditJobLocation(post.jobLocation || "");
+        setEditJobLink(post.jobLink || "");
+        setEditEventType(post.eventType || "WEBINAR");
+        setEditEventDate(formatForDateTimeLocal(post.eventDate));
+        setEditEventUrl(post.eventUrl || "");
+        setEditIsPremium(post.isPremium || false);
+        setEditMediaUrls(post.mediaUrls || []);
+        setIsEditingPost(true);
+    };
+
+    const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+
+        const uploadFormData = new FormData();
+        files.forEach(f => uploadFormData.append("files", f));
+
+        try {
+            toast.loading("Uploading image...", { id: "edit-upload" });
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
+            const uploadedUrls = response.data.files?.map((f: any) => f.url) || [];
+            setEditMediaUrls(prev => [...prev, ...uploadedUrls]);
+            toast.success("Image uploaded!", { id: "edit-upload" });
+        } catch (err) {
+            toast.error("Upload failed.", { id: "edit-upload" });
+        }
+    };
+
+    const removeEditMediaUrl = (index: number) => {
+        setEditMediaUrls(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSavePostEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editPostContent.trim()) return;
+        setSavingPost(true);
+        try {
+            const res = await api.patch(`/feed/${post.id}`, {
+                title: editPostTitle.trim() || undefined,
+                content: editPostContent.trim(),
+                mediaUrls: editMediaUrls,
+                isPremium: editIsPremium,
+                ...(post.type === "JOB" && {
+                    jobCompany: editJobCompany,
+                    jobLocation: editJobLocation,
+                    jobLink: editJobLink,
+                }),
+                ...(post.type === "EVENT" && {
+                    eventType: editEventType,
+                    eventDate: editEventDate,
+                    eventUrl: editEventUrl,
+                }),
+            });
+            const updated = res.data;
+            if (updated) {
+                post.title = updated.title;
+                post.content = updated.content;
+                post.mediaUrls = updated.mediaUrls;
+                post.isPremium = updated.isPremium;
+                post.jobCompany = updated.jobCompany;
+                post.jobLocation = updated.jobLocation;
+                post.jobLink = updated.jobLink;
+                post.eventType = updated.eventType;
+                post.eventDate = updated.eventDate;
+                post.eventUrl = updated.eventUrl;
+            }
+            toast.success("Post updated successfully");
+            setIsEditingPost(false);
+            if (onPostUpdated) onPostUpdated();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to update post.");
+        } finally {
+            setSavingPost(false);
+        }
+    };
+
+    const handleStartEditComment = (commentId: string, currentContent: string) => {
+        setEditingCommentId(commentId);
+        setEditCommentContent(currentContent);
+    };
+
+    const handleSaveEditComment = async (commentId: string) => {
+        if (!editCommentContent.trim()) return;
+        setSavingComment(true);
+        try {
+            await api.patch(`/feed/comment/${commentId}`, {
+                content: editCommentContent.trim(),
+            });
+            setComments(prev => prev.map(c => {
+                if (c.id === commentId) {
+                    return { ...c, content: editCommentContent.trim(), updatedAt: new Date().toISOString() };
+                }
+                if (c.replies) {
+                    return {
+                        ...c,
+                        replies: c.replies.map(r => r.id === commentId ? { ...r, content: editCommentContent.trim(), updatedAt: new Date().toISOString() } : r)
+                    };
+                }
+                return c;
+            }));
+            toast.success("Comment updated");
+            setEditingCommentId(null);
+            setEditCommentContent("");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to update comment.");
+        } finally {
+            setSavingComment(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        if (!window.confirm("Are you sure you want to delete this comment?")) return;
+        try {
+            await api.delete(`/feed/comment/${commentId}`);
+            setComments(prev => prev
+                .filter(c => c.id !== commentId)
+                .map(c => {
+                    if (!c.replies) return c;
+                    return {
+                        ...c,
+                        replies: c.replies.filter(r => r.id !== commentId)
+                    };
+                })
+            );
+            toast.success("Comment deleted");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to delete comment.");
+        }
+    };
+
     const handleToggleComments = () => {
         const next = !showComments;
         setShowComments(next);
         if (next) loadComments();
     };
 
+    const authorName = `${post.author.firstName} ${post.author.lastName}`;
+    const authorInitials = `${post.author.firstName?.charAt(0) || ''}${post.author.lastName?.charAt(0) || ''}`;
     const isLocked = post.isPremiumLocked;
 
     return (
@@ -165,25 +349,28 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
                         )}
                         <span className="text-tatt-gray text-xs ml-auto shrink-0">{formatDate(post.createdAt)}</span>
                         
-                        <div className="relative ml-2">
-                            <button
-                                onClick={() => setShowOptions(!showOptions)}
-                                className="p-1 hover:bg-background rounded-full transition-colors"
-                            >
-                                <MoreVertical className="h-4 w-4 text-tatt-gray" />
-                            </button>
-                            {showOptions && (
-                                <div className="absolute right-0 mt-1 w-32 bg-background border border-border rounded-lg shadow-lg z-10 py-1">
-                                    <button
-                                        onClick={handleDelete}
-                                        className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                        Delete
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        {canManagePost && (
+                            <ActionDropdown
+                                ariaLabel="Post Actions"
+                                trigger={<MoreVertical className="h-4 w-4" />}
+                                triggerClassName="p-1.5 hover:bg-surface border border-transparent hover:border-border rounded-lg transition-colors cursor-pointer text-tatt-gray hover:text-foreground outline-none"
+                                items={[
+                                    {
+                                        key: "edit",
+                                        label: "Edit Post",
+                                        icon: <Pencil className="h-3.5 w-3.5 text-tatt-lime" />,
+                                        onPress: handleStartEditPost
+                                    },
+                                    {
+                                        key: "delete",
+                                        label: "Delete Post",
+                                        icon: <Trash2 className="h-3.5 w-3.5" />,
+                                        isDanger: true,
+                                        onPress: handleDelete
+                                    }
+                                ]}
+                            />
+                        )}
                     </div>
                     {post.isPremium && (
                         <span className="inline-flex items-center gap-1 mt-1 text-xs font-bold text-tatt-lime">
@@ -337,49 +524,103 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
                                                     {c.author.firstName?.charAt(0) || "?"}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs sm:text-sm font-bold text-foreground">
-                                                        {c.author.firstName} {c.author.lastName}
-                                                    </p>
-                                                    <p className="text-xs sm:text-sm text-foreground/90 break-words">{c.content}</p>
-                                                    <div className="flex items-center gap-3 mt-1">
-                                                        <span className="text-[10px] sm:text-xs text-tatt-gray">
-                                                            {formatDate(c.createdAt)}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (replyingTo?.id === c.id) {
-                                                                    setReplyingTo(null);
-                                                                    setNewComment("");
-                                                                } else {
-                                                                    handleStartReply(c.id, `${c.author.firstName} ${c.author.lastName}`);
-                                                                }
-                                                            }}
-                                                            className="text-[11px] font-bold text-tatt-lime hover:underline"
-                                                        >
-                                                            {replyingTo?.id === c.id ? "Cancel Reply" : "Reply"}
-                                                        </button>
-
-                                                        {c.replies && c.replies.length > 0 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleRepliesVisibility(c.id)}
-                                                                className="text-[10px] font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 uppercase tracking-wider"
-                                                            >
-                                                                {collapsedReplies[c.id] ? (
-                                                                    <>
-                                                                        <ChevronDown className="h-3 w-3" />
-                                                                        Show {c.replies.length} {c.replies.length === 1 ? "Reply" : "Replies"}
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <ChevronUp className="h-3 w-3" />
-                                                                        Hide {c.replies.length} {c.replies.length === 1 ? "Reply" : "Replies"}
-                                                                    </>
-                                                                )}
-                                                            </button>
+                                                    <div className="flex justify-between items-start mb-0.5">
+                                                        <p className="text-xs sm:text-sm font-bold text-foreground">
+                                                            {c.author.firstName} {c.author.lastName}
+                                                        </p>
+                                                        {(canEditComment(c.author) || canDeleteComment(c.author)) && (
+                                                            <ActionDropdown
+                                                                ariaLabel="Comment Options"
+                                                                trigger={<MoreHorizontal className="size-4" />}
+                                                                triggerClassName="p-1 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none"
+                                                                items={[
+                                                                    ...(canEditComment(c.author) ? [{
+                                                                        key: "edit",
+                                                                        label: "Edit",
+                                                                        icon: <Pencil className="size-3.5 text-tatt-lime" />,
+                                                                        onPress: () => handleStartEditComment(c.id, c.content)
+                                                                    }] : []),
+                                                                    ...(canDeleteComment(c.author) ? [{
+                                                                        key: "delete",
+                                                                        label: "Delete",
+                                                                        icon: <Trash2 className="size-3.5" />,
+                                                                        isDanger: true,
+                                                                        onPress: () => handleDeleteComment(c.id)
+                                                                    }] : [])
+                                                                ]}
+                                                            />
                                                         )}
                                                     </div>
+
+                                                    {editingCommentId === c.id ? (
+                                                        <div className="mt-2 flex gap-2 items-center">
+                                                            <input
+                                                                type="text"
+                                                                value={editCommentContent}
+                                                                onChange={(e) => setEditCommentContent(e.target.value)}
+                                                                className="flex-1 bg-black/5 border border-tatt-lime/40 rounded-xl px-3 py-1.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
+                                                                autoFocus
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSaveEditComment(c.id)}
+                                                                disabled={savingComment || !editCommentContent.trim()}
+                                                                className="bg-tatt-lime text-tatt-black font-bold text-xs px-3 py-1.5 rounded-lg hover:brightness-95 disabled:opacity-50"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditingCommentId(null)}
+                                                                className="text-tatt-gray hover:text-foreground text-xs font-bold px-1"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-xs sm:text-sm text-foreground/90 break-words">{c.content}</p>
+                                                            <div className="flex items-center gap-3 mt-1">
+                                                                <span className="text-[10px] sm:text-xs text-tatt-gray">
+                                                                    {formatDate(c.createdAt)} {c.updatedAt && c.updatedAt !== c.createdAt && <span className="italic text-tatt-gray/80">(edited)</span>}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (replyingTo?.id === c.id) {
+                                                                            setReplyingTo(null);
+                                                                            setNewComment("");
+                                                                        } else {
+                                                                            handleStartReply(c.id, `${c.author.firstName} ${c.author.lastName}`);
+                                                                        }
+                                                                    }}
+                                                                    className="text-[11px] font-bold text-tatt-lime hover:underline"
+                                                                >
+                                                                    {replyingTo?.id === c.id ? "Cancel Reply" : "Reply"}
+                                                                </button>
+
+                                                                {c.replies && c.replies.length > 0 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleRepliesVisibility(c.id)}
+                                                                        className="text-[10px] font-bold text-tatt-gray hover:text-foreground flex items-center gap-1 uppercase tracking-wider"
+                                                                    >
+                                                                        {collapsedReplies[c.id] ? (
+                                                                            <>
+                                                                                <ChevronDown className="h-3 w-3" />
+                                                                                Show {c.replies.length} {c.replies.length === 1 ? "Reply" : "Replies"}
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <ChevronUp className="h-3 w-3" />
+                                                                                Hide {c.replies.length} {c.replies.length === 1 ? "Reply" : "Replies"}
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -429,13 +670,72 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
                                                                 {reply.author?.firstName?.charAt(0) || "?"}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-bold text-foreground">
-                                                                    {reply.author?.firstName} {reply.author?.lastName}
-                                                                </p>
-                                                                <p className="text-xs text-foreground/90 break-words">{reply.content}</p>
-                                                                <span className="text-[10px] text-tatt-gray">
-                                                                    {formatDate(reply.createdAt)}
-                                                                </span>
+                                                                <div className="flex justify-between items-start mb-0.5">
+                                                                    <p className="text-xs font-bold text-foreground">
+                                                                        {reply.author?.firstName} {reply.author?.lastName}
+                                                                    </p>
+                                                                    {(canEditComment(reply.author) || canDeleteComment(reply.author)) && (
+                                                                        <ActionDropdown
+                                                                            ariaLabel="Reply Options"
+                                                                            trigger={
+                                                                                <button className="p-0.5 rounded-lg text-tatt-gray hover:text-foreground hover:bg-black/5 transition-all cursor-pointer outline-none">
+                                                                                    <MoreHorizontal className="size-3.5" />
+                                                                                </button>
+                                                                            }
+                                                                            items={[
+                                                                                ...(canEditComment(reply.author) ? [{
+                                                                                    key: "edit",
+                                                                                    label: "Edit",
+                                                                                    icon: <Pencil className="size-3 text-tatt-lime" />,
+                                                                                    onPress: () => handleStartEditComment(reply.id, reply.content)
+                                                                                }] : []),
+                                                                                ...(canDeleteComment(reply.author) ? [{
+                                                                                    key: "delete",
+                                                                                    label: "Delete",
+                                                                                    icon: <Trash2 className="size-3" />,
+                                                                                    isDanger: true,
+                                                                                    onPress: () => handleDeleteComment(reply.id)
+                                                                                }] : [])
+                                                                            ]}
+                                                                        />
+                                                                    )}
+                                                                </div>
+
+                                                                {editingCommentId === reply.id ? (
+                                                                    <div className="mt-2 flex gap-2 items-center">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={editCommentContent}
+                                                                            onChange={(e) => setEditCommentContent(e.target.value)}
+                                                                            className="flex-1 bg-black/5 border border-tatt-lime/40 rounded-xl px-3 py-1.5 text-xs focus:ring-1 focus:ring-tatt-lime outline-none text-foreground"
+                                                                            autoFocus
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleSaveEditComment(reply.id)}
+                                                                            disabled={savingComment || !editCommentContent.trim()}
+                                                                            className="bg-tatt-lime text-tatt-black font-bold text-xs px-3 py-1.5 rounded-lg hover:brightness-95 disabled:opacity-50"
+                                                                        >
+                                                                            Save
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setEditingCommentId(null)}
+                                                                            className="text-tatt-gray hover:text-foreground text-xs font-bold px-1"
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        <p className="text-xs text-foreground/90 break-words">{reply.content}</p>
+                                                                        <div className="flex items-center gap-3 mt-1">
+                                                                            <span className="text-[10px] text-tatt-gray">
+                                                                                {formatDate(reply.createdAt)} {reply.updatedAt && reply.updatedAt !== reply.createdAt && <span className="italic text-tatt-gray/80">(edited)</span>}
+                                                                            </span>
+                                                                        </div>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </li>
                                                     ))}
@@ -456,6 +756,196 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete }: F
                     )}
                 </div>
             </div>
+
+            {/* Edit Post Modal */}
+            <AppModal
+                isOpen={isEditingPost}
+                onClose={() => setIsEditingPost(false)}
+                title={`Edit ${post.type} Post`}
+                subtitle={
+                    <span>
+                        Authoring as <span className="text-tatt-lime">{post.author.firstName} {post.author.lastName}</span>
+                    </span>
+                }
+                maxWidth="max-w-4xl"
+            >
+                <form onSubmit={handleSavePostEdit} className="space-y-6">
+                    <input
+                        value={editPostTitle}
+                        onChange={(e) => setEditPostTitle(e.target.value)}
+                        placeholder={post.type === "JOB" ? "Job Position / Role (e.g. Senior Software Engineer)" : "Post Title (Optional)"}
+                        className="w-full bg-transparent border-none text-xl font-bold focus:ring-0 placeholder:text-tatt-gray outline-none text-foreground"
+                    />
+
+                    {/* JOB Fields */}
+                    {post.type === "JOB" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Company Name</label>
+                                <div className="relative">
+                                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        value={editJobCompany}
+                                        onChange={(e) => setEditJobCompany(e.target.value)}
+                                        placeholder="e.g. Google Africa"
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Location</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        value={editJobLocation}
+                                        onChange={(e) => setEditJobLocation(e.target.value)}
+                                        placeholder="e.g. Nairobi, Kenya"
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Job Description Link</label>
+                                <div className="relative">
+                                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        value={editJobLink}
+                                        onChange={(e) => setEditJobLink(e.target.value)}
+                                        placeholder="https://careers.company.com/job/..."
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* EVENT Fields */}
+                    {post.type === "EVENT" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/5 p-4 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Type</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {["WEBINAR","WORKSHOP","CONFERENCE","IN_PERSON","HYBRID"].map(t => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => setEditEventType(t)}
+                                            className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                                                editEventType === t
+                                                    ? "bg-tatt-lime text-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
+                                                    : "bg-white border-border text-tatt-gray hover:border-tatt-lime hover:text-tatt-lime"
+                                            }`}
+                                        >
+                                            {t.replace("_", " ")}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Date &amp; Time</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        type="datetime-local"
+                                        value={editEventDate}
+                                        onChange={e => setEditEventDate(e.target.value)}
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">Event Link</label>
+                                <div className="relative">
+                                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-tatt-gray" />
+                                    <input
+                                        type="url"
+                                        value={editEventUrl}
+                                        onChange={e => setEditEventUrl(e.target.value)}
+                                        placeholder="https://zoom.us/j/..."
+                                        className="w-full bg-white border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-tatt-lime outline-none text-foreground"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <textarea
+                        value={editPostContent}
+                        onChange={(e) => setEditPostContent(e.target.value)}
+                        placeholder="Write post content..."
+                        rows={5}
+                        className="w-full bg-black/5 border border-border rounded-2xl p-4 text-sm focus:ring-2 focus:ring-tatt-lime outline-none resize-none text-foreground"
+                        required
+                    />
+
+                    {/* Image Attachments */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
+                                <ImageIcon className="size-3" /> Media Attachments
+                            </label>
+                            <label className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer flex items-center gap-1">
+                                <Paperclip className="size-3.5" /> Add Images
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleEditFileUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                        </div>
+                        {editMediaUrls.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {editMediaUrls.map((url, i) => (
+                                    <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-black/5">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeEditMediaUrl(i)}
+                                            className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-4 border-t border-border flex items-center justify-between gap-4">
+                        {(user?.systemRole === 'ADMIN' || user?.systemRole === 'SUPERADMIN' || user?.systemRole === 'MODERATOR') && (
+                            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-tatt-lime">
+                                <input
+                                    type="checkbox"
+                                    checked={editIsPremium}
+                                    onChange={(e) => setEditIsPremium(e.target.checked)}
+                                    className="rounded border-border text-tatt-lime focus:ring-tatt-lime size-4"
+                                />
+                                Premium Lock
+                            </label>
+                        )}
+                        <div className="flex justify-end gap-3 ml-auto">
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingPost(false)}
+                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-tatt-gray border border-border hover:bg-black/5 cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={savingPost || !editPostContent.trim()}
+                                className="px-6 py-2.5 rounded-xl text-xs font-bold bg-tatt-lime text-tatt-black hover:brightness-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-lg shadow-tatt-lime/20"
+                            >
+                                {savingPost && <Loader2 className="h-4 w-4 animate-spin" />}
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </AppModal>
         </article>
     );
 }

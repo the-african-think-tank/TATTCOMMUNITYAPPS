@@ -1,8 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BadRequestException } from '@nestjs/common';
 import Stripe from 'stripe';
 
 import { User } from '../iam/entities/user.entity';
@@ -591,11 +590,135 @@ export class BillingService {
         }
 
         user.hasAutoPayEnabled = false;
+        user.pendingTier = CommunityTier.FREE;
         await user.save();
         this.logger.log(`User ${user.email} subscription scheduled for cancellation at period end. Reason: ${reason || 'Not specified'}`);
         return {
             message: 'Subscription will remain active until the end of your current billing period.',
             expiresAt: user.subscriptionExpiresAt,
+        };
+    }
+
+    async scheduleDowngrade(userId: string, targetTier: CommunityTier) {
+        const user = await this.userRepository.findByPk(userId);
+        if (!user) throw new NotFoundException('User not found');
+        if (user.communityTier === CommunityTier.FREE) {
+            throw new BadRequestException('User does not have an active paid subscription.');
+        }
+
+        const apiKey = (await this.settingsService.getRawValue('STRIPE_SECRET_KEY')) || process.env.STRIPE_SECRET_KEY;
+        const isStripeActive = this.isStripeConfigured(apiKey) && user.stripeCustomerId && !user.stripeCustomerId.startsWith('cus_mock');
+
+        const tierPricingMap: Record<string, Record<string, string>> = {
+            [CommunityTier.UBUNTU]: {
+                MONTHLY: process.env.STRIPE_PRICE_UBUNTU_MONTHLY || 'price_ubuntu_monthly_mock',
+                YEARLY: process.env.STRIPE_PRICE_UBUNTU_YEARLY || 'price_ubuntu_yearly_mock',
+            },
+            [CommunityTier.IMANI]: {
+                MONTHLY: process.env.STRIPE_PRICE_IMANI_MONTHLY || 'price_imani_monthly_mock',
+                YEARLY: process.env.STRIPE_PRICE_IMANI_YEARLY || 'price_imani_yearly_mock',
+            },
+            [CommunityTier.KIONGOZI]: {
+                MONTHLY: process.env.STRIPE_PRICE_KIONGOZI_MONTHLY || 'price_kiongozi_monthly_mock',
+                YEARLY: process.env.STRIPE_PRICE_KIONGOZI_YEARLY || 'price_kiongozi_yearly_mock',
+            },
+        };
+
+        const stripePriceId = tierPricingMap[targetTier]?.[user.billingCycle || 'MONTHLY'];
+
+        if (isStripeActive && stripePriceId) {
+            try {
+                const stripe = await this.getStripe();
+                const subscriptions = await stripe.subscriptions.list({
+                    customer: user.stripeCustomerId!,
+                    status: 'active',
+                    limit: 1
+                });
+
+                if (subscriptions.data.length > 0) {
+                    const subId = subscriptions.data[0].id;
+                    const itemId = subscriptions.data[0].items.data[0].id;
+                    await stripe.subscriptions.update(subId, {
+                        proration_behavior: 'none',
+                        items: [{
+                            id: itemId,
+                            price: stripePriceId,
+                        }],
+                    });
+                }
+            } catch (err: any) {
+                this.logger.error(`Stripe subscription downgrade error for user ${userId}: ${err.message}`);
+            }
+        }
+
+        user.pendingTier = targetTier;
+        await user.save();
+
+        this.logger.log(`User ${user.email} scheduled downgrade to ${targetTier} starting next cycle.`);
+        return {
+            message: `Subscription downgrade to ${targetTier} scheduled for your next billing cycle.`,
+            targetTier,
+            expiresAt: user.subscriptionExpiresAt,
+        };
+    }
+
+    async cancelPendingDowngrade(userId: string) {
+        const user = await this.userRepository.findByPk(userId);
+        if (!user) throw new NotFoundException('User not found');
+
+        const apiKey = (await this.settingsService.getRawValue('STRIPE_SECRET_KEY')) || process.env.STRIPE_SECRET_KEY;
+        const isStripeActive = this.isStripeConfigured(apiKey) && user.stripeCustomerId && !user.stripeCustomerId.startsWith('cus_mock');
+
+        const tierPricingMap: Record<string, Record<string, string>> = {
+            [CommunityTier.UBUNTU]: {
+                MONTHLY: process.env.STRIPE_PRICE_UBUNTU_MONTHLY || 'price_ubuntu_monthly_mock',
+                YEARLY: process.env.STRIPE_PRICE_UBUNTU_YEARLY || 'price_ubuntu_yearly_mock',
+            },
+            [CommunityTier.IMANI]: {
+                MONTHLY: process.env.STRIPE_PRICE_IMANI_MONTHLY || 'price_imani_monthly_mock',
+                YEARLY: process.env.STRIPE_PRICE_IMANI_YEARLY || 'price_imani_yearly_mock',
+            },
+            [CommunityTier.KIONGOZI]: {
+                MONTHLY: process.env.STRIPE_PRICE_KIONGOZI_MONTHLY || 'price_kiongozi_monthly_mock',
+                YEARLY: process.env.STRIPE_PRICE_KIONGOZI_YEARLY || 'price_kiongozi_yearly_mock',
+            },
+        };
+
+        const stripePriceId = tierPricingMap[user.communityTier]?.[user.billingCycle || 'MONTHLY'];
+
+        if (isStripeActive && stripePriceId) {
+            try {
+                const stripe = await this.getStripe();
+                const subscriptions = await stripe.subscriptions.list({
+                    customer: user.stripeCustomerId!,
+                    status: 'active',
+                    limit: 1
+                });
+
+                if (subscriptions.data.length > 0) {
+                    const subId = subscriptions.data[0].id;
+                    const itemId = subscriptions.data[0].items.data[0].id;
+                    await stripe.subscriptions.update(subId, {
+                        cancel_at_period_end: false,
+                        proration_behavior: 'none',
+                        items: [{
+                            id: itemId,
+                            price: stripePriceId,
+                        }],
+                    });
+                }
+            } catch (err: any) {
+                this.logger.error(`Revert downgrade error for user ${userId}: ${err.message}`);
+            }
+        }
+
+        user.pendingTier = null;
+        user.hasAutoPayEnabled = true;
+        await user.save();
+
+        return {
+            message: 'Pending downgrade cancelled. Your current subscription will renew normally.',
+            user,
         };
     }
 

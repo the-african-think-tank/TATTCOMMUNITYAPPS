@@ -11,16 +11,9 @@ export function LoginPromoPanel() {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-[#181811]/80 via-transparent to-transparent" />
 
-      <div className="absolute inset-x-0 bottom-0 p-10 sm:p-12 xl:p-16">
+      <div className="relative z-10 flex h-full flex-col justify-center p-10 sm:p-12 xl:p-16">
         <div className="mb-8">
-          <div className="mb-6 flex items-center gap-3">
-            <span className="rounded-lg">
-              <img src={LOGO_ICON_SRC} alt="The African Think Tank logo" className="h-8 w-8" />
-            </span>
-            <p className="text-2xl font-bold tracking-[-0.6px] text-white">
-              The African Think Tank
-            </p>
-          </div>
+          
 
           <h2 className="max-w-[491px] text-5xl font-black leading-[1.1] text-white">
             Empowering Leaders across the Diaspora.

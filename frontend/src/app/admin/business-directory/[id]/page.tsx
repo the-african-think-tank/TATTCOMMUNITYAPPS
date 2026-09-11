@@ -9,7 +9,16 @@ import {
   ExternalLink, 
   Lock as LockIcon,
   Globe,
-  Star
+  Star,
+  MapPin,
+  Phone,
+  Building2,
+  Calendar,
+  BadgeCheck,
+  Briefcase,
+  Upload,
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
@@ -42,18 +51,83 @@ interface BusinessPartner {
   clickCount: number;
 }
 
+const BusinessLogoDetail = ({ src, name }: { src?: string; name: string }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return <Store className="text-tatt-black opacity-10" size={40} />;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      className="size-full object-cover"
+      onError={() => setError(true)}
+    />
+  );
+};
+
 export default function BusinessDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const [business, setBusiness] = useState<BusinessPartner | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviewerNotes, setReviewerNotes] = useState("");
+  const [isEditingLogo, setIsEditingLogo] = useState(false);
+  const [logoInput, setLogoInput] = useState("");
+  const [updatingLogo, setUpdatingLogo] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchBusiness();
     }
   }, [id]);
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleSaveLogo = async () => {
+    if (!business || !id) return;
+    try {
+      setUpdatingLogo(true);
+      await api.patch(`/business-directory/${id}`, {
+        logoUrl: logoInput.trim()
+      });
+      toast.success("Business logo updated successfully!");
+      setIsEditingLogo(false);
+      await fetchBusiness(); // Immediately refetch page data to show new logo everywhere!
+    } catch (error) {
+      console.error("Failed to update logo:", error);
+      toast.error("Failed to update logo URL.");
+    } finally {
+      setUpdatingLogo(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const uploadFormData = new FormData();
+    uploadFormData.append("files", file);
+
+    setIsUploading(true);
+    try {
+      toast.loading("Uploading logo image...", { id: "logo-upload" });
+      const response = await api.post("/uploads/media", uploadFormData);
+      const imageUrl = response.data.files?.[0]?.url;
+      if (imageUrl) {
+        setLogoInput(imageUrl);
+        toast.success("Logo uploaded successfully!", { id: "logo-upload" });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload logo file.", { id: "logo-upload" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fetchBusiness = async () => {
     try {
@@ -125,43 +199,96 @@ export default function BusinessDetailsPage() {
         <div className="col-span-12 lg:col-span-8 space-y-8">
           
           {/* Applicant Overview Card */}
-          <section className="bg-surface rounded-xl p-8 shadow-sm border border-border">
-            <header className="mb-8">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-tatt-gray">Applicant Overview</span>
-              <h2 className="text-2xl font-black mt-2 text-tatt-black">{business.name}</h2>
-            </header>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <section className="bg-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-border">
+            <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Industry</p>
-                <p className="text-sm font-bold text-tatt-black">{business.category}</p>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Applicant Overview</span>
+                <h2 className="text-2xl sm:text-3xl font-black mt-1 text-tatt-black tracking-tight">{business.name}</h2>
               </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Founding Year</p>
-                <p className="text-sm font-bold text-tatt-black">{business.foundingYear || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Website</p>
-                <a className="text-xs font-black text-white bg-tatt-black px-2 py-0.5 rounded" href={business.website} target="_blank">
-                  {business.website?.replace(/^https?:\/\//, '')}
+              {business.website && (
+                <a
+                  href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-tatt-black text-white hover:bg-tatt-lime hover:text-tatt-black transition-all rounded-xl text-xs font-black uppercase tracking-widest shrink-0 self-start sm:self-center shadow-sm cursor-pointer"
+                >
+                  <Globe className="size-4" />
+                  <span>Visit Website</span>
+                  <ExternalLink className="size-3.5" />
                 </a>
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Location</p>
-                <p className="text-sm font-bold text-tatt-black">{business.locationText}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Ownership</p>
-                <p className="text-sm font-bold text-tatt-black">{business.ownershipType || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Volunteer Partner</p>
-                <p className={`text-sm font-bold ${business.isVolunteer ? 'text-tatt-lime' : 'text-tatt-gray'}`}>
-                  {business.isVolunteer ? 'Yes' : 'No'}
+              )}
+            </header>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <Briefcase className="size-3 text-tatt-gray shrink-0" /> Industry
                 </p>
+                <p className="text-sm font-bold text-tatt-black truncate">{business.category || '—'}</p>
               </div>
-              <div className="md:col-span-2 lg:col-span-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1">Direct Contact Phone</p>
-                <p className="text-sm font-black text-tatt-lime tracking-widest">{business.contactPhone || 'No Phone Provided'}</p>
+
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <Calendar className="size-3 text-tatt-gray shrink-0" /> Founding Year
+                </p>
+                <p className="text-sm font-bold text-tatt-black truncate">{business.foundingYear || '—'}</p>
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="size-3 text-tatt-gray shrink-0" /> Location
+                </p>
+                <p className="text-sm font-bold text-tatt-black truncate" title={business.locationText || '—'}>{business.locationText || '—'}</p>
+              </div>
+
+              <div className="min-w-0 sm:col-span-2 md:col-span-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <Globe className="size-3 text-tatt-gray shrink-0" /> Website Link
+                </p>
+                {business.website ? (
+                  <a
+                    href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-bold text-tatt-black hover:text-tatt-lime hover:underline transition-colors block truncate cursor-pointer"
+                    title={business.website}
+                  >
+                    {business.website.replace(/^https?:\/\//, '')}
+                  </a>
+                ) : (
+                  <p className="text-sm font-bold text-tatt-gray">—</p>
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <Building2 className="size-3 text-tatt-gray shrink-0" /> Ownership
+                </p>
+                <p className="text-sm font-bold text-tatt-black truncate">{business.ownershipType || '—'}</p>
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <BadgeCheck className="size-3 text-tatt-gray shrink-0" /> Volunteer Partner
+                </p>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wider ${business.isVolunteer ? 'bg-tatt-lime/10 text-tatt-lime border border-tatt-lime/20' : 'bg-gray-100 text-tatt-gray'}`}>
+                  {business.isVolunteer ? 'Yes' : 'No'}
+                </span>
+              </div>
+
+              <div className="min-w-0 sm:col-span-2 md:col-span-3 pt-2 border-t border-border/60">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5 flex items-center gap-1.5">
+                  <Phone className="size-3 text-tatt-gray shrink-0" /> Direct Contact Phone
+                </p>
+                <p className="text-sm font-black text-tatt-lime tracking-widest flex items-center gap-2">
+                  {business.contactPhone ? (
+                    <a href={`tel:${business.contactPhone}`} className="hover:underline cursor-pointer">
+                      {business.contactPhone}
+                    </a>
+                  ) : (
+                    <span className="text-tatt-gray font-normal italic">No Phone Provided</span>
+                  )}
+                </p>
               </div>
             </div>
           </section>
@@ -270,15 +397,37 @@ export default function BusinessDetailsPage() {
             </div>
           </section>
 
-          {/* Profile Snapshot */}
+          {/* Profile Snapshot & Brand Logo */}
           <section className="bg-surface rounded-xl p-6 border border-border shadow-sm">
-            <div className="w-full h-40 bg-background rounded-lg mb-4 overflow-hidden border border-border flex items-center justify-center">
-                {business.logoUrl ? (
-                    <img src={business.logoUrl} alt={business.name} className="size-full object-cover" />
-                ) : (
-                    <Store className="text-tatt-black opacity-10" size={40} />
-                )}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Brand Logo</span>
+              <button
+                onClick={() => {
+                  setLogoInput(business.logoUrl || "");
+                  setIsEditingLogo(true);
+                }}
+                className="text-[10px] font-black uppercase tracking-widest text-tatt-lime hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                {business.logoUrl ? "Update Logo" : "Add Logo"}
+              </button>
             </div>
+
+            <div className="w-full h-44 bg-background rounded-xl mb-6 overflow-hidden border border-border flex items-center justify-center relative group p-2">
+                <BusinessLogoDetail src={business.logoUrl} name={business.name} />
+                <button
+                  onClick={() => {
+                    setLogoInput(business.logoUrl || "");
+                    setIsEditingLogo(true);
+                  }}
+                  className="absolute inset-0 bg-tatt-black/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2 cursor-pointer"
+                >
+                  <Upload size={22} className="text-tatt-lime" />
+                  <span className="text-xs font-black uppercase tracking-widest">
+                    {business.logoUrl ? "Change Logo URL" : "Set Logo URL"}
+                  </span>
+                </button>
+            </div>
+
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Associated Contact</span>
             <div className="mt-4 flex items-center gap-3">
               <div className="w-12 h-12 bg-tatt-secondary rounded-full flex items-center justify-center text-white font-black text-sm">
@@ -298,6 +447,95 @@ export default function BusinessDetailsPage() {
         </div>
       </div>
 
+      {/* Edit Logo Modal */}
+      {isEditingLogo && (
+        <div className="fixed inset-0 z-50 bg-tatt-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-surface border border-border rounded-2xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <ImageIcon size={20} className="text-tatt-lime" />
+                <h3 className="text-lg font-black text-tatt-black">
+                  {business.logoUrl ? "Update Business Logo" : "Add Business Logo"}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setIsEditingLogo(false)} 
+                className="text-tatt-gray hover:text-tatt-black cursor-pointer p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-5 mb-6">
+              {/* File Upload Option */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2">
+                  Option 1: Upload Image File from Device
+                </label>
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-tatt-lime rounded-xl p-4 bg-background/50 hover:bg-tatt-lime/5 transition-all cursor-pointer group">
+                  <Upload size={24} className="text-tatt-gray group-hover:text-tatt-lime mb-1" />
+                  <span className="text-xs font-bold text-tatt-black">
+                    {isUploading ? "Uploading image file..." : "Click to select image file"}
+                  </span>
+                  <span className="text-[10px] text-tatt-gray mt-0.5">PNG, JPG, WebP, SVG up to 10MB</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploading}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px bg-border flex-1"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">OR</span>
+                <div className="h-px bg-border flex-1"></div>
+              </div>
+
+              {/* URL Input Option */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-1.5">
+                  Option 2: Image Web URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/logo.png"
+                  value={logoInput}
+                  onChange={(e) => setLogoInput(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm text-tatt-black focus:outline-none focus:ring-2 focus:ring-tatt-lime/50 font-medium"
+                />
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="bg-background rounded-xl p-4 border border-border">
+                <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2 text-center">Live Preview</p>
+                <div className="size-20 bg-white rounded-xl border border-border flex items-center justify-center overflow-hidden mx-auto p-1 shadow-sm">
+                  <BusinessLogoDetail key={logoInput} src={logoInput} name={business.name} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setIsEditingLogo(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest border border-border hover:bg-background transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLogo}
+                disabled={updatingLogo || isUploading}
+                className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-tatt-lime text-tatt-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-tatt-lime/10 disabled:opacity-50 cursor-pointer"
+              >
+                {updatingLogo ? "Saving..." : "Save Logo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Administrative Actions Footer */}
       <footer className="fixed bottom-0 left-0 lg:left-72 right-0 bg-surface/90 backdrop-blur-md border-t border-border p-4 z-40">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -316,13 +554,13 @@ export default function BusinessDetailsPage() {
                 <>
                     <button 
                         onClick={() => handleStatusUpdate('DECLINED')}
-                        className="px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest border border-border hover:bg-red-50 hover:text-red-600 transition-all font-sans active:scale-95"
+                        className="px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest border border-border hover:bg-red-50 hover:text-red-600 transition-all font-sans active:scale-95 cursor-pointer"
                     >
                         Decline
                     </button>
                     <button 
                         onClick={() => handleStatusUpdate('APPROVED')}
-                        className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-lime text-tatt-black hover:brightness-110 transition-all shadow-lg shadow-tatt-lime/20 active:scale-95 whitespace-nowrap"
+                        className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-lime text-tatt-black hover:brightness-110 transition-all shadow-lg shadow-tatt-lime/20 active:scale-95 whitespace-nowrap cursor-pointer"
                     >
                         Approve Application
                     </button>
@@ -330,9 +568,9 @@ export default function BusinessDetailsPage() {
             ) : (
                 <button 
                     onClick={() => router.push("/admin/business-directory")}
-                    className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-black text-white transition-all shadow-lg active:scale-95"
+                    className="px-12 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest bg-tatt-black text-white transition-all shadow-lg active:scale-95 cursor-pointer"
                 >
-                    Back to Directory
+                    Back to Queue
                 </button>
             )}
           </div>

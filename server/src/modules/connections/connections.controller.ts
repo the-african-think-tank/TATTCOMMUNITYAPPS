@@ -65,7 +65,7 @@ export class ConnectionsController {
         summary: 'Send a connection request',
         description:
             '**Paid members only (Ubuntu, Imani, Kiongozi tier).** ' +
-            'A personalised message between 20 and 500 characters is required. ' +
+            'A personalised message between 1 and 500 characters is required. ' +
             'The recipient will be notified by email and can review the request and the sender\'s profile before deciding. ' +
             'Duplicate or conflicting requests are rejected automatically.',
     })

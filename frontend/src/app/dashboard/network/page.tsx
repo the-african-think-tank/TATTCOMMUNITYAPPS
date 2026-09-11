@@ -9,6 +9,7 @@ import {
     UserPlus,
     Clock,
     UserCheck,
+    UserX,
     Loader2,
     ChevronDown,
     X,
@@ -24,6 +25,7 @@ import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface Chapter {
     id: string;
@@ -55,7 +57,7 @@ const TIER_BADGES: Record<string, { label: string; classes: string }> = {
     KIONGOZI: { label: "Kiongozi", classes: "bg-tatt-lime text-tatt-black" },
     IMANI: { label: "Imani", classes: "bg-slate-200 text-neutral-700" },
     UBUNTU: { label: "Ubuntu", classes: "bg-neutral-100 border border-border text-tatt-gray" },
-    FREE: { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" },
+    FREE: { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" },
 };
 
 export default function NetworkPage() {
@@ -174,6 +176,19 @@ export default function NetworkPage() {
         if (page < totalPages) setPage(prev => prev + 1);
     };
 
+    const handleRemoveConnection = async (memberId: string, connectionId: string) => {
+        try {
+            await api.delete(`/connections/${connectionId}`);
+            setConnectionStatuses(prev => ({
+                ...prev,
+                [memberId]: { status: "NOT_CONNECTED", connectionId: null }
+            }));
+            toast.success("Connection removed");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to remove connection");
+        }
+    };
+
     // ── Modal ────────────────────────────────────────────────────
     const openModal = (member: Member) => {
         // Free members cannot connect — show upgrade prompt instead
@@ -194,8 +209,8 @@ export default function NetworkPage() {
 
     const handleSendInvite = async () => {
         if (!modal.member) return;
-        if (connectMessage.trim().length < 20) {
-            setSendError("Please write at least 20 characters so the recipient knows why you want to connect.");
+        if (connectMessage.trim().length < 1) {
+            setSendError("Please write a message so the recipient knows why you want to connect.");
             return;
         }
         setSending(true);
@@ -320,8 +335,8 @@ export default function NetworkPage() {
                                                     )}
                                                 </div>
                                                 {/* Tier badge */}
-                                                <span className={`absolute -bottom-1 -right-1 text-[10px] font-black uppercase tracking-tight px-2 py-0.5 rounded-full ${(TIER_BADGES[member.communityTier] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
-                                                    {(TIER_BADGES[member.communityTier] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
+                                                <span className={`absolute -bottom-1 -right-1 text-[10px] font-black uppercase tracking-tight px-2 py-0.5 rounded-full ${(TIER_BADGES[member.communityTier] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
+                                                    {(TIER_BADGES[member.communityTier] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
                                                 </span>
                                             </div>
 
@@ -357,8 +372,15 @@ export default function NetworkPage() {
                                         <div className="w-full px-6 pb-6 mt-auto grid grid-cols-2 gap-3">
                                             {/* Connect / Status button */}
                                             {status?.status === "ACCEPTED" ? (
-                                                <button disabled className="flex items-center justify-center gap-1.5 bg-green-500/10 text-green-600 font-black py-2.5 rounded-xl text-[11px] uppercase tracking-wide cursor-default">
-                                                    <UserCheck className="h-3.5 w-3.5" /> Connected
+                                                <button
+                                                    onClick={() => status.connectionId && handleRemoveConnection(member.id, status.connectionId)}
+                                                    className="flex items-center justify-center gap-1.5 bg-green-500/10 text-green-600 font-black py-2.5 rounded-xl text-[11px] uppercase tracking-wide hover:bg-red-500/10 hover:text-red-500 transition-all border border-green-500/20 hover:border-red-500/30 group cursor-pointer"
+                                                    title="Click to remove connection"
+                                                >
+                                                    <UserCheck className="h-3.5 w-3.5 group-hover:hidden" />
+                                                    <UserX className="h-3.5 w-3.5 hidden group-hover:block text-red-500" />
+                                                    <span className="group-hover:hidden">Connected</span>
+                                                    <span className="hidden group-hover:inline text-red-500">Remove</span>
                                                 </button>
                                             ) : status?.status === "PENDING" ? (
                                                 <Link
@@ -434,8 +456,8 @@ export default function NetworkPage() {
                                         </span>
                                     )}
                                 </div>
-                                <span className={`absolute -bottom-3 right-1/2 translate-x-1/2 text-[11px] font-black uppercase tracking-tight px-3 py-0.5 rounded-full whitespace-nowrap ${(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
-                                    {(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
+                                <span className={`absolute -bottom-3 right-1/2 translate-x-1/2 text-[11px] font-black uppercase tracking-tight px-3 py-0.5 rounded-full whitespace-nowrap ${(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).classes}`}>
+                                    {(TIER_BADGES[modal.member?.communityTier ?? "FREE"] || { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" }).label}
                                 </span>
                             </div>
 
@@ -450,14 +472,15 @@ export default function NetworkPage() {
                         {/* Modal Body */}
                         <div className="p-8 flex flex-col gap-6 bg-surface">
                             <div className="flex flex-col gap-3">
-                                <label className="text-[15px] font-bold text-black " htmlFor="connect-msg">
-                                    Add a personalized message
+                                <label className="text-[15px] font-bold text-black flex items-center gap-1" htmlFor="connect-msg">
+                                    Add a personalized message <span className="text-red-500 font-bold">*</span>
                                 </label>
                                 <textarea
                                     id="connect-msg"
                                     rows={4}
+                                    required
                                     className="w-full p-5 bg-[#f5f5f5]  border border-border  rounded-2xl text-black  placeholder:text-gray-500 text-[15px] focus:ring-2 focus:ring-tatt-lime outline-none transition-all resize-none shadow-inner"
-                                    placeholder={`Hi ${modal.member.firstName}, I'd love to discuss your latest work on policy frameworks...`}
+                                    placeholder={`Hi ${modal.member.firstName}, I'd love to connect... (Required)`}
                                     value={connectMessage}
                                     onChange={(e) => { setConnectMessage(e.target.value); setSendError(null); }}
                                     maxLength={500}
@@ -476,8 +499,8 @@ export default function NetworkPage() {
                             <div className="flex flex-col sm:flex-row gap-4 mt-2">
                                 <button
                                     onClick={handleSendInvite}
-                                    disabled={sending || connectMessage.trim().length < 20}
-                                    className="flex-1 flex items-center justify-center py-4 bg-tatt-lime text-black text-[13px] font-black rounded-xl uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={sending || !connectMessage.trim()}
+                                    className="flex-1 flex items-center justify-center py-4 bg-tatt-lime text-black text-[13px] font-black rounded-xl uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                     Send Invitation

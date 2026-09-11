@@ -6,7 +6,7 @@ import { Search, MessageSquare, Users, Clock, Hash, CheckCircle, XCircle, Send, 
 import api from "@/services/api";
 import { initiateSocket, disconnectSocket, getSocket } from "@/services/socket";
 import Picker from "emoji-picker-react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
 import MembershipCard from "@/components/molecules/MembershipCard";
 import { useAuth } from "@/context/auth-context";
@@ -75,11 +75,11 @@ const TIER_BADGES: Record<string, { label: string; classes: string }> = {
     KIONGOZI: { label: "Kiongozi", classes: "bg-tatt-lime text-tatt-black" },
     IMANI: { label: "Imani", classes: "bg-slate-200 text-neutral-700  " },
     UBUNTU: { label: "Ubuntu", classes: "bg-orange-100 text-orange-700  " },
-    FREE: { label: "Free", classes: "bg-neutral-100 border border-border text-tatt-gray" },
+    FREE: { label: "Sankofa", classes: "bg-neutral-100 border border-border text-tatt-gray" },
 };
 
 const getTierBadge = (tierCode: string | undefined): { label: string; classes: string } => {
-    return TIER_BADGES[tierCode || "FREE"] || TIER_BADGES["FREE"] || { label: "Free", classes: "" };
+    return TIER_BADGES[tierCode || "FREE"] || TIER_BADGES["FREE"] || { label: "Sankofa", classes: "" };
 };
 
 export default function CommunicationsPage() {
@@ -982,8 +982,6 @@ export default function CommunicationsPage() {
             <section className="flex-1 bg-background h-[60vh] md:h-full overflow-hidden">
                 {renderRightPane()}
             </section>
-
-            <Toaster position="top-right" />
         </div>
     );
 }
