@@ -5,11 +5,14 @@ import { JobListing } from './entities/job-listing.entity';
 import { JobApplication } from './entities/job-application.entity';
 import { SavedJob } from './entities/saved-job.entity';
 import { JobAlert } from './entities/job-alert.entity';
+import { JobCompanySource } from './entities/job-company-source.entity';
 import { User } from '../iam/entities/user.entity';
 import { ApplyJobDto } from './dto/jobs.dto';
 import { NotificationsService } from '../notifications/services/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
 import { Sequelize } from 'sequelize-typescript';
+import { JobSchedulerService } from './ingestion/services/job-scheduler.service';
+import { JobIngestionService } from './ingestion/services/job-ingestion.service';
 
 export type MarketInsights = {
     topCategory: { name: string; growth: string } | null;
@@ -25,8 +28,11 @@ export class JobsService {
         @InjectModel(JobApplication) private applicationRepo: typeof JobApplication,
         @InjectModel(SavedJob) private savedRepo: typeof SavedJob,
         @InjectModel(JobAlert) private alertRepo: typeof JobAlert,
+        @InjectModel(JobCompanySource) private companySourceRepo: typeof JobCompanySource,
         @InjectModel(User) private userRepo: typeof User,
         private readonly notificationsService: NotificationsService,
+        private readonly jobScheduler: JobSchedulerService,
+        private readonly jobIngestion: JobIngestionService,
     ) { }
     
     private USER_PUBLIC_ATTRIBUTES = [
@@ -42,22 +48,69 @@ export class JobsService {
     ];
 
 
-    async getListings(params: { category?: string; type?: string; location?: string; search?: string; page?: number; limit?: number }) {
-        const { category, type, location, search, page = 1, limit = 10 } = params;
+    async getListings(params: { category?: string; type?: string; location?: string; datePosted?: string; search?: string; page?: number; limit?: number }) {
+        const { category, type, location, datePosted, search, page = 1, limit = 10 } = params;
         const where: WhereOptions<JobListing> = { isActive: true };
 
-        if (category && category !== 'all') where.category = { [Op.iLike]: `%${category}%` };
-        if (type && type !== 'all') where.type = { [Op.iLike]: `%${type}%` };
-        if (location && location !== 'all') {
-            if (location.toLowerCase() === 'remote') where.location = { [Op.iLike]: '%remote%' };
-            else where.location = { [Op.iLike]: `%${location}%` };
+        if (category && category.toLowerCase() !== 'all' && category.toLowerCase() !== 'all categories') {
+            where.category = { [Op.iLike]: `%${category.trim()}%` };
+        }
+        if (type && type.toLowerCase() !== 'all' && type.toLowerCase() !== 'all types') {
+            where.type = { [Op.iLike]: `%${type.trim()}%` };
+        }
+        if (location && location.toLowerCase() !== 'all' && location.toLowerCase() !== 'all locations') {
+            const loc = location.trim().toLowerCase();
+            if (loc === 'remote' || loc.includes('remote')) {
+                where[Op.or] = [
+                    { location: { [Op.iLike]: '%remote%' } },
+                    { title: { [Op.iLike]: '%remote%' } },
+                ];
+            } else if (loc === 'africa') {
+                where[Op.or] = [
+                    { region: 'Africa' },
+                    { location: { [Op.iLike]: '%africa%' } },
+                ];
+            } else if (loc === 'united states' || loc === 'us' || loc === 'usa') {
+                where[Op.or] = [
+                    { region: 'US' },
+                    { location: { [Op.iLike]: '%united states%' } },
+                    { location: { [Op.iLike]: '%usa%' } },
+                ];
+            } else {
+                where.location = { [Op.iLike]: `%${location.trim()}%` };
+            }
+        }
+        if (datePosted && datePosted.toLowerCase() !== 'all') {
+            const dp = datePosted.toLowerCase();
+            const now = Date.now();
+            let threshold: Date | null = null;
+            if (dp === '24h' || dp === 'today') {
+                threshold = new Date(now - 24 * 60 * 60 * 1000);
+            } else if (dp === '7d' || dp === 'week') {
+                threshold = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            } else if (dp === '30d' || dp === 'month') {
+                threshold = new Date(now - 30 * 24 * 60 * 60 * 1000);
+            }
+            if (threshold) {
+                where.createdAt = { [Op.gte]: threshold };
+            }
         }
         if (search?.trim()) {
-            where[Op.or] = [
-                { title: { [Op.iLike]: `%${search.trim()}%` } },
-                { companyName: { [Op.iLike]: `%${search.trim()}%` } },
-                { description: { [Op.iLike]: `%${search.trim()}%` } },
-            ];
+            const term = `%${search.trim()}%`;
+            const searchClause = {
+                [Op.or]: [
+                    { title: { [Op.iLike]: term } },
+                    { companyName: { [Op.iLike]: term } },
+                    { description: { [Op.iLike]: term } },
+                    { location: { [Op.iLike]: term } },
+                    { category: { [Op.iLike]: term } },
+                ],
+            };
+            if (where[Op.and]) {
+                (where[Op.and] as any[]).push(searchClause);
+            } else {
+                where[Op.and] = [searchClause];
+            }
         }
 
         const offset = (page - 1) * limit;
@@ -420,6 +473,117 @@ export class JobsService {
         });
         if (!app) throw new NotFoundException('Application not found');
         return app;
+    }
+
+    // ─── HARVEST & INGESTION ENGINE ──────────────────────────────────────────
+    async triggerHarvest(companySlug?: string) {
+        return this.jobScheduler.runHarvestWithLock(companySlug);
+    }
+
+    async getCompanySources(page = 1, limit = 50) {
+        await this.jobIngestion.ensureSeedCompanies();
+        const { count, rows } = await this.companySourceRepo.findAndCountAll({
+            order: [['companyName', 'ASC']],
+            limit,
+            offset: (page - 1) * limit,
+        });
+        return {
+            data: rows,
+            meta: { total: count, page, limit, totalPages: Math.ceil(count / limit) || 0 }
+        };
+    }
+
+    async addCompanySource(dto: { companyName: string; boardToken: string; websiteUrl?: string; submittedById?: string }) {
+        let token = dto.boardToken.trim().toLowerCase();
+        const urlMatch = token.match(/(?:boards|job-boards)\.greenhouse\.io\/([a-z0-9_-]+)/i);
+        if (urlMatch) {
+            token = urlMatch[1];
+        }
+
+        const existing = await this.companySourceRepo.findOne({
+            where: { adapter: 'greenhouse', boardToken: token }
+        });
+
+        if (existing) {
+            if (!existing.isActive) {
+                await existing.update({ isActive: true });
+            }
+            return existing;
+        }
+
+        const source = await this.companySourceRepo.create({
+            adapter: 'greenhouse',
+            companyName: dto.companyName.trim(),
+            boardToken: token,
+            websiteUrl: dto.websiteUrl,
+            targetRegions: ['US', 'Africa'],
+            isActive: true,
+            submittedById: dto.submittedById,
+        });
+
+        // Trigger immediate fetch for the newly registered company
+        this.jobIngestion.runHarvest(token).catch(err => {
+            console.error(`Error in initial sync for new source ${token}:`, err?.message);
+        });
+
+        return source;
+    }
+
+    async toggleCompanySource(id: string) {
+        const source = await this.companySourceRepo.findByPk(id);
+        if (!source) throw new NotFoundException('Company source not found');
+        await source.update({ isActive: !source.isActive });
+        return source;
+    }
+
+    async deleteCompanySource(id: string) {
+        const source = await this.companySourceRepo.findByPk(id);
+        if (!source) throw new NotFoundException('Company source not found');
+        await source.destroy();
+        return { success: true };
+    }
+
+    async submitCommunitySource(urlOrToken: string, userId: string) {
+        if (!urlOrToken || !urlOrToken.trim()) {
+            throw new BadRequestException('Please provide a valid Greenhouse board token or career page URL');
+        }
+
+        let token = urlOrToken.trim().toLowerCase();
+        const urlMatch = token.match(/(?:boards|job-boards)\.greenhouse\.io\/([a-z0-9_-]+)/i);
+        if (urlMatch) {
+            token = urlMatch[1];
+        }
+
+        // Validate that the Greenhouse board actually exists
+        try {
+            const checkUrl = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(token)}/jobs`;
+            const res = await fetch(checkUrl, {
+                signal: AbortSignal.timeout(8000),
+                headers: { 'Accept': 'application/json' },
+            });
+
+            if (!res.ok) {
+                if (res.status === 404) {
+                    throw new BadRequestException(`No active Greenhouse job board found for "${token}".`);
+                }
+                throw new BadRequestException(`Unable to verify Greenhouse board (HTTP ${res.status}).`);
+            }
+
+            const data = (await res.json()) as any;
+            if (!data || !Array.isArray(data.jobs)) {
+                throw new BadRequestException('Could not find an active Greenhouse job board at that link.');
+            }
+
+            const companyName = data.jobs[0]?.company_name || token.charAt(0).toUpperCase() + token.slice(1);
+            return this.addCompanySource({
+                companyName,
+                boardToken: token,
+                submittedById: userId,
+            });
+        } catch (err: any) {
+            if (err instanceof BadRequestException) throw err;
+            throw new BadRequestException(`Unable to verify Greenhouse board: ${err?.message}`);
+        }
     }
 }
 

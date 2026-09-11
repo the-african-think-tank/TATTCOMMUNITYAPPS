@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { JOB_CATEGORIES } from "@/types/jobs";
 
-const CATEGORIES = ["Green Energy", "FinTech", "Sustainability", "Policy & Govt", "AgriTech", "Education", "Healthcare", "E-commerce", "Other"];
+const CATEGORIES = [...JOB_CATEGORIES];
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance", "Internship"];
 
 export default function JobPostPage() {
@@ -23,9 +24,23 @@ export default function JobPostPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    category: string;
+    type: string;
+    location: string;
+    description: string;
+    requirements: string;
+    qualifications: string;
+    companyName: string;
+    companyWebsite: string;
+    companyLogoUrl: string;
+    salaryLabel: string;
+    salaryMin: string;
+    salaryMax: string;
+  }>({
     title: "",
-    category: "Green Energy",
+    category: JOB_CATEGORIES[0],
     type: "Full-time",
     location: "",
     description: "",

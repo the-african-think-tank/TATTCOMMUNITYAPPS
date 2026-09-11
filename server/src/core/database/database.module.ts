@@ -36,6 +36,7 @@ import { EventRegistration } from '../../modules/events/entities/event-registrat
 import { JobListing } from '../../modules/jobs/entities/job-listing.entity';
 import { JobApplication } from '../../modules/jobs/entities/job-application.entity';
 import { SavedJob } from '../../modules/jobs/entities/saved-job.entity';
+import { JobCompanySource } from '../../modules/jobs/entities/job-company-source.entity';
 import { VolunteerRole } from '../../modules/volunteers/entities/volunteer-role.entity';
 import { VolunteerActivity } from '../../modules/volunteers/entities/volunteer-activity.entity';
 import { VolunteerApplication } from '../../modules/volunteers/entities/volunteer-application.entity';
@@ -71,7 +72,7 @@ import { SupportMessage } from '../../modules/support/entities/support-message.e
                     Resource, ResourceInteraction, Notification,
                     MembershipPlan, MembershipTier, Discount,
                     Event, EventChapter, EventGuest, EventRegistration,
-                    JobListing, JobApplication, SavedJob,
+                    JobListing, JobApplication, SavedJob, JobCompanySource,
                     VolunteerRole, VolunteerActivity, VolunteerApplication, VolunteerStat, VolunteerTrainingResource,
                     Product, ProductVariant, Order, OrderItem, Partnership,
                     SupportMessage, SupportTicket, SupportFaqCategory, SupportFaq,

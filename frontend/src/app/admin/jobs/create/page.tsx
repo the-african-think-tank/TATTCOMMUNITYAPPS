@@ -10,14 +10,11 @@ import {
     Loader2, Send, TrendingUp, Lightbulb, BarChart3,
     Globe, DollarSign,
 } from "lucide-react";
+import { JOB_CATEGORIES } from "@/types/jobs";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const CATEGORIES = [
-    "Green Energy", "FinTech", "Sustainability", "Policy & Govt",
-    "AgriTech", "Technology", "NGO", "Finance", "Strategy", "Health",
-    "Education", "Infrastructure", "Creative & Media",
-];
+const CATEGORIES = [...JOB_CATEGORIES];
 
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance", "Seasonal", "Internship"];
 

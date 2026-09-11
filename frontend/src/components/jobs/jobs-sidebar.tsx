@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import api from "@/services/api";
 import { Loader2, Bell, Plus, X, Briefcase } from "lucide-react";
 import toast from "react-hot-toast";
+import { JOB_CATEGORIES } from "@/types/jobs";
 
 interface JobAlert {
   id: string;
@@ -98,7 +99,7 @@ export function JobsSidebar() {
                         <button 
                             type="button"
                             onClick={() => handleDeleteAlert(alert.id)}
-                            className="p-1.5 text-tatt-gray hover:bg-surface hover:text-red-500 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1.5 text-tatt-gray hover:bg-surface hover:text-red-500 rounded-md transition-colors opacity-0 group-hover:opacity-100 cursor-pointer active:scale-95"
                             title="Remove alert"
                         >
                             <X className="size-3.5" />
@@ -113,7 +114,7 @@ export function JobsSidebar() {
             <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="w-full min-h-[44px] py-2.5 rounded-lg font-bold bg-tatt-lime text-tatt-black hover:brightness-95 transition-colors text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full min-h-[44px] py-2.5 rounded-lg font-bold bg-tatt-lime text-tatt-black hover:brightness-95 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
             >
                 <Plus className="size-4" /> Create Alert
             </button>
@@ -141,11 +142,11 @@ export function JobsSidebar() {
                             className="w-full appearance-none bg-surface border border-border text-foreground text-xs rounded-lg px-3 py-3 outline-none focus:border-tatt-lime cursor-pointer pr-10 transition-colors hover:border-tatt-gray/50"
                         >
                             <option value="">Any Category</option>
-                            <option value="Green Energy">Green Energy</option>
-                            <option value="FinTech">FinTech</option>
-                            <option value="Sustainability">Sustainability</option>
-                            <option value="Policy & Govt">Policy & Govt</option>
-                            <option value="AgriTech">AgriTech</option>
+                            {JOB_CATEGORIES.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-tatt-gray">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
@@ -156,7 +157,7 @@ export function JobsSidebar() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="flex-1 min-h-[36px] bg-foreground text-background font-bold text-xs uppercase tracking-widest rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 min-h-[36px] bg-foreground text-background font-bold text-xs uppercase tracking-widest rounded-md hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                     >
                         {submitting ? <Loader2 className="size-3 animate-spin" /> : "Save"}
                     </button>
@@ -164,7 +165,7 @@ export function JobsSidebar() {
                         type="button"
                         disabled={submitting}
                         onClick={() => setShowForm(false)}
-                        className="min-w-[36px] min-h-[36px] flex items-center justify-center border border-border rounded-md text-tatt-gray hover:bg-surface transition-colors"
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center border border-border rounded-md text-tatt-gray hover:bg-surface transition-colors cursor-pointer active:scale-95"
                         title="Cancel"
                     >
                         <X className="size-4" />

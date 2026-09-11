@@ -10,6 +10,8 @@ import {
     CheckCircle2, AlertTriangle, ShieldAlert, Users,
     MapPin, Clock, Building2,
 } from "lucide-react";
+import { RichTextView } from "@/components/shared/rich-text-view";
+import { JOB_CATEGORIES } from "@/types/jobs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -51,7 +53,7 @@ interface Stats {
 
 type ModalMode = "view" | "action" | null;
 
-const CATEGORIES = ["Green Energy", "FinTech", "Sustainability", "Policy & Govt", "AgriTech", "Technology", "NGO", "Finance", "Strategy"];
+const CATEGORIES = [...JOB_CATEGORIES];
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Seasonal", "Internship"];
 
 function initials(name: string) {
@@ -220,7 +222,7 @@ function JobDetailDrawer({ job, onClose, onAction }: { job: AdminJob; onClose: (
                     {job.description && (
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2">Description</p>
-                            <p className="text-sm text-foreground/80 leading-relaxed">{job.description}</p>
+                            <RichTextView content={job.description} />
                         </div>
                     )}
 

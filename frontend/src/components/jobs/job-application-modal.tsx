@@ -2,13 +2,26 @@
 
 import { useState, useRef } from "react";
 import api from "@/services/api";
-import { X, Upload, Loader2, ArrowRight, Star, Briefcase } from "lucide-react";
+import { X, Upload, Loader2, ArrowRight, Star, Briefcase, Clock, ExternalLink } from "lucide-react";
 import type { JobListing, ApplyJobPayload } from "@/types/jobs";
 import type { User } from "@/context/auth-context";
 import toast from "react-hot-toast";
+import { RichTextView, hasHtmlTags } from "@/components/shared/rich-text-view";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [".pdf", ".doc", ".docx"];
+
+function formatDatePosted(dateString?: string | null): string {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
 type JobApplicationModalProps = {
   job: JobListing;
@@ -193,10 +206,18 @@ export function JobApplicationModal({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap items-center gap-2 mt-4">
                 <span className="px-3 py-1 bg-background border border-border rounded-full text-[10px] font-black uppercase tracking-wider text-tatt-gray">{job.type}</span>
                 <span className="px-3 py-1 bg-background border border-border rounded-full text-[10px] font-black uppercase tracking-wider text-tatt-gray">{job.location}</span>
+                {job.category && (
+                  <span className="px-3 py-1 bg-background border border-border rounded-full text-[10px] font-black uppercase tracking-wider text-tatt-gray">{job.category}</span>
+                )}
                 {job.salaryLabel && <span className="px-3 py-1 bg-tatt-lime/10 border border-tatt-lime/20 rounded-full text-[10px] font-black uppercase tracking-wider text-tatt-lime">{job.salaryLabel}</span>}
+                {job.createdAt && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 bg-background border border-border rounded-full text-[10px] font-black uppercase tracking-wider text-tatt-gray">
+                    <Clock className="size-3 text-tatt-lime" /> Posted {formatDatePosted(job.createdAt)}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -205,9 +226,10 @@ export function JobApplicationModal({
                 <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray mb-4">
                   <span className="size-1 bg-tatt-lime rounded-full"></span> Role Overview
                 </h4>
-                <div className="text-foreground/80 text-sm leading-relaxed whitespace-pre-line">
-                  {job.description || "The employer has not provided a detailed description."}
-                </div>
+                <RichTextView
+                  content={job.description}
+                  fallbackText="The employer has not provided a detailed description."
+                />
               </section>
 
               {job.requirements && (
@@ -215,9 +237,13 @@ export function JobApplicationModal({
                   <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray mb-4">
                     <span className="size-1 bg-tatt-lime rounded-full"></span> Key Requirements
                   </h4>
-                  <div className="text-foreground/80 text-sm leading-relaxed space-y-2">
-                    {formatList(job.requirements)}
-                  </div>
+                  {hasHtmlTags(job.requirements) ? (
+                    <RichTextView content={job.requirements} />
+                  ) : (
+                    <div className="text-foreground/80 text-sm leading-relaxed space-y-2">
+                      {formatList(job.requirements)}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -226,9 +252,13 @@ export function JobApplicationModal({
                   <h4 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray mb-4">
                     <span className="size-1 bg-tatt-lime rounded-full"></span> Desired Qualifications
                   </h4>
-                  <div className="text-foreground/80 text-sm leading-relaxed space-y-2 italic opacity-80">
-                    {formatList(job.qualifications)}
-                  </div>
+                  {hasHtmlTags(job.qualifications) ? (
+                    <RichTextView content={job.qualifications} />
+                  ) : (
+                    <div className="text-foreground/80 text-sm leading-relaxed space-y-2 italic opacity-80">
+                      {formatList(job.qualifications)}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -269,13 +299,24 @@ export function JobApplicationModal({
             </div>
 
             <div className="sticky bottom-0 left-0 right-0 pt-6 pb-2 bg-gradient-to-t from-surface via-surface to-transparent">
-              <button
-                type="button"
-                onClick={() => setShowApplyForm(true)}
-                className="w-full py-4.5 bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl shadow-tatt-lime/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-              >
-                Proceed to Application <Briefcase className="size-4" />
-              </button>
+              {job.externalUrl ? (
+                <a
+                  href={job.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4.5 bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl shadow-tatt-lime/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer"
+                >
+                  Apply on Company Site <ExternalLink className="size-4" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowApplyForm(true)}
+                  className="w-full py-4.5 bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl shadow-tatt-lime/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer"
+                >
+                  Proceed to Application <Briefcase className="size-4" />
+                </button>
+              )}
             </div>
           </div>
         ) : (
