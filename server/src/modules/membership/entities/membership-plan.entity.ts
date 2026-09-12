@@ -50,6 +50,9 @@ export class MembershipPlan extends Model {
     isPopular: boolean;
 
     @Column(DataType.STRING)
+    stripeProductId?: string;
+
+    @Column(DataType.STRING)
     stripeMonthlyPriceId: string;
 
     @Column(DataType.STRING)

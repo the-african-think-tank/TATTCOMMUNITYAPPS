@@ -20,6 +20,7 @@ interface SubscriptionCheckoutProps {
   currency?: string;       // Default: "usd"
   userEmail: string;
   userId: string;
+  priceId?: string | undefined;
   onSuccess: (sessionId: string) => void;
   onError: (error: any) => void;
 }
@@ -31,6 +32,7 @@ export default function SubscriptionCheckout({
   currency = "usd",
   userEmail,
   userId,
+  priceId,
   onSuccess,
   onError,
 }: SubscriptionCheckoutProps) {
@@ -64,6 +66,7 @@ export default function SubscriptionCheckout({
           currency,
           userEmail,
           userId,
+          priceId,
         });
 
         if (!isMounted) return;
@@ -89,7 +92,7 @@ export default function SubscriptionCheckout({
     return () => {
       isMounted = false;
     };
-  }, [tier, isYearly, amount, currency, userEmail, userId, onError]);
+  }, [tier, isYearly, amount, currency, userEmail, userId, priceId, onError]);
 
   const handleComplete = useCallback(async () => {
     const sessionId = sessionIdRef.current;

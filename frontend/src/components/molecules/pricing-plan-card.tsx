@@ -10,6 +10,11 @@ export interface Plan {
     tagline: string;
     monthlyPrice: number;
     yearlyPrice: number;
+    stripeProductId?: string;
+    stripeMonthlyPriceId?: string;
+    stripeYearlyPriceId?: string;
+    stripePriceMonthlyId?: string;
+    stripePriceYearlyId?: string;
     features: string[];
     isPopular: boolean;
     hasYearlyDiscount: boolean;
@@ -50,6 +55,20 @@ export const PricingPlanCard: React.FC<PricingPlanCardProps> = ({
     const displayPrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
     const period = isYearly ? "yr" : "mo";
 
+    // Dynamically calculate yearly savings percentage if not explicitly specified
+    const effectiveDiscountPercent = React.useMemo(() => {
+        if (plan.yearlyDiscountPercent && plan.yearlyDiscountPercent > 0) {
+            return plan.yearlyDiscountPercent;
+        }
+        if (plan.monthlyPrice > 0 && plan.yearlyPrice > 0) {
+            const fullYearlyCost = plan.monthlyPrice * 12;
+            if (fullYearlyCost > plan.yearlyPrice) {
+                return Math.round(((fullYearlyCost - plan.yearlyPrice) / fullYearlyCost) * 100);
+            }
+        }
+        return null;
+    }, [plan.yearlyDiscountPercent, plan.monthlyPrice, plan.yearlyPrice]);
+
     const fmt = (n: number) => {
         const rounded = Math.round(n * 100) / 100;
         return rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(2);
@@ -88,9 +107,9 @@ export const PricingPlanCard: React.FC<PricingPlanCardProps> = ({
                 </div>
             )}
             
-            {isYearly && plan.hasYearlyDiscount && plan.yearlyDiscountPercent && (
+            {isYearly && effectiveDiscountPercent && effectiveDiscountPercent > 0 && (
                 <div className={`absolute right-0 bg-tatt-lime/30 border-b border-l border-tatt-lime/20 text-tatt-lime-dark text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl ${plan.isPopular ? "top-7" : "top-0"}`}>
-                    Save {plan.yearlyDiscountPercent}%
+                    Save {effectiveDiscountPercent}%
                 </div>
             )}
 

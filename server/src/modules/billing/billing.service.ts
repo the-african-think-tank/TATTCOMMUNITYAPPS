@@ -18,10 +18,12 @@ import { Chapter } from '../chapters/entities/chapter.entity';
 import { FinancialTransaction, TransactionStatus, TransactionType } from '../revenue/entities/financial-transaction.entity';
 import { Order, OrderStatus } from '../store/entities/order.entity';
 
+import { StripeClientService } from './stripe/services/stripe-client.service';
+import { BillingTransactionService } from './services/billing-transaction.service';
+
 @Injectable()
 export class BillingService {
     private readonly logger = new Logger(BillingService.name);
-    private stripe: Stripe;
 
     constructor(
         @InjectModel(User) private userRepository: typeof User,
@@ -33,32 +35,18 @@ export class BillingService {
         private mailService: MailService,
         private notificationsService: NotificationsService,
         private settingsService: SystemSettingsService,
+        private stripeClient: StripeClientService,
+        private billingTxService: BillingTransactionService,
     ) {}
 
     private isStripeConfigured(apiKey: string | null): boolean {
-        if (!apiKey) return false;
-        if (
-            apiKey.includes('placeholder') ||
-            apiKey.includes('your_') ||
-            apiKey.includes('*****') ||
-            apiKey.includes('dummy') ||
-            !apiKey.startsWith('sk_')
-        ) {
-            return false;
-        }
-        return true;
+        return this.stripeClient.isKeyConfigured(apiKey);
     }
 
     private async getStripe(): Promise<Stripe> {
-        if (!this.stripe) {
-            const apiKey = (await this.settingsService.getRawValue('STRIPE_SECRET_KEY')) || process.env.STRIPE_SECRET_KEY;
-            this.stripe = new Stripe(apiKey || 'sk_test_placeholder', {
-                timeout: 8000,
-                maxNetworkRetries: 1,
-            });
-        }
-        return this.stripe;
+        return this.stripeClient.getClient();
     }
+
 
     async handleStripeWebhook(payload: Buffer, signature: string) {
         const webhookSecret = await this.settingsService.getStripeWebhookSecret();
@@ -609,45 +597,38 @@ export class BillingService {
         const apiKey = (await this.settingsService.getRawValue('STRIPE_SECRET_KEY')) || process.env.STRIPE_SECRET_KEY;
         const isStripeActive = this.isStripeConfigured(apiKey) && user.stripeCustomerId && !user.stripeCustomerId.startsWith('cus_mock');
 
-        const tierPricingMap: Record<string, Record<string, string>> = {
-            [CommunityTier.UBUNTU]: {
-                MONTHLY: process.env.STRIPE_PRICE_UBUNTU_MONTHLY || 'price_ubuntu_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_UBUNTU_YEARLY || 'price_ubuntu_yearly_mock',
-            },
-            [CommunityTier.IMANI]: {
-                MONTHLY: process.env.STRIPE_PRICE_IMANI_MONTHLY || 'price_imani_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_IMANI_YEARLY || 'price_imani_yearly_mock',
-            },
-            [CommunityTier.KIONGOZI]: {
-                MONTHLY: process.env.STRIPE_PRICE_KIONGOZI_MONTHLY || 'price_kiongozi_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_KIONGOZI_YEARLY || 'price_kiongozi_yearly_mock',
-            },
-        };
+        const cycle = user.billingCycle || 'MONTHLY';
+        const targetPlan = await this.planRepo.findOne({ where: { tier: targetTier } });
+        const stripePriceId = (cycle === 'YEARLY' ? targetPlan?.stripeYearlyPriceId : targetPlan?.stripeMonthlyPriceId)
+            || process.env[`STRIPE_PRICE_${targetTier.toUpperCase()}_${cycle}`];
 
-        const stripePriceId = tierPricingMap[targetTier]?.[user.billingCycle || 'MONTHLY'];
+        if (isStripeActive) {
+            if (!stripePriceId || stripePriceId.includes('mock')) {
+                throw new BadRequestException(`No active Stripe Price configured for ${targetTier} (${cycle}).`);
+            }
 
-        if (isStripeActive && stripePriceId) {
             try {
                 const stripe = await this.getStripe();
                 const subscriptions = await stripe.subscriptions.list({
                     customer: user.stripeCustomerId!,
                     status: 'active',
-                    limit: 1
                 });
 
                 if (subscriptions.data.length > 0) {
-                    const subId = subscriptions.data[0].id;
-                    const itemId = subscriptions.data[0].items.data[0].id;
-                    await stripe.subscriptions.update(subId, {
+                    const sub = subscriptions.data[0];
+                    const itemId = sub.items.data[0].id;
+                    await stripe.subscriptions.update(sub.id, {
                         proration_behavior: 'none',
                         items: [{
                             id: itemId,
                             price: stripePriceId,
                         }],
                     });
+                    this.logger.log(`Updated Stripe subscription ${sub.id} to new price ${stripePriceId} for next renewal.`);
                 }
             } catch (err: any) {
                 this.logger.error(`Stripe subscription downgrade error for user ${userId}: ${err.message}`);
+                throw new BadRequestException(`Failed to schedule downgrade on Stripe: ${err.message}`);
             }
         }
 
@@ -669,22 +650,10 @@ export class BillingService {
         const apiKey = (await this.settingsService.getRawValue('STRIPE_SECRET_KEY')) || process.env.STRIPE_SECRET_KEY;
         const isStripeActive = this.isStripeConfigured(apiKey) && user.stripeCustomerId && !user.stripeCustomerId.startsWith('cus_mock');
 
-        const tierPricingMap: Record<string, Record<string, string>> = {
-            [CommunityTier.UBUNTU]: {
-                MONTHLY: process.env.STRIPE_PRICE_UBUNTU_MONTHLY || 'price_ubuntu_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_UBUNTU_YEARLY || 'price_ubuntu_yearly_mock',
-            },
-            [CommunityTier.IMANI]: {
-                MONTHLY: process.env.STRIPE_PRICE_IMANI_MONTHLY || 'price_imani_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_IMANI_YEARLY || 'price_imani_yearly_mock',
-            },
-            [CommunityTier.KIONGOZI]: {
-                MONTHLY: process.env.STRIPE_PRICE_KIONGOZI_MONTHLY || 'price_kiongozi_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_KIONGOZI_YEARLY || 'price_kiongozi_yearly_mock',
-            },
-        };
-
-        const stripePriceId = tierPricingMap[user.communityTier]?.[user.billingCycle || 'MONTHLY'];
+        const cycle = user.billingCycle || 'MONTHLY';
+        const currentPlan = await this.planRepo.findOne({ where: { tier: user.communityTier } });
+        const stripePriceId = (cycle === 'YEARLY' ? currentPlan?.stripeYearlyPriceId : currentPlan?.stripeMonthlyPriceId)
+            || process.env[`STRIPE_PRICE_${user.communityTier.toUpperCase()}_${cycle}`];
 
         if (isStripeActive && stripePriceId) {
             try {
@@ -692,13 +661,12 @@ export class BillingService {
                 const subscriptions = await stripe.subscriptions.list({
                     customer: user.stripeCustomerId!,
                     status: 'active',
-                    limit: 1
                 });
 
                 if (subscriptions.data.length > 0) {
-                    const subId = subscriptions.data[0].id;
-                    const itemId = subscriptions.data[0].items.data[0].id;
-                    await stripe.subscriptions.update(subId, {
+                    const sub = subscriptions.data[0];
+                    const itemId = sub.items.data[0].id;
+                    await stripe.subscriptions.update(sub.id, {
                         cancel_at_period_end: false,
                         proration_behavior: 'none',
                         items: [{
@@ -706,9 +674,11 @@ export class BillingService {
                             price: stripePriceId,
                         }],
                     });
+                    this.logger.log(`Reverted Stripe subscription ${sub.id} back to price ${stripePriceId}`);
                 }
             } catch (err: any) {
                 this.logger.error(`Revert downgrade error for user ${userId}: ${err.message}`);
+                throw new BadRequestException(`Failed to revert downgrade in Stripe: ${err.message}`);
             }
         }
 
@@ -788,22 +758,11 @@ export class BillingService {
             };
         }
         // --- Paid Tiers Integration ---
-        const tierPricingMap = {
-            [CommunityTier.UBUNTU]: {
-                MONTHLY: process.env.STRIPE_PRICE_UBUNTU_MONTHLY || 'price_ubuntu_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_UBUNTU_YEARLY || 'price_ubuntu_yearly_mock',
-            },
-            [CommunityTier.IMANI]: {
-                MONTHLY: process.env.STRIPE_PRICE_IMANI_MONTHLY || 'price_imani_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_IMANI_YEARLY || 'price_imani_yearly_mock',
-            },
-            [CommunityTier.KIONGOZI]: {
-                MONTHLY: process.env.STRIPE_PRICE_KIONGOZI_MONTHLY || 'price_kiongozi_monthly_mock',
-                YEARLY: process.env.STRIPE_PRICE_KIONGOZI_YEARLY || 'price_kiongozi_yearly_mock',
-            },
-        };
+        const cycle = billingCycle || 'MONTHLY';
+        const plan = await this.planRepo.findOne({ where: { tier } });
+        const priceId = (cycle === 'YEARLY' ? plan?.stripeYearlyPriceId : plan?.stripeMonthlyPriceId)
+            || process.env[`STRIPE_PRICE_${tier.toUpperCase()}_${cycle}`];
 
-        const priceId = tierPricingMap[tier]?.[billingCycle || 'MONTHLY'];
         if (!priceId) throw new Error('Selected membership tier is invalid or unavailable.');
 
         try {
@@ -1045,11 +1004,11 @@ export class BillingService {
 
         await user.save();
 
-        // Log a revenue transaction
+        // Log a revenue transaction idempotently
         const plan = await this.planRepo.findOne({ where: { tier } });
         const amount = cycle === 'YEARLY' ? plan?.yearlyPrice : plan?.monthlyPrice;
 
-        await this.transactionRepo.create({
+        await this.billingTxService.recordTransaction({
             userId: user.id,
             chapterId: user.chapterId,
             type: TransactionType.SUBSCRIPTION,
@@ -1058,8 +1017,9 @@ export class BillingService {
             status: TransactionStatus.COMPLETED,
             stripePaymentIntentId: paymentIntentId,
             membershipTier: tier,
-            referenceNumber: `SUB-${Date.now()}`,
-        } as any);
+            referenceNumber: `CHECKOUT-${sessionId}`,
+            metadata: { sessionId, cycle },
+        });
 
         return {
             message: `Plan ${tier} activé avec succès pour ${durationMonths} mois.`,

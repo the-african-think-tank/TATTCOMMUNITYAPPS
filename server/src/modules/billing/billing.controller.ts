@@ -9,11 +9,16 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { SystemRole, CommunityTier } from '../iam/enums/roles.enum';
 import { ConfirmPaymentDto } from './dto/billing.schemas';
 
+import { StripeWebhookDispatcher } from './stripe/services/stripe-webhook-dispatcher';
+
 @ApiTags('Billing & Subscriptions')
 @ApiExtraModels(SubscriberSchema, RevenueMetricsSchema, GenericMessageResponseSchema)
 @Controller('billing')
 export class BillingController {
-    constructor(private readonly billingService: BillingService) { }
+    constructor(
+        private readonly billingService: BillingService,
+        private readonly webhookDispatcher: StripeWebhookDispatcher,
+    ) { }
 
     // Stripe Webhook Endpoint (Requires raw JSON payload matching signature)
     @ApiOperation({
@@ -33,12 +38,13 @@ export class BillingController {
         }
 
         try {
-            await this.billingService.handleStripeWebhook(req.rawBody, signature);
-            return res.status(HttpStatus.OK).send({ received: true });
+            const result = await this.webhookDispatcher.dispatch(req.rawBody, signature);
+            return res.status(HttpStatus.OK).send(result);
         } catch (err: any) {
             return res.status(HttpStatus.BAD_REQUEST).send(`Webhook Error: ${err.message}`);
         }
     }
+
 
     @ApiOperation({ summary: 'Get all active membership plans (Onboarding)' })
     @Get('plans')

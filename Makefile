@@ -135,6 +135,9 @@ db-deploy:
 harvest-jobs:
 	cd server && pnpm run db:harvest-jobs
 
+stripe-seed-catalog:
+	cd server && pnpm run stripe:seed-catalog
+
 infra-synth:
 	cd infra && pnpm cdk synth
 

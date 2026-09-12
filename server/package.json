@@ -12,6 +12,7 @@
     "db:harvest-jobs": "npx ts-node -r tsconfig-paths/register scripts/harvest-jobs.ts",
     "db:seed-events": "npx ts-node -r tsconfig-paths/register scripts/seed-future-events.ts",
     "db:seed-volunteers": "npx ts-node -r tsconfig-paths/register scripts/seed-volunteers.ts",
+    "stripe:seed-catalog": "npx ts-node -r tsconfig-paths/register scripts/seed-stripe-catalog.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

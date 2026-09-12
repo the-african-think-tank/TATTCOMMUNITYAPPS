@@ -59,13 +59,18 @@ function DashboardPaymentContent() {
                 : Math.max(0, price - plan.activeDiscount.value / 100);
         }
 
+        const stripePriceId = isYearly 
+            ? (plan.stripeYearlyPriceId || plan.stripePriceYearlyId) 
+            : (plan.stripeMonthlyPriceId || plan.stripePriceMonthlyId);
+
         return {
             name: plan.name,
             price: finalPrice,
             originalPrice: price,
             period: isYearly ? "year" : "mo",
             features: plan.features ?? [],
-            discount: plan.activeDiscount
+            discount: plan.activeDiscount,
+            stripePriceId,
         };
     }, [plans, planId, isYearly]);
 
@@ -168,6 +173,7 @@ function DashboardPaymentContent() {
                             isYearly={isYearly}
                             amount={Math.round(planDetails.price * 100)}
                             currency="usd"
+                            priceId={planDetails.stripePriceId}
                             userEmail={user?.email || ""}
                             userId={user?.id || ""}
                             onSuccess={handleCheckoutSuccess}

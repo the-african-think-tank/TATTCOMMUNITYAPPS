@@ -44,11 +44,15 @@ export function OnboardingPaymentPage() {
 
   const planDetails = useMemo(() => {
     const plan = plans.find((p) => p.tier === planId);
-    if (!plan) return { name: planId, price: 0, period: isYearly ? "year" : "mo" };
+    if (!plan) return { name: planId, price: 0, period: isYearly ? "year" : "mo", stripePriceId: undefined };
+    const stripePriceId = isYearly 
+      ? (plan.stripeYearlyPriceId || plan.stripePriceYearlyId) 
+      : (plan.stripeMonthlyPriceId || plan.stripePriceMonthlyId);
     return {
       name: plan.name,
       price: isYearly ? plan.yearlyPrice : plan.monthlyPrice,
       period: isYearly ? "year" : "mo",
+      stripePriceId,
     };
   }, [plans, planId, isYearly]);
 
@@ -175,6 +179,7 @@ export function OnboardingPaymentPage() {
                 isYearly={isYearly}
                 amount={Math.round(planDetails.price * 100)}
                 currency="usd"
+                priceId={planDetails.stripePriceId}
                 userEmail={user?.email || ""}
                 userId={user?.id || ""}
                 onSuccess={handleCheckoutSuccess}

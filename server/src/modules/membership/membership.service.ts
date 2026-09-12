@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
@@ -15,6 +15,7 @@ import { SystemSettingsService } from '../system-settings/system-settings.servic
 import { NotificationType } from '../notifications/entities/notification.entity';
 import { BroadcastsService } from '../notifications/services/broadcasts.service';
 import { BroadcastAudience } from '../notifications/entities/broadcast.entity';
+import { StripeCatalogService } from '../billing/stripe/services/stripe-catalog.service';
 
 @Injectable()
 export class MembershipService implements OnApplicationBootstrap {
@@ -31,6 +32,8 @@ export class MembershipService implements OnApplicationBootstrap {
         private broadcastsService: BroadcastsService,
         private settingsService: SystemSettingsService,
         private configService: ConfigService,
+        @Inject(forwardRef(() => StripeCatalogService))
+        private stripeCatalogService: StripeCatalogService,
     ) { }
 
     private async getStripe() {
@@ -195,6 +198,48 @@ export class MembershipService implements OnApplicationBootstrap {
             features: cleanedPerks,
         };
 
+        // Check if prices changed and rotate on Stripe
+        const newMonthly = dto.monthlyPrice !== undefined ? parseFloat(dto.monthlyPrice) : plan.monthlyPrice;
+        const newYearly = dto.yearlyPrice !== undefined ? parseFloat(dto.yearlyPrice) : plan.yearlyPrice;
+
+        const monthlyChanged = Math.abs(Number(newMonthly) - Number(plan.monthlyPrice)) > 0.001;
+        const yearlyChanged = Math.abs(Number(newYearly) - Number(plan.yearlyPrice)) > 0.001;
+
+        if ((monthlyChanged || yearlyChanged) && plan.tier !== 'FREE') {
+            try {
+                const productId = await this.stripeCatalogService.ensureProduct(
+                    plan.tier,
+                    dto.name || plan.name,
+                    plan.tagline,
+                );
+                updateData.stripeProductId = productId;
+
+                if (monthlyChanged) {
+                    const newMonthlyPriceId = await this.stripeCatalogService.rotatePrice(
+                        productId,
+                        plan.stripeMonthlyPriceId,
+                        Math.round(newMonthly * 100),
+                        'month',
+                        `${dto.name || plan.name} Monthly`,
+                    );
+                    updateData.stripeMonthlyPriceId = newMonthlyPriceId;
+                }
+
+                if (yearlyChanged) {
+                    const newYearlyPriceId = await this.stripeCatalogService.rotatePrice(
+                        productId,
+                        plan.stripeYearlyPriceId,
+                        Math.round(newYearly * 100),
+                        'year',
+                        `${dto.name || plan.name} Yearly`,
+                    );
+                    updateData.stripeYearlyPriceId = newYearlyPriceId;
+                }
+            } catch (stripeErr: any) {
+                this.logger.warn(`Could not rotate Stripe price: ${stripeErr.message}`);
+            }
+        }
+
         try {
             const legacyTier = await this.tierRepo.findOne({
                 where: { tier: plan.tier as any }
@@ -213,6 +258,7 @@ export class MembershipService implements OnApplicationBootstrap {
 
         return plan.update(updateData);
     }
+
 
     async createPlan(dto: any) {
         const perksArray = dto.features || dto.perks || [];

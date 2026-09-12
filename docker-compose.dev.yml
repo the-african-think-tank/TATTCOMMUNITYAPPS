@@ -52,6 +52,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-re_dev_dummy_key}
       RESEND_FROM_EMAIL: noreply@theafricanthinktank.com
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_dummy_key}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     volumes:

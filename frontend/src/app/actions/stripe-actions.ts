@@ -11,6 +11,7 @@ export async function createSubscriptionCheckoutSession({
   currency,
   userEmail,
   userId,
+  priceId,
 }: {
   tier: string;
   isYearly: boolean;
@@ -18,6 +19,7 @@ export async function createSubscriptionCheckoutSession({
   currency: string;
   userEmail: string;
   userId: string;
+  priceId?: string | undefined;
 }) {
   // Validation
   if (!userEmail || !userEmail.includes('@')) {
@@ -39,32 +41,33 @@ export async function createSubscriptionCheckoutSession({
     console.warn('Could not list Stripe customers:', err);
   }
 
-  // Création de la session Checkout (récurrente / abonnement)
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    line_items: [
-      {
+  // If a canonical Stripe priceId is provided, use it directly for native catalog linkage
+  const lineItem = priceId
+    ? { price: priceId, quantity: 1 }
+    : {
         price_data: {
           currency: currency || 'usd',
           product_data: {
             name: `TATT ${tier} Membership - ${isYearly ? 'Yearly' : 'Monthly'}`,
             description: `Accès au plan ${tier}`,
           },
-          unit_amount: amount, // Montant en centimes
+          unit_amount: amount,
           recurring: {
-            interval: isYearly ? 'year' : 'month',
+            interval: isYearly ? ('year' as const) : ('month' as const),
           },
         },
         quantity: 1,
-      },
-    ],
+      };
+
+  // Création de la session Checkout (récurrente / abonnement)
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [lineItem],
     ui_mode: 'embedded_page',
     redirect_on_completion: 'never',
+    allow_promotion_codes: true,
     ...(customerId ? { customer: customerId } : { customer_email: userEmail }),
-    saved_payment_method_options: {
-      payment_method_save: 'enabled',
-    },
     metadata: {
       userId,
       tier,
