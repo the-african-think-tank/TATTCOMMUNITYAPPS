@@ -132,6 +132,9 @@ deploy-prod: pull-prod
 db-deploy:
 	cd server && pnpm run db:deploy
 
+harvest-jobs:
+	cd server && pnpm run db:harvest-jobs
+
 infra-synth:
 	cd infra && pnpm cdk synth
 

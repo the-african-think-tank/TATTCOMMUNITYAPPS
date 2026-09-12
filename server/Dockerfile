@@ -24,8 +24,10 @@ RUN apk add --no-cache su-exec
 
 # Copy only necessary files from builder
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # Pre-create the uploads directory tree with correct ownership.
 # When docker-compose bind-mounts ./server/uploads → /app/uploads,
