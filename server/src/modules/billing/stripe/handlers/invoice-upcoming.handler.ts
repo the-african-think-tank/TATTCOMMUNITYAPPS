@@ -39,18 +39,21 @@ export class InvoiceUpcomingHandler implements IStripeWebhookHandler {
             false,
         );
 
-        // Email reminder
-        try {
-            await this.mailService.sendNotificationEmail(
-                user.email,
-                user.firstName,
-                'Notice: Upcoming TATT Membership Renewal',
-                `This is a courtesy notice that your TATT ${user.communityTier} membership is scheduled to automatically renew on ${renewalDate} for $${amount}.\n\nIf you need to review your plan or billing details, you can visit your settings anytime.`,
-                `${process.env.FRONTEND_URL || 'https://community.theafricanthinktank.com'}/dashboard/settings`,
-                'View Subscription',
-            );
-        } catch (err: any) {
-            this.logger.warn(`Could not dispatch invoice.upcoming email: ${err.message}`);
+        // Email reminder: Only send advance notice for YEARLY subscriptions to prevent monthly billing fatigue
+        const isYearly = user.billingCycle === 'YEARLY' || (invoice.amount_due && invoice.amount_due >= 10000);
+        if (isYearly) {
+            try {
+                await this.mailService.sendNotificationEmail(
+                    user.email,
+                    user.firstName,
+                    'Notice: Upcoming Annual TATT Membership Renewal',
+                    `This is a courtesy notice that your annual TATT ${user.communityTier} membership is scheduled to automatically renew on ${renewalDate} for $${amount}.\n\nIf you need to review your plan or billing details, you can visit your settings anytime.`,
+                    `${process.env.FRONTEND_URL || 'https://community.theafricanthinktank.com'}/dashboard/settings`,
+                    'View Subscription',
+                );
+            } catch (err: any) {
+                this.logger.warn(`Could not dispatch invoice.upcoming email: ${err.message}`);
+            }
         }
     }
 }

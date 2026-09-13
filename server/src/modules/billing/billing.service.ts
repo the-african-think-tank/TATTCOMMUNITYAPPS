@@ -235,15 +235,18 @@ export class BillingService {
         });
     }
 
-    async getUpcomingRenewals() {
+    /**
+     * Finds subscribers who explicitly requested subscription cancellation (scheduled downgrade to FREE)
+     * and whose membership access is set to expire within the next 7 days.
+     */
+    async getUpcomingCancellations() {
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
 
         return this.userRepository.findAll({
             where: {
                 communityTier: { [Op.ne]: CommunityTier.FREE },
-                billingCycle: 'MONTHLY',
-                hasAutoPayEnabled: false,
+                pendingTier: CommunityTier.FREE,
                 subscriptionExpiresAt: {
                     [Op.and]: {
                         [Op.gte]: new Date(),
@@ -255,8 +258,14 @@ export class BillingService {
         });
     }
 
+    async getUpcomingRenewals() {
+        return this.getUpcomingCancellations();
+    }
+
     async notifyUpcomingRenewals() {
-        const usersToNotify = await this.getUpcomingRenewals();
+        // Only notify members who have an active pending cancellation (scheduled downgrade to FREE).
+        // Active auto-renewing subscribers are managed seamlessly via Stripe webhooks.
+        const usersToNotify = await this.getUpcomingCancellations();
 
         let sentCount = 0;
         for (const user of usersToNotify) {
@@ -265,50 +274,22 @@ export class BillingService {
             await this.notificationsService.create(
                 user.id,
                 NotificationType.SUBSCRIPTION_EXPIRING,
-                'Membership Renewal Reminder',
-                `Your TATT membership is expiring on ${user.subscriptionExpiresAt.toLocaleDateString()}. Please renew soon to maintain access.`,
+                'Membership Cancellation Notice',
+                `Your TATT membership is scheduled to expire on ${user.subscriptionExpiresAt.toLocaleDateString()} due to your cancellation request. Reactivate anytime to maintain access.`,
                 { expiresAt: user.subscriptionExpiresAt },
-                false // Email already sent above
+                false
             );
 
             sentCount++;
         }
 
-        return { message: `Notified ${sentCount} community members about upcoming renewals.` };
+        return { message: `Notified ${sentCount} members with pending cancellations.` };
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
     async handleScheduledRenewalNotifications() {
-        this.logger.log('Running scheduled renewal notifications check...');
-
-        // Notify those expiring in 7 days (standard)
+        this.logger.log('Running scheduled check for members with pending subscription cancellations...');
         await this.notifyUpcomingRenewals();
-
-        // Also notify those expiring in 1 day for urgency
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const soonExpiring = await this.userRepository.findAll({
-            where: {
-                communityTier: { [Op.ne]: CommunityTier.FREE },
-                subscriptionExpiresAt: {
-                    [Op.and]: {
-                        [Op.gte]: new Date(),
-                        [Op.lte]: tomorrow
-                    }
-                }
-            }
-        });
-
-        for (const user of soonExpiring) {
-            await this.notificationsService.create(
-                user.id,
-                NotificationType.SUBSCRIPTION_EXPIRING,
-                'Urgent: Membership Expiring Tomorrow',
-                `Your TATT membership expires tomorrow. Renew today to avoid interruption.`,
-                { expiresAt: user.subscriptionExpiresAt },
-                true
-            );
-        }
     }
 
     /**

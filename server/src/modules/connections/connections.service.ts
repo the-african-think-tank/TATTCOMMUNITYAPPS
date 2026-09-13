@@ -87,12 +87,18 @@ export class ConnectionsService {
             status: ConnectionStatus.PENDING,
         });
 
+        // Derive clean sender display name with defensive fallbacks
+        const senderFullName = [requester.firstName, requester.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim() || requester.email?.split('@')[0] || 'A TATT Member';
+
         // Notify the recipient via email (non-blocking)
         this.mailService
             .sendConnectionRequest(
                 recipient.email,
                 recipient.firstName,
-                `${requester.firstName} ${requester.lastName}`,
+                senderFullName,
                 dto.message,
             )
             .catch(() => { /* Silently swallow — connection was still created */ });
@@ -102,7 +108,7 @@ export class ConnectionsService {
             dto.recipientId,
             NotificationType.CONNECTION_REQUEST,
             'New Connection Request',
-            `${requester.firstName} ${requester.lastName} wants to connect with you.`,
+            `${senderFullName} wants to connect with you.`,
             { connectionId: connection.id, requesterId: requester.id },
             false // Email already sent above
         ).catch(() => { });
@@ -135,11 +141,16 @@ export class ConnectionsService {
         await connection.save();
 
         if (dto.status === ConnectionStatus.ACCEPTED) {
+            const acceptorFullName = [currentUser.firstName, currentUser.lastName]
+                .filter(Boolean)
+                .join(' ')
+                .trim() || currentUser.email?.split('@')[0] || 'A TATT Member';
+
             this.notificationsService.create(
                 connection.requesterId,
                 NotificationType.CONNECTION_ACCEPTED,
                 'Connection Request Accepted',
-                `${currentUser.firstName} ${currentUser.lastName} accepted your connection request.`,
+                `${acceptorFullName} accepted your connection request.`,
                 { connectionId: connection.id, partnerId: currentUser.id },
                 true // Notify via email as well
             ).catch(() => { });

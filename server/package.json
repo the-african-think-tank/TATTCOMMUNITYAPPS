@@ -9,7 +9,7 @@
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.json",
     "db:deploy": "npx ts-node -r tsconfig-paths/register scripts/deploy-production-db.ts",
-    "db:harvest-jobs": "npx ts-node -r tsconfig-paths/register scripts/harvest-jobs.ts",
+    "db:harvest-jobs": "node scripts/harvest-jobs.js",
     "db:seed-events": "npx ts-node -r tsconfig-paths/register scripts/seed-future-events.ts",
     "db:seed-volunteers": "npx ts-node -r tsconfig-paths/register scripts/seed-volunteers.ts",
     "stripe:seed-catalog": "npx ts-node -r tsconfig-paths/register scripts/seed-stripe-catalog.ts",

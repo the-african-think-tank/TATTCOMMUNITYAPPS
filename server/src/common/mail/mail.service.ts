@@ -200,14 +200,20 @@ export class MailService {
     message: string,
   ) {
     const profileLink = `${this.frontendUrl}/member/network/requests`;
+    const sender = (senderFullName && !senderFullName.includes('undefined'))
+      ? senderFullName.trim()
+      : 'A TATT Member';
+    const greeting = (recipientFirstName && !recipientFirstName.includes('undefined'))
+      ? recipientFirstName.trim()
+      : 'Member';
 
     try {
       await this.sendResendEmail({
         to: recipientEmail,
-        subject: `${senderFullName} wants to connect with you on TATT`,
+        subject: `${sender} wants to connect with you on TATT`,
         html: `
-          <h2>Hi ${recipientFirstName},</h2>
-          <p><strong>${senderFullName}</strong> has sent you a connection request on The African Think Tank platform.</p>
+          <h2>Hi ${greeting},</h2>
+          <p><strong>${sender}</strong> has sent you a connection request on The African Think Tank platform.</p>
           <blockquote style="border-left: 4px solid #0044cc; padding-left: 16px; color: #555; margin: 16px 0;">
             &ldquo;${message}&rdquo;
           </blockquote>
@@ -222,7 +228,7 @@ export class MailService {
           <p>Thank you for being a valued member of the TATT community.</p>
         `,
       });
-      this.logger.log(`Connection request email sent to ${recipientEmail} from ${senderFullName}`);
+      this.logger.log(`Connection request email sent to ${recipientEmail} from ${sender}`);
     } catch (error) {
       this.logger.error(`Failed to send connection request email to ${recipientEmail}`, error.stack);
       throw error;
