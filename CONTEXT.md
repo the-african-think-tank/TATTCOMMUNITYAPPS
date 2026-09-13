@@ -40,7 +40,16 @@ _Avoid_: Term, frequency, billing period
 A permanent, predefined Stripe Price object representing a specific tier and billing cycle.
 _Avoid_: Ad-hoc price, price_data, inline amount
 
+**Auto-Renewing Subscription**:
+Every paid membership tier is strictly an automatic recurring subscription. Memberships do not expire at period end; they automatically bill and advance the period end date until explicitly canceled by the member or terminated due to chronic payment failure.
+_Avoid_: Manual renewal, prepaid term, expiring account (unless canceled)
+
+**Period End**:
+The scheduled date on which Stripe automatically bills the card for the next subscription cycle and advances access.
+_Avoid_: Expiration date (for active auto-renewing subscriptions)
+
 **Webhook Signing Secret**:
 The cryptographic secret (`whsec_...`) used by the API to verify the authenticity of asynchronous events sent by Stripe.
 _Avoid_: Webhook key, callback token
+
 
