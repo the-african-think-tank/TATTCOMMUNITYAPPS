@@ -232,11 +232,15 @@ async function run() {
         envLines.push(`STRIPE_WEBHOOK_SECRET=${createdWebhook.secret}`);
     }
 
-    // 4. Save SQL file for remote database deployment (if PC has no direct DB access)
-    const sqlFileName = `deploy-stripe-catalog-${isLive ? 'production' : 'staging'}.sql`;
-    const sqlFilePath = path.resolve(__dirname, sqlFileName);
-    fs.writeFileSync(sqlFilePath, `-- TATT Stripe Catalog Migration [${modeName}]\n-- Generated at: ${new Date().toISOString()}\n\n` + sqlStatements.join('\n') + '\n');
-    console.log(`\n💾 Saved SQL migration script: scripts/${sqlFileName}`);
+    // 4. Save SQL file for remote database deployment (optional backup)
+    try {
+        const sqlFileName = `deploy-stripe-catalog-${isLive ? 'production' : 'staging'}.sql`;
+        const sqlFilePath = path.resolve(__dirname, sqlFileName);
+        fs.writeFileSync(sqlFilePath, `-- TATT Stripe Catalog Migration [${modeName}]\n-- Generated at: ${new Date().toISOString()}\n\n` + sqlStatements.join('\n') + '\n');
+        console.log(`\n💾 Saved SQL migration script: scripts/${sqlFileName}`);
+    } catch (fsErr: any) {
+        // Non-fatal if running inside a container with restricted filesystem permissions
+    }
 
     console.log('\n================================================================');
     console.log(`✅ SETUP COMPLETE FOR ${modeName}`);
