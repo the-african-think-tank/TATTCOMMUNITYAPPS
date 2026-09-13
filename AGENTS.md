@@ -73,4 +73,5 @@ This monorepo consists of three core packages:
 10. **Asana Workspace & Project Boundaries**:
     - Strictly and exclusively use the **`theafricanthinktank.com`** workspace (`gid`: `1207603360561162`).
     - Direct all dev tickets to project **`Tickets for Dev Team`** (`gid`: `1216833606923141`).
+    - Always assign newly created tickets to the user (`assignee: 'me'`).
     - Never query, read, or create tasks in any other workspace (e.g. Prepmeets or Car Rental).

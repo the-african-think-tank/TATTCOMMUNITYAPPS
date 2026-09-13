@@ -139,6 +139,12 @@ db-deploy:
 harvest-jobs:
 	cd server && pnpm run db:harvest-jobs
 
+harvest-jobs-staging:
+	docker exec -it tatt-api-ec2 npm run db:harvest-jobs
+
+harvest-jobs-prod:
+	docker exec -it tatt-api-production npm run db:harvest-jobs
+
 stripe-seed-catalog:
 	cd server && pnpm run stripe:seed-catalog
 

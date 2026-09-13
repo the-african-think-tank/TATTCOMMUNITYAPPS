@@ -19,3 +19,7 @@ When using Asana MCP tools in this workspace:
 4. **Task Structure**:
    - Always include a clear, actionable title.
    - Include a concise summary, repro steps/context, and relevant file paths in `notes` or `html_notes`.
+
+5. **Default Assignee**:
+   - Always assign newly created tickets to the user (`assignee: 'me'` or GID `1201839158549172`).
+
