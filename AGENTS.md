@@ -70,3 +70,7 @@ This monorepo consists of three core packages:
 7. **NestJS & Next.js Architecture**: Follow modern NestJS module standards (`module`, `controller`, `service`, `dto`, `model`) and Next.js 16 App Router conventions.
 8. **Conditional UI Rendering**: When lists or sections are empty or optional (e.g. FAQs, search results), handle loading states gracefully and hide empty containers completely when appropriate.
 9. **No Blind Symptom Patching**: Read full error logs and trace upstream logic before making fixes.
+10. **Asana Workspace & Project Boundaries**:
+    - Strictly and exclusively use the **`theafricanthinktank.com`** workspace (`gid`: `1207603360561162`).
+    - Direct all dev tickets to project **`Tickets for Dev Team`** (`gid`: `1216833606923141`).
+    - Never query, read, or create tasks in any other workspace (e.g. Prepmeets or Car Rental).
