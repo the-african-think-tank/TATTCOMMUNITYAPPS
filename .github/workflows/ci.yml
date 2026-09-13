@@ -20,16 +20,19 @@ jobs:
 
       # Step 2: Set up pnpm package manager (v9)
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      # Step 3: Set up Node.js 20 with dependency caching
-      - name: Setup Node.js 20
+      # Step 3: Set up Node.js with multi-package dependency caching
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            server/pnpm-lock.yaml
 
       # Step 4: Install dependencies in frontend and server
       - name: Install Dependencies
