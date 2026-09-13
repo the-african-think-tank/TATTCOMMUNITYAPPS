@@ -20,7 +20,7 @@ export class StripeClientService {
             apiKey.includes('your_') ||
             apiKey.includes('*****') ||
             apiKey.includes('dummy') ||
-            !apiKey.startsWith('sk_')
+            !(apiKey.startsWith('sk_') || apiKey.startsWith('rk_'))
         ) {
             return false;
         }

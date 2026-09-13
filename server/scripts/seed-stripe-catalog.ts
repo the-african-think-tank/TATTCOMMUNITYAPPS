@@ -1,22 +1,42 @@
-import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 
-// Load environment files
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-dotenv.config({ path: path.resolve(__dirname, '.env') });
+// Helper to load key=value from .env files without external dependencies
+function loadEnvFile(filePath: string) {
+    if (!fs.existsSync(filePath)) return;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx !== -1) {
+            const key = trimmed.slice(0, eqIdx).trim();
+            let val = trimmed.slice(eqIdx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.slice(1, -1);
+            }
+            if (!process.env[key]) {
+                process.env[key] = val;
+            }
+        }
+    }
+}
+
+loadEnvFile(path.resolve(__dirname, '../../.env.production'));
+loadEnvFile(path.resolve(__dirname, '../../.env'));
+loadEnvFile(path.resolve(__dirname, '../.env'));
+loadEnvFile(path.resolve(__dirname, '.env'));
 
 import Stripe from 'stripe';
-import { Sequelize } from 'sequelize-typescript';
-import { MembershipPlan } from '../src/modules/membership/entities/membership-plan.entity';
+import { Sequelize } from 'sequelize';
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-if (!STRIPE_SECRET_KEY || !STRIPE_SECRET_KEY.startsWith('sk_')) {
-    console.error('❌ Error: STRIPE_SECRET_KEY is missing or invalid. Set it in .env or pass as an environment variable.');
+if (!STRIPE_SECRET_KEY || !(STRIPE_SECRET_KEY.startsWith('sk_') || STRIPE_SECRET_KEY.startsWith('rk_'))) {
+    console.error('❌ Error: STRIPE_SECRET_KEY is missing or invalid. It must start with sk_ or rk_.');
     process.exit(1);
 }
 
-const isLive = STRIPE_SECRET_KEY.startsWith('sk_live_');
+const isLive = STRIPE_SECRET_KEY.startsWith('sk_live_') || STRIPE_SECRET_KEY.startsWith('rk_live_');
 const modeName = isLive ? 'PRODUCTION (LIVE)' : 'SANDBOX (TEST)';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
@@ -70,7 +90,6 @@ async function run() {
             username: process.env.DB_USER || 'postgres',
             password: process.env.DB_PASS || 'postgres',
             database: process.env.DB_NAME || 'tatt_db',
-            models: [MembershipPlan],
             logging: false,
         });
         await sequelize.authenticate();
@@ -80,6 +99,7 @@ async function run() {
     }
 
     const envLines: string[] = [];
+    const sqlStatements: string[] = [];
 
     // 2. Provision each product and price
     for (const plan of PLANS) {
@@ -153,18 +173,29 @@ async function run() {
         }
 
         envLines.push(`STRIPE_PRICE_${plan.tier}_YEARLY=${yearlyPriceId}`);
+        sqlStatements.push(
+            `UPDATE membership_plans SET "stripeProductId" = '${productId}', "stripeMonthlyPriceId" = '${monthlyPriceId}', "stripeYearlyPriceId" = '${yearlyPriceId}' WHERE tier = '${plan.tier}';`
+        );
 
         // D. Update DB if connected
         if (sequelize) {
             try {
-                const dbPlan = await MembershipPlan.findOne({ where: { tier: plan.tier } });
-                if (dbPlan) {
-                    dbPlan.stripeProductId = productId;
-                    dbPlan.stripeMonthlyPriceId = monthlyPriceId;
-                    dbPlan.stripeYearlyPriceId = yearlyPriceId;
-                    await dbPlan.save();
-                    console.log(`   Synced IDs to PostgreSQL database row for ${plan.tier}.`);
-                }
+                await sequelize.query(
+                    `UPDATE membership_plans 
+                     SET "stripeProductId" = :productId, 
+                         "stripeMonthlyPriceId" = :monthlyPriceId, 
+                         "stripeYearlyPriceId" = :yearlyPriceId 
+                     WHERE tier = :tier`,
+                    {
+                        replacements: {
+                            productId,
+                            monthlyPriceId,
+                            yearlyPriceId,
+                            tier: plan.tier,
+                        },
+                    },
+                );
+                console.log(`   Synced IDs to PostgreSQL database row for ${plan.tier}.`);
             } catch (err: any) {
                 console.warn(`   Could not update DB for ${plan.tier}: ${err.message}`);
             }
@@ -201,9 +232,17 @@ async function run() {
         envLines.push(`STRIPE_WEBHOOK_SECRET=${createdWebhook.secret}`);
     }
 
+    // 4. Save SQL file for remote database deployment (if PC has no direct DB access)
+    const sqlFileName = `deploy-stripe-catalog-${isLive ? 'production' : 'staging'}.sql`;
+    const sqlFilePath = path.resolve(__dirname, sqlFileName);
+    fs.writeFileSync(sqlFilePath, `-- TATT Stripe Catalog Migration [${modeName}]\n-- Generated at: ${new Date().toISOString()}\n\n` + sqlStatements.join('\n') + '\n');
+    console.log(`\n💾 Saved SQL migration script: scripts/${sqlFileName}`);
+
     console.log('\n================================================================');
     console.log(`✅ SETUP COMPLETE FOR ${modeName}`);
     console.log('================================================================');
+    console.log('\n📋 Generated SQL (Run this in Adminer or via docker exec psql if DB is remote):\n');
+    console.log(sqlStatements.join('\n'));
     console.log('\nPaste the following into your .env or .env.production:\n');
     console.log(envLines.join('\n'));
     console.log('\n================================================================\n');

@@ -6,7 +6,8 @@ PROD_STRIPE_KEY ?= pk_live_your_production_stripe_key
 
 .PHONY: help install-all ensure-docker dev dev-build down logs db-deploy infra-synth infra-diff infra-deploy clean \
 	build-staging-api build-staging-frontend push-staging build-push-staging pull-staging deploy-staging \
-	build-prod-api build-prod-frontend push-prod build-push-prod pull-prod deploy-prod
+	build-prod-api build-prod-frontend push-prod build-push-prod pull-prod deploy-prod \
+	stripe-seed-staging stripe-seed-prod stripe-seed-dev stripe-seed-catalog
 
 # Colors for help menu
 BLUE := \033[36m
@@ -34,6 +35,9 @@ help:
 	@echo "  $(BLUE)pull-prod$(RESET)              Pull Production images from Docker Hub on VM"
 	@echo "  $(BLUE)deploy-prod$(RESET)            Pull and restart Production containers on VM"
 	@echo "  $(BLUE)db-deploy$(RESET)             Run backend production database migration/sync script"
+	@echo "  $(BLUE)stripe-seed-staging$(RESET)   Seed Stripe catalog inside Staging container on VM"
+	@echo "  $(BLUE)stripe-seed-prod$(RESET)      Seed Stripe catalog inside Production container on VM"
+	@echo "  $(BLUE)stripe-seed-dev$(RESET)       Seed Stripe catalog inside local dev container"
 	@echo "  $(BLUE)infra-synth$(RESET)           Synthesize AWS CDK CloudFormation template"
 	@echo "  $(BLUE)infra-diff$(RESET)            Compare local AWS CDK changes with deployed stack"
 	@echo "  $(BLUE)infra-deploy$(RESET)          Deploy the AWS CDK infrastructure stack"
@@ -137,6 +141,15 @@ harvest-jobs:
 
 stripe-seed-catalog:
 	cd server && pnpm run stripe:seed-catalog
+
+stripe-seed-staging:
+	docker exec -it tatt-api-ec2 npm run stripe:seed-catalog
+
+stripe-seed-prod:
+	docker exec -it tatt-api-production npm run stripe:seed-catalog
+
+stripe-seed-dev:
+	docker exec -it tatt-api-dev pnpm run stripe:seed-catalog
 
 infra-synth:
 	cd infra && pnpm cdk synth

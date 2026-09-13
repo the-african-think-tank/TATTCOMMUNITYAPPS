@@ -258,6 +258,7 @@ docker exec tatt-frontend-production env | grep -E "NEXT_PUBLIC_API_URL|NEXT_PUB
 | Build Frontend | `docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="https://staff.theafricanthinktank.org/api" --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..." -t tatt/tatt-frontend:staging -f frontend/Dockerfile ./frontend` |
 | Push Images | `docker push tatt/tatt-api:staging && docker push tatt/tatt-frontend:staging` |
 | Deploy | `docker-compose -f docker-compose.ec2.yml --env-file .env up -d --force-recreate` |
+| Seed Stripe Catalog | `make stripe-seed-staging` *(or `docker exec -it tatt-api-ec2 npm run stripe:seed-catalog`)* |
 | Check Logs | `docker-compose -f docker-compose.ec2.yml logs -f` |
 
 ### Production Commands
@@ -267,6 +268,7 @@ docker exec tatt-frontend-production env | grep -E "NEXT_PUBLIC_API_URL|NEXT_PUB
 | Build Frontend | `docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="https://community.theafricanthinktank.com/api" --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_..." -t tatt/tatt-frontend:production -f frontend/Dockerfile ./frontend` |
 | Push Images | `docker push tatt/tatt-api:production && docker push tatt/tatt-frontend:production` |
 | Deploy | `docker-compose -f docker-compose.ksd.yml --env-file .env.production up -d --force-recreate` |
+| Seed Stripe Catalog | `make stripe-seed-prod` *(or `docker exec -it tatt-api-production npm run stripe:seed-catalog`)* |
 | Check Logs | `docker-compose -f docker-compose.ksd.yml logs -f` |
 
 ---
