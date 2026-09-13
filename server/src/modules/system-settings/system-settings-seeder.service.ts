@@ -23,6 +23,9 @@ export class SystemSettingsSeeder implements OnModuleInit {
             // GENERAL
             { key: 'APP_NAME', value: 'The African Think Tank', category: 'GENERAL', description: 'Global platform name.' },
             { key: 'FRONTEND_URL', value: 'http://localhost:3000', category: 'GENERAL', description: 'Public facing platform URL.' },
+            { key: 'SHOW_BETA_NOTICE', value: 'true', category: 'GENERAL', description: 'Toggle visibility of the global Beta Testing banner and footer indicators.' },
+            { key: 'BETA_BANNER_MESSAGE', value: 'Welcome to TATT Community Apps Beta. You are exploring early access.', category: 'GENERAL', description: 'Announcement text shown in the top beta banner.' },
+            { key: 'BETA_VERSION_TAG', value: 'v0.9.0-beta', category: 'GENERAL', description: 'Version label displayed in footers.' },
             
             // SMTP
             { key: 'MAIL_HOST', value: process.env.MAIL_HOST || 'smtp.gmail.com', category: 'SMTP', description: 'Outgoing mail server host.' },

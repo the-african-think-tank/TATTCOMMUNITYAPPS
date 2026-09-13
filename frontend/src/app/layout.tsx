@@ -36,6 +36,7 @@ import { ToastProvider } from "@/components/organisms/ToastProvider";
 import QueryProvider from "@/context/query-provider";
 import { TermsProvider } from "@/context/terms-context";
 import { HeroUIAppProvider } from "@/providers/hero-ui-provider";
+import { GlobalBetaBanner } from "@/components/molecules/global-beta-banner";
 
 
 export default function RootLayout({
@@ -53,6 +54,7 @@ export default function RootLayout({
           <QueryProvider>
               <AuthProvider>
                 <TermsProvider>
+                  <GlobalBetaBanner />
                   {children}
                 </TermsProvider>
               </AuthProvider>

@@ -23,7 +23,7 @@ export function DashboardHeader({ onMenuClick }: { onMenuClick: () => void }) {
     }, []);
 
     return (
-        <header className="h-16 bg-surface/80 border-b border-border flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40 backdrop-blur-sm">
+        <header className="h-16 bg-surface/80 border-b border-border flex items-center justify-between px-4 lg:px-8 sticky top-[var(--beta-banner-h,0px)] z-40 backdrop-blur-sm transition-all">
             <div className="flex items-center gap-4 flex-1">
                 <button
                     onClick={onMenuClick}

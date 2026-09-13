@@ -21,7 +21,7 @@ export function Navbar() {
 
     return (
         <>
-            <header className="sticky top-0 z-50 bg-tatt-black">
+            <header className="sticky top-[var(--beta-banner-h,0px)] z-40 bg-tatt-black transition-all">
                 <div className="flex items-center justify-between px-4 lg:px-20 py-4 max-w-[1600px] mx-auto">
                     <div className="flex items-center gap-2 lg:gap-3 shrink-0">
                         <Link href="/" className="flex items-center gap-2 lg:gap-3 group">

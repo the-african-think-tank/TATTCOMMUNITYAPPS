@@ -32,6 +32,7 @@ export const QUERY_KEYS = {
     savedJobs:          ['jobs', 'saved'] as const,
     savedJobIds:        ['jobs', 'saved-ids'] as const,
     jobDetail:          (id: string) => ['jobs', id] as const,
+    publicConfig:       ['system', 'public-config'] as const,
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -254,5 +255,34 @@ export function useConnectionAction() {
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connectionRequests });
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.connections });
         },
+    });
+}
+
+// ─── Public System Configuration ──────────────────────────────────────────────
+export interface PublicConfig {
+    showBetaNotice: boolean;
+    betaBannerMessage: string;
+    betaVersionTag: string;
+}
+
+export const DEFAULT_PUBLIC_CONFIG: PublicConfig = {
+    showBetaNotice: true,
+    betaBannerMessage: 'Welcome to TATT Community Apps Beta. You are exploring early access features.',
+    betaVersionTag: 'v0.9.0-beta',
+};
+
+export function usePublicConfig() {
+    return useQuery({
+        queryKey: QUERY_KEYS.publicConfig,
+        queryFn: async (): Promise<PublicConfig> => {
+            try {
+                const { data } = await api.get<PublicConfig>('/admin/settings/public');
+                return data;
+            } catch {
+                return DEFAULT_PUBLIC_CONFIG;
+            }
+        },
+        staleTime: 5 * 60 * 1000,
+        placeholderData: DEFAULT_PUBLIC_CONFIG,
     });
 }

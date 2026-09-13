@@ -68,14 +68,14 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
             {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    className="fixed top-[var(--beta-banner-h,0px)] bottom-0 inset-x-0 bg-black/50 z-40 lg:hidden"
                     onClick={closeSidebar}
                 />
             )}
 
             {/* Sidebar */}
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-64 bg-tatt-black border-r border-border flex flex-col transition-transform duration-300
+                fixed top-[var(--beta-banner-h,0px)] bottom-0 left-0 z-40 w-64 bg-tatt-black border-r border-border flex flex-col transition-all duration-300
                 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0
             `}>
                 <div className="p-6 flex items-center justify-between gap-3">

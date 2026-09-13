@@ -185,19 +185,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         <AdminGuard>
-            <div className="flex h-screen overflow-hidden bg-background font-sans">
+            <div className="flex h-[calc(100vh-var(--beta-banner-h,0px))] overflow-hidden bg-background font-sans">
                 {/* Mobile Sidebar Overlay */}
                 {isSidebarOpen && (
                     <div
-                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                        className="fixed top-[var(--beta-banner-h,0px)] bottom-0 inset-x-0 bg-black/50 z-40 lg:hidden"
                         onClick={() => setIsSidebarOpen(false)}
                     />
                 )}
 
                 {/* Sidebar */}
                 <aside className={`
-                    fixed inset-y-0 left-0 z-50 w-72 bg-tatt-black text-white flex flex-col shrink-0 border-r border-border transform transition-transform duration-300 ease-in-out
-                    lg:relative lg:translate-x-0
+                    fixed top-[var(--beta-banner-h,0px)] bottom-0 left-0 z-40 w-72 bg-tatt-black text-white flex flex-col shrink-0 border-r border-border transform transition-all duration-300 ease-in-out
+                    lg:relative lg:top-0 lg:translate-x-0
                     ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
                 `}>
                     <div className="p-6 flex items-center justify-between">

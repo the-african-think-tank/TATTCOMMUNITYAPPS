@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Linkedin, Facebook, Instagram } from "lucide-react";
 import { useTermsModal } from "@/context/terms-context";
+import { usePublicConfig } from "@/hooks/use-queries";
 import { TATTLogo } from "../atoms/logo";
 
 
@@ -12,6 +13,7 @@ const LOGO_ICON_SRC = "/assets/tattlogoIcon.svg";
 
 export function Footer() {
     const { showTerms } = useTermsModal();
+    const { data: config } = usePublicConfig();
 
     return (
         <footer className="bg-tatt-black text-white py-12 md:py-16 px-6 sm:px-10 lg:px-20">
@@ -121,7 +123,14 @@ export function Footer() {
 
             {/* Bottom Section: Copyright & Legal */}
             <div className="max-w-7xl mx-auto border-t border-gray-800 pt-10 text-center space-y-4">
-                <p className="text-gray-400 text-sm">©2025 The African Think Tank. All rights reserved.</p>
+                <div className="flex items-center justify-center gap-2.5 flex-wrap">
+                    <p className="text-gray-400 text-sm">©2026 The African Think Tank. All rights reserved.</p>
+                    {config?.showBetaNotice && config?.betaVersionTag && (
+                        <span className="px-2 py-0.5 rounded-full bg-tatt-lime/15 text-tatt-lime border border-tatt-lime/30 font-mono text-[10px] font-bold">
+                            {config.betaVersionTag}
+                        </span>
+                    )}
+                </div>
                 <p className="text-sm font-light text-white/70 italic px-4">
                     Empowering the African Diaspora through Culture, Connection, and Community.
                 </p>

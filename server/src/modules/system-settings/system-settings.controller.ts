@@ -3,12 +3,31 @@ import { SystemSettingsService } from './system-settings.service';
 import { JwtAuthGuard } from '../iam/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { SystemRole } from '../iam/enums/roles.enum';
 
 @Controller('admin/settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SystemSettingsController {
     constructor(private readonly settingsService: SystemSettingsService) { }
+
+    @Public()
+    @Get('public')
+    async getPublicConfig(): Promise<{
+        showBetaNotice: boolean;
+        betaBannerMessage: string;
+        betaVersionTag: string;
+    }> {
+        const showNotice = await this.settingsService.getRawValue('SHOW_BETA_NOTICE');
+        const bannerMessage = await this.settingsService.getRawValue('BETA_BANNER_MESSAGE');
+        const versionTag = await this.settingsService.getRawValue('BETA_VERSION_TAG');
+
+        return {
+            showBetaNotice: showNotice !== 'false',
+            betaBannerMessage: bannerMessage || 'Welcome to TATT Community Apps Beta. You are exploring early access.',
+            betaVersionTag: versionTag || 'v0.9.0-beta',
+        };
+    }
 
     @Get('telemetry')
     @Roles(SystemRole.SUPERADMIN, SystemRole.ADMIN)

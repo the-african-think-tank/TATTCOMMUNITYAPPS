@@ -3,20 +3,25 @@
 import React from "react";
 import Link from "next/link";
 import { useTermsModal } from "@/context/terms-context";
-
-
+import { usePublicConfig } from "@/hooks/use-queries";
 
 export function DashboardFooter() {
   const { showTerms } = useTermsModal();
+  const { data: config } = usePublicConfig();
   const currentYear = 2026; // Fixed per user request
 
   return (
     <footer className="w-full py-10 px-6 mt-auto bg-surface border-t border-border">
       <div className="max-w-screen-2xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
         
-        {/* Left: Copyright */}
-        <div className="font-sans text-[10px] tracking-widest uppercase text-tatt-gray font-black">
-          © {currentYear} The African Think Tank. All Rights Reserved.
+        {/* Left: Copyright & Beta indicator */}
+        <div className="flex flex-wrap items-center gap-2.5 font-sans text-[10px] tracking-widest uppercase text-tatt-gray font-black">
+          <span>© {currentYear} The African Think Tank. All Rights Reserved.</span>
+          {config?.showBetaNotice && config?.betaVersionTag && (
+            <span className="px-2 py-0.5 rounded-full bg-tatt-lime/15 text-tatt-lime-dark border border-tatt-lime/40 font-mono text-[9px] font-bold tracking-normal normal-case">
+              {config.betaVersionTag}
+            </span>
+          )}
         </div>
 
         {/* Right: Links & Maintenance */}
