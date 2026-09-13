@@ -1,0 +1,55 @@
+# GitHub Actions CI Workflow for Code Quality & Verification
+name: CI Quality Pipeline
+
+# Trigger on Pull Requests and direct pushes to main or staging
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main, staging ]
+
+jobs:
+  validate:
+    name: Lint, Test & Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository source code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up pnpm package manager (v9)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      # Step 3: Set up Node.js 20 with dependency caching
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      # Step 4: Install dependencies in frontend and server
+      - name: Install Dependencies
+        run: |
+          pnpm --dir frontend install --frozen-lockfile
+          pnpm --dir server install --frozen-lockfile
+
+      # Step 5: Lint Next.js frontend codebase (informational)
+      - name: Lint Frontend
+        run: pnpm --dir frontend run lint
+        continue-on-error: true
+
+      # Step 6: Build Next.js frontend codebase
+      - name: Build Frontend
+        run: pnpm --dir frontend run build
+
+      # Step 7: Build and type-check NestJS server backend
+      - name: Build & Type-Check Server
+        run: pnpm --dir server run build
+
+      # Step 8: Run NestJS server unit tests
+      - name: Run Server Unit Tests
+        run: pnpm --dir server test

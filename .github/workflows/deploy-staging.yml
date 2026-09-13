@@ -1,0 +1,83 @@
+# GitHub Actions CD Workflow for Staging Environment (Staff Domain)
+name: Deploy Staging (Staff Domain)
+
+# Automatically trigger on push/merge to staging branch or manual run
+on:
+  push:
+    branches: [ staging ]
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+
+jobs:
+  deploy-staging:
+    name: Build, Push & Deploy Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository source code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up QEMU for x86_64 architecture emulation
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Step 3: Set up Docker Buildx for optimized container builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 4: Authenticate with Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 5: Build and push Staging API Docker image to Docker Hub
+      - name: Build & Push Staging API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-api:staging
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-api:staging-${{ github.sha }}
+
+      # Step 6: Build and push Staging Frontend Docker image to Docker Hub
+      - name: Build & Push Staging Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://staff.theafricanthinktank.org/api
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51TrcC0PFrQabPyhVDEB07cQJLylaqBQgRTim936glLCu9ZlUJsl1V8a1CjmUrkE4O2iq7dG6lqUJ8a4CUeQQFAq500naAa01Dt
+          tags: |
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:staging
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:staging-${{ github.sha }}
+
+      # Step 7: SSH into EC2 VM, pull latest staging images, restart containers, and verify
+      - name: Deploy to EC2 Staging Environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/TATTDEPLOY
+            docker pull ${{ env.DOCKERHUB_USERNAME }}/tatt-api:staging
+            docker pull ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:staging
+            docker compose --env-file .env -p tatt-staging -f docker-compose.ec2.yml up -d --force-recreate
+            docker image prune -f
+            echo "Verifying running Staging containers..."
+            sleep 5
+            docker ps --filter "name=tatt.*-ec2" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+

@@ -1,0 +1,83 @@
+# GitHub Actions CD Workflow for Production Environment (Community Domain)
+name: Deploy Production (Community Domain)
+
+# Automatically trigger on push/merge to main branch or manual run
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+
+jobs:
+  deploy-production:
+    name: Build, Push & Deploy Production
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository source code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up QEMU for x86_64 architecture emulation
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Step 3: Set up Docker Buildx for optimized container builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 4: Authenticate with Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 5: Build and push Production API Docker image to Docker Hub
+      - name: Build & Push Production API
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-api:production
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-api:production-${{ github.sha }}
+
+      # Step 6: Build and push Production Frontend Docker image to Docker Hub
+      - name: Build & Push Production Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://community.theafricanthinktank.com/api
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.PROD_STRIPE_PUBLISHABLE_KEY }}
+          tags: |
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:production
+            ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:production-${{ github.sha }}
+
+      # Step 7: SSH into EC2 VM, pull latest production images, restart containers, and verify
+      - name: Deploy to EC2 Production Environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/TATTDEPLOY
+            docker pull ${{ env.DOCKERHUB_USERNAME }}/tatt-api:production
+            docker pull ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:production
+            docker compose --env-file .env.production -p tatt-production -f docker-compose.ksd.yml up -d --force-recreate
+            docker image prune -f
+            echo "Verifying running Production containers..."
+            sleep 5
+            docker ps --filter "name=tatt.*-production" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+
