@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Search, MessageSquare, Users, Clock, Hash, CheckCircle, XCircle, Send, Diamond, AlertCircle, Loader2, Smile, ThumbsUp, Heart, Laugh, MoreHorizontal } from "lucide-react";
 import api from "@/services/api";
@@ -82,9 +83,28 @@ const getTierBadge = (tierCode: string | undefined): { label: string; classes: s
     return TIER_BADGES[tierCode || "FREE"] || TIER_BADGES["FREE"] || { label: "Sankofa", classes: "" };
 };
 
-export default function CommunicationsPage() {
+function CommunicationsContent() {
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get("tab");
+
+    const resolveTab = (param: string | null): Tab => {
+        if (!param) return "Connections";
+        const lower = param.toLowerCase();
+        if (lower === "pending" || lower === "requests" || lower === "request") return "Pending";
+        if (lower === "messages" || lower === "message") return "Messages";
+        if (lower === "connections" || lower === "network") return "Connections";
+        return "Connections";
+    };
+
     const { user: authUser } = useAuth();
-    const [activeTab, setActiveTab] = useState<Tab>("Connections");
+    const [activeTab, setActiveTab] = useState<Tab>(() => resolveTab(tabParam));
+
+    useEffect(() => {
+        if (tabParam) {
+            setActiveTab(resolveTab(tabParam));
+        }
+    }, [tabParam]);
+
     const [search, setSearch] = useState("");
 
     const [connections, setConnections] = useState<NetworkConnection[]>([]);
@@ -983,5 +1003,19 @@ export default function CommunicationsPage() {
                 {renderRightPane()}
             </section>
         </div>
+    );
+}
+
+export default function CommunicationsPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex h-[calc(100vh-5rem)] w-full items-center justify-center bg-background">
+                    <Loader2 className="size-8 animate-spin text-tatt-lime" />
+                </div>
+            }
+        >
+            <CommunicationsContent />
+        </Suspense>
     );
 }

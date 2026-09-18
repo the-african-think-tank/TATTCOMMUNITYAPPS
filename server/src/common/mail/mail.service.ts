@@ -172,7 +172,7 @@ export class MailService {
 
   async sendRenewalReminder(email: string, firstName: string, expiresAt: Date) {
     const expiryStr = expiresAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const renewLink = `${this.frontendUrl}/member/subscription`;
+    const renewLink = `${this.frontendUrl}/dashboard/settings`;
 
     try {
       await this.sendResendEmail({
@@ -199,7 +199,7 @@ export class MailService {
     senderFullName: string,
     message: string,
   ) {
-    const profileLink = `${this.frontendUrl}/member/network/requests`;
+    const profileLink = `${this.frontendUrl}/dashboard/messages?tab=pending`;
     const sender = (senderFullName && !senderFullName.includes('undefined'))
       ? senderFullName.trim()
       : 'A TATT Member';

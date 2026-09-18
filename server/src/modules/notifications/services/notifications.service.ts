@@ -117,19 +117,18 @@ export class NotificationsService {
 
         switch (type) {
             case NotificationType.CONNECTION_REQUEST:
-                return `${baseUrl}/dashboard/network?tab=pending`;
+                return `${baseUrl}/dashboard/messages?tab=pending`;
             case NotificationType.NEW_MESSAGE:
                 return `${baseUrl}/dashboard/messages/${data?.connectionId || ''}`;
             case NotificationType.SUBSCRIPTION_EXPIRING:
             case NotificationType.SUBSCRIPTION_RENEWAL:
             case NotificationType.SUBSCRIPTION_DOWNGRADE:
-                return `${baseUrl}/dashboard/settings/subscription`;
+                return `${baseUrl}/dashboard/settings`;
             case NotificationType.EVENT_REMINDER:
                 return `${baseUrl}/dashboard/events/${data?.eventId || ''}`;
             case NotificationType.VOLUNTEER_ACTIVITY:
-                return `${baseUrl}/member/impact`;
             case NotificationType.VOLUNTEER_ROLE:
-                return `${baseUrl}/member/profile`;
+                return `${baseUrl}/dashboard/volunteers`;
             case NotificationType.SUPPORT_TICKET_CREATED:
             case NotificationType.SUPPORT_MESSAGE_RECEIVED:
             case NotificationType.SUPPORT_TICKET_RESOLVED:

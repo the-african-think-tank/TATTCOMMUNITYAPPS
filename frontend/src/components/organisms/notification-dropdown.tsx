@@ -115,20 +115,20 @@ export function NotificationDropdown() {
             case NotificationType.NEW_MESSAGE:
                 return `${base}/messages/${data?.connectionId || ""}`;
             case NotificationType.CONNECTION_REQUEST:
-                return isAdmin ? "/admin/membership-center" : "/dashboard/network?tab=pending";
+                return isAdmin ? "/admin/membership-center" : "/dashboard/messages?tab=pending";
             case NotificationType.CONNECTION_ACCEPTED:
-                return isAdmin ? "/admin/membership-center" : `/dashboard/network/profile/${data?.partnerId || ""}`;
+                return isAdmin ? "/admin/membership-center" : `/dashboard/network/${data?.partnerId || ""}`;
             case NotificationType.SUBSCRIPTION_RENEWAL:
             case NotificationType.SUBSCRIPTION_EXPIRING:
             case NotificationType.SUBSCRIPTION_DOWNGRADE:
-                return isAdmin ? "/admin/revenue" : `/dashboard/settings/subscription`;
+                return isAdmin ? "/admin/revenue" : `/dashboard/settings`;
             case NotificationType.EVENT_REMINDER:
                 return isAdmin ? `/admin/events/${data?.eventId || ""}` : `/dashboard/events/${data?.eventId || ""}`;
             case NotificationType.SYSTEM_ALERT:
             case NotificationType.SYSTEM_ANNOUNCEMENT:
                 return isAdmin ? "/admin" : "/dashboard";
             case NotificationType.VOLUNTEER_ROLE:
-                return isAdmin ? "/admin/volunteers" : "/member/volunteering";
+                return isAdmin ? "/admin/volunteers" : "/dashboard/volunteers";
             default:
                 return isAdmin ? "/admin" : "/dashboard";
         }
