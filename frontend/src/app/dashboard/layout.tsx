@@ -7,11 +7,14 @@ import { DashboardFooter } from "@/components/organisms/dashboard-footer";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useUpgradeReminder } from "@/hooks/use-upgrade-reminder";
+import { UpgradeReminderModal } from "@/components/molecules/upgrade-reminder-modal";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { isAuthenticated, isLoading, user } = useAuth();
     const router = useRouter();
+    const { shouldShow: showUpgradeModal, dismiss: dismissUpgradeModal } = useUpgradeReminder();
 
     useEffect(() => {
         if (!isLoading) {
@@ -82,6 +85,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <DashboardFooter />
             </main>
+
+            {/* Upgrade reminder — FREE members only, fires at most once per session */}
+            <UpgradeReminderModal isOpen={showUpgradeModal} onClose={dismissUpgradeModal} />
         </div>
     );
 }
