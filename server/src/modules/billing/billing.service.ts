@@ -183,6 +183,9 @@ export class BillingService {
 
         const expiresAt = new Date(currentPeriodEnd * 1000);
         user.subscriptionExpiresAt = expiresAt;
+        // A successful charge voids any prior cancellation intent.
+        user.pendingTier = null;
+        user.hasAutoPayEnabled = true;
         await user.save();
 
         // LOG REVENUE TRANSACTION
@@ -519,6 +522,10 @@ export class BillingService {
             });
 
             user.hasAutoPayEnabled = enabled;
+            // Re-enabling auto-pay rescinds any pending cancellation.
+            if (enabled) {
+                user.pendingTier = null;
+            }
             await user.save();
 
             return { message: `Auto-pay successfully ${enabled ? 'enabled' : 'disabled'}.` };
