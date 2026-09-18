@@ -23,7 +23,9 @@ import {
     CheckCircle2,
     Edit2,
     Trash2,
-    Clock
+    Clock,
+    Archive,
+    ArchiveRestore
 } from "lucide-react";
 import Image from "next/image";
 import api from "@/services/api";
@@ -55,6 +57,8 @@ interface Event {
         };
     }>;
     registrationsCount?: number;
+    isArchived?: boolean;
+    archivedAt?: string | null;
 }
 
 interface Chapter {
@@ -81,6 +85,7 @@ export default function AdminEventsPage() {
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'calendar'>('grid');
+    const [statusFilter, setStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
 
     const safeDate = (dateStr: string) => {
         try {
@@ -112,7 +117,7 @@ export default function AdminEventsPage() {
         setLoading(true);
         try {
             const [eventsRes, chaptersRes] = await Promise.all([
-                api.get("/events"),
+                api.get("/events?archived=all"),
                 api.get("/chapters")
             ]);
             setEvents(eventsRes.data || []);
@@ -210,6 +215,36 @@ export default function AdminEventsPage() {
         setOpenMenuId(null);
     };
 
+    const handleToggleArchive = async (event: Event, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newArchived = !event.isArchived;
+        const actionLabel = newArchived ? "archive" : "restore";
+        if (!confirm(`Are you sure you want to ${actionLabel} "${event.title}"?`)) return;
+
+        try {
+            await api.patch(`/events/${event.id}/archive`, { isArchived: newArchived });
+            toast.success(`Event ${newArchived ? "archived" : "restored"} successfully`);
+            fetchData();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || `Failed to ${actionLabel} event`);
+        }
+    };
+
+    const activeCount = events.filter(e => !e.isArchived).length;
+    const archivedCount = events.filter(e => !!e.isArchived).length;
+
+    const filteredEvents = events.filter(e => {
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const matchesTitle = e.title?.toLowerCase().includes(q);
+            const matchesDesc = e.description?.toLowerCase().includes(q);
+            if (!matchesTitle && !matchesDesc) return false;
+        }
+        if (statusFilter === 'active') return !e.isArchived;
+        if (statusFilter === 'archived') return !!e.isArchived;
+        return true;
+    });
+
     // Calendar logic
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(monthStart);
@@ -286,7 +321,7 @@ export default function AdminEventsPage() {
                 <StatCard
                     icon={<CalendarIcon className="text-tatt-lime-dark" />}
                     label="Upcoming Events"
-                    value={events.filter(e => safeDate(e.dateTime) > new Date()).length.toString()}
+                    value={events.filter(e => !e.isArchived && safeDate(e.dateTime) > new Date()).length.toString()}
                     trend="+2%"
                 />
                 <StatCard
@@ -302,6 +337,53 @@ export default function AdminEventsPage() {
                     trend="+8%"
                 />
             </section>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-8">
+                <div className="flex items-center p-1 bg-surface border border-border rounded-2xl overflow-x-auto">
+                    <button
+                        onClick={() => setStatusFilter('active')}
+                        className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                            statusFilter === 'active'
+                                ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                : 'text-tatt-gray hover:text-foreground'
+                        }`}
+                    >
+                        Active ({activeCount})
+                    </button>
+                    <button
+                        onClick={() => setStatusFilter('archived')}
+                        className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                            statusFilter === 'archived'
+                                ? 'bg-amber-400 text-tatt-black shadow-md'
+                                : 'text-tatt-gray hover:text-foreground'
+                        }`}
+                    >
+                        Archived ({archivedCount})
+                    </button>
+                    <button
+                        onClick={() => setStatusFilter('all')}
+                        className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                            statusFilter === 'all'
+                                ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                : 'text-tatt-gray hover:text-foreground'
+                        }`}
+                    >
+                        All ({events.length})
+                    </button>
+                </div>
+
+                <div className="relative flex-1 sm:max-w-xs">
+                    <input
+                        className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-tatt-lime/50 font-bold transition-all placeholder:text-tatt-gray/40 text-foreground"
+                        placeholder="Search events..."
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tatt-gray size-4" />
+                </div>
+            </div>
 
             {viewMode === 'calendar' ? (
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -395,13 +477,20 @@ export default function AdminEventsPage() {
                         Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} className="h-[400px] bg-surface rounded-[32px] animate-pulse border border-border"></div>
                         ))
-                    ) : events.length === 0 ? (
+                    ) : filteredEvents.length === 0 ? (
                         <div className="col-span-full py-20 text-center text-tatt-gray italic border-2 border-dashed border-border rounded-[40px] opacity-40">
-                             No events in established protocols. Initialize your first gathering.
+                             No events match your criteria.
                         </div>
                     ) : (
-                        events.map(event => (
-                            <EventCard key={event.id} event={event} onEdit={(e) => handleEditClick(event, e)} onClick={() => handleEventClick(event)} onDelete={(e) => handleDeleteEvent(event.id, e)} />
+                        filteredEvents.map(event => (
+                            <EventCard
+                                key={event.id}
+                                event={event}
+                                onEdit={(e) => handleEditClick(event, e)}
+                                onClick={() => handleEventClick(event)}
+                                onDelete={(e) => handleDeleteEvent(event.id, e)}
+                                onToggleArchive={(e) => handleToggleArchive(event, e)}
+                            />
                         ))
                     )}
                 </div>
@@ -440,7 +529,7 @@ export default function AdminEventsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/50">
-                                    {events.map(event => (
+                                    {filteredEvents.map(event => (
                                         <tr
                                             key={event.id}
                                             onClick={() => handleEventClick(event)}
@@ -448,7 +537,14 @@ export default function AdminEventsPage() {
                                         >
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-sm text-foreground group-hover:text-tatt-lime transition-colors">{event.title}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-sm text-foreground group-hover:text-tatt-lime transition-colors">{event.title}</span>
+                                                        {event.isArchived && (
+                                                            <span className="px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                                                Archived
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <span className="text-[10px] font-black text-tatt-gray uppercase tracking-tighter opacity-60">Revenue Unit: ${Number(event.basePrice).toFixed(2)}</span>
                                                 </div>
                                             </td>
@@ -482,8 +578,15 @@ export default function AdminEventsPage() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={(e) => handleEditClick(event, e)} className="p-2 hover:bg-tatt-lime/10 text-tatt-gray hover:text-tatt-lime rounded-lg transition-all"><Edit2 size={14} /></button>
-                                                    <button onClick={(e) => handleDeleteEvent(event.id, e)} className="p-2 hover:bg-red-500/10 text-tatt-gray hover:text-red-500 rounded-lg transition-all"><Trash2 size={14} /></button>
+                                                    <button
+                                                        onClick={(e) => handleToggleArchive(event, e)}
+                                                        className="p-2 hover:bg-amber-500/10 text-tatt-gray hover:text-amber-400 rounded-lg transition-all cursor-pointer"
+                                                        title={event.isArchived ? "Restore Event" : "Archive Event"}
+                                                    >
+                                                        {event.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                                                    </button>
+                                                    <button onClick={(e) => handleEditClick(event, e)} className="p-2 hover:bg-tatt-lime/10 text-tatt-gray hover:text-tatt-lime rounded-lg transition-all cursor-pointer" title="Edit Event"><Edit2 size={14} /></button>
+                                                    <button onClick={(e) => handleDeleteEvent(event.id, e)} className="p-2 hover:bg-red-500/10 text-tatt-gray hover:text-red-500 rounded-lg transition-all cursor-pointer" title="Delete Event"><Trash2 size={14} /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -832,7 +935,19 @@ export default function AdminEventsPage() {
     );
 }
 
-function EventCard({ event, onClick, onEdit, onDelete }: { event: Event, onClick: () => void, onEdit: (e: any) => void, onDelete: (e: any) => void }) {
+function EventCard({
+    event,
+    onClick,
+    onEdit,
+    onDelete,
+    onToggleArchive
+}: {
+    event: Event;
+    onClick: () => void;
+    onEdit: (e: any) => void;
+    onDelete: (e: any) => void;
+    onToggleArchive: (e: any) => void;
+}) {
     const eventDateStr = dayjs(event.dateTime).format("MMM D, YYYY");
     const nativeTimeOnly = dayjs(event.dateTime).tz(event.timezone || 'America/Los_Angeles').format("h:mm A z");
     const localTimeOnly = formatLocalTimeString(event.dateTime);
@@ -864,13 +979,25 @@ function EventCard({ event, onClick, onEdit, onDelete }: { event: Event, onClick
                         <span className="px-3 py-1 bg-tatt-black/80 backdrop-blur-md text-tatt-lime text-[9px] font-black uppercase tracking-widest rounded-full border border-tatt-lime/20 shadow-md">
                             {event.type}
                         </span>
+                        {event.isArchived && (
+                            <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-500/30 shadow-md">
+                                Archived
+                            </span>
+                        )}
                         <span className="px-3 py-1 bg-tatt-lime text-tatt-black text-[9px] font-black uppercase tracking-widest rounded-full shadow-md">
                             {event.registrationsCount || 0} Registered
                         </span>
                     </div>
 
-                    {/* Edit & Delete Quick Action Controls */}
+                    {/* Edit, Archive & Delete Quick Action Controls */}
                     <div className="absolute top-4 right-4 z-20 flex gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onToggleArchive(e); }}
+                            className="bg-tatt-black/80 hover:bg-amber-500 text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
+                            title={event.isArchived ? "Restore Event" : "Archive Event"}
+                        >
+                            {event.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                        </button>
                         <button 
                             onClick={(e) => { e.stopPropagation(); onEdit(e); }}
                             className="bg-tatt-black/80 hover:bg-tatt-lime text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"

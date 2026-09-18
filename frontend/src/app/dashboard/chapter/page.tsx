@@ -201,9 +201,11 @@ export default function MyChapterPage() {
       if (activitiesRes.status === "fulfilled") setActivities(activitiesRes.value.data.data || []);
       if (feedRes.status === "fulfilled") setFeed(feedRes.value.data.data || []);
       if (eventsRes.status === "fulfilled") {
-        const allEvents = eventsRes.value.data;
-        const filtered = allEvents.filter((e: any) =>
-          e.locations && e.locations.some((l: any) => l.chapterId === cid)
+        const allEvents = Array.isArray(eventsRes.value.data) ? eventsRes.value.data : [];
+        const isGlobal = chapterRes.status === "fulfilled" && (chapterRes.value.data?.code === "1007" || chapterRes.value.data?.name?.toLowerCase().includes("global"));
+        const filtered = (isGlobal
+          ? allEvents.filter((e: any) => !e.isArchived)
+          : allEvents.filter((e: any) => !e.isArchived && e.locations && e.locations.some((l: any) => l.chapterId === cid))
         ).slice(0, 3);
         setChapterEvents(filtered);
       }

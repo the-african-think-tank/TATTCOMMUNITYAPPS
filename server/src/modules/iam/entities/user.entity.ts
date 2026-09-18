@@ -29,7 +29,14 @@ export class User extends Model<User> {
     id: string;
 
     @BeforeCreate
-    static async assignSequenceNumber(instance: User) {
+    static async assignDefaults(instance: User) {
+        if (!instance.chapterId) {
+            const globalChap = await Chapter.findOne({ where: { code: '1007' } });
+            if (globalChap) {
+                instance.chapterId = globalChap.id;
+            }
+        }
+
         if (instance.sequenceNumber != null) return;
         const rows = await User.sequelize!.query<{ max: number }>(
             'SELECT COALESCE(MAX("sequenceNumber"), 0) + 1 AS max FROM users',
@@ -46,11 +53,11 @@ export class User extends Model<User> {
             if (chap) {
                 instance.tattMemberId = `TATT-${chap.code}-${instance.sequenceNumber}`;
                 await instance.save();
+                return;
             }
-        } else {
-            instance.tattMemberId = `TATT-XXXX-${instance.sequenceNumber}`;
-            await instance.save();
         }
+        instance.tattMemberId = `TATT-1007-${instance.sequenceNumber}`;
+        await instance.save();
     }
 
     @Column({

@@ -44,9 +44,22 @@ export class EventsController {
         @Query('upcoming') upcoming?: string,
         @Query('limit') limit?: string,
         @Query('chapterId') chapterId?: string,
+        @Query('archived') archived?: string,
     ) {
         const limitNum = limit ? parseInt(limit, 10) : undefined;
-        return this.eventsService.getEvents(req.user, upcoming === 'true', limitNum, chapterId);
+        return this.eventsService.getEvents(req.user, upcoming === 'true', limitNum, chapterId, archived);
+    }
+
+    @Patch(':id/archive')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Archive or restore an event (Admin only)' })
+    async toggleArchive(
+        @Param('id') id: string,
+        @Body() body: { isArchived?: boolean },
+        @Req() req: any,
+    ) {
+        return this.eventsService.toggleArchive(req.user, id, body?.isArchived ?? true);
     }
 
     @Get(':id')

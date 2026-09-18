@@ -17,7 +17,8 @@ import {
     ExternalLink,
     Lock,
     Trophy,
-    Edit2
+    Edit2,
+    ArrowRight
 } from "lucide-react";
 import dayjs, { formatLocalTimeString } from "@/lib/dayjs";
 import type { EventItem } from "@/types/events";
@@ -95,7 +96,7 @@ export default function EventDetailPage() {
     }, [id]);
 
     const handleRegister = async (isBusinessRegistration = false) => {
-        if (!id || registering) return;
+        if (!id || registering || isConcluded) return;
         setRegistering(true);
         try {
             const { data } = await api.post<{ registration?: unknown; message?: string; checkoutUrl?: string }>(
@@ -167,6 +168,8 @@ export default function EventDetailPage() {
     };
 
     const price = calculatePrice();
+    const isPast = event?.dateTime ? dayjs(event.dateTime).isBefore(dayjs()) : false;
+    const isConcluded = Boolean(event?.isArchived || isPast);
     const isEligible = event.isForAllMembers || (event.targetMembershipTiers && event.targetMembershipTiers.includes(user?.communityTier || ""));
     const isAlreadyRegistered = registrationDone || (!!user && attendees.some(reg => reg.userId === user.id || reg.user?.id === user.id));
 
@@ -209,10 +212,15 @@ export default function EventDetailPage() {
                                     }}
                                 />
                             )}
-                            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-tatt-black/90 to-transparent">
+                            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-tatt-black/90 to-transparent flex items-center justify-between">
                                 <span className="text-tatt-lime text-xs font-bold uppercase tracking-widest">
                                     {typeLabel(event.type)}
                                 </span>
+                                {isConcluded && (
+                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-tatt-black/80 text-tatt-gray border border-white/10 backdrop-blur-md">
+                                        Concluded
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -301,9 +309,9 @@ export default function EventDetailPage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3 text-tatt-lime font-medium">
                                         <CheckCircle className="h-6 w-6 shrink-0" />
-                                        You’re registered for this event.
+                                        {isConcluded ? "You attended this event." : "You’re registered for this event."}
                                     </div>
-                                    {checkoutUrl ? (
+                                    {checkoutUrl && !isConcluded ? (
                                         <a
                                             href={checkoutUrl}
                                             target="_blank"
@@ -313,6 +321,22 @@ export default function EventDetailPage() {
                                             Complete payment <ExternalLink className="h-4 w-4" />
                                         </a>
                                     ) : null}
+                                </div>
+                            ) : isConcluded ? (
+                                <div className="bg-background/50 border border-border rounded-2xl p-6 text-center space-y-3">
+                                    <div className="size-12 rounded-full bg-surface border border-border flex items-center justify-center text-tatt-gray mx-auto">
+                                        <Clock className="size-6 text-tatt-gray" />
+                                    </div>
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-foreground">Event Concluded</h3>
+                                    <p className="text-xs font-medium text-tatt-gray">
+                                        This gathering has already taken place. Registration and ticket purchases are closed.
+                                    </p>
+                                    <Link
+                                        href="/dashboard/events"
+                                        className="inline-flex items-center gap-2 mt-2 px-4 py-2.5 rounded-xl bg-tatt-lime/10 text-tatt-lime text-xs font-bold hover:bg-tatt-lime/20 active:scale-95 transition-all cursor-pointer"
+                                    >
+                                        Explore Upcoming Events <ArrowRight className="h-3.5 w-3.5" />
+                                    </Link>
                                 </div>
                             ) : (
                                 <>

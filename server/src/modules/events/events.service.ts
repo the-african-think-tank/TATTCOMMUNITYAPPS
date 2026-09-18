@@ -1,4 +1,5 @@
-import { Injectable, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
 import { Event } from './entities/event.entity';
 import { EventChapter } from './entities/event-chapter.entity';
@@ -38,6 +39,34 @@ export class EventsService {
 
     private async getStripe() {
         return this.settingsService.getStripeInstance();
+    }
+
+    /**
+     * Automated Cron Job: Runs every hour to archive events that started more than 7 days ago.
+     */
+    @Cron(CronExpression.EVERY_HOUR)
+    async autoArchivePastEvents() {
+        try {
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const [affectedCount] = await this.eventRepo.update(
+                {
+                    isArchived: true,
+                    archivedAt: new Date(),
+                },
+                {
+                    where: {
+                        isArchived: false,
+                        dateTime: { [Op.lt]: sevenDaysAgo },
+                    },
+                },
+            );
+
+            if (affectedCount > 0) {
+                this.logger.log(`Auto-archived ${affectedCount} past event(s) older than 7 days.`);
+            }
+        } catch (error) {
+            this.logger.error(`Failed to auto-archive past events: ${error.message}`);
+        }
     }
 
     async createEvent(admin: User, dto: CreateEventDto) {
@@ -174,15 +203,33 @@ export class EventsService {
         }
     }
 
-    async getEvents(viewer: User, upcoming?: boolean, limit?: number, chapterId?: string) {
+    async getEvents(viewer: User, upcoming?: boolean, limit?: number, chapterId?: string, archived?: string) {
         const where: any = {};
         if (upcoming) {
             where.dateTime = { [Op.gt]: new Date() };
         }
 
+        const isAdmin = viewer?.systemRole && [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN].includes(viewer.systemRole as SystemRole);
+
+        if (isAdmin && archived) {
+            if (archived === 'true') {
+                where.isArchived = true;
+            } else if (archived === 'false') {
+                where.isArchived = false;
+            }
+            // 'all' includes both active and archived
+        } else {
+            // Community members should never see archived events in their active listings
+            where.isArchived = false;
+        }
+
         let targetChapterId: string | null = null;
         if (chapterId && chapterId !== 'all' && chapterId !== 'global' && chapterId.trim() !== '') {
-            targetChapterId = chapterId;
+            // Check if this chapterId corresponds to the Global Chapter (code 1007)
+            const chapter = await Chapter.findByPk(chapterId);
+            if (!chapter || chapter.code !== '1007') {
+                targetChapterId = chapterId;
+            }
         }
 
         const include: any[] = [
@@ -216,6 +263,10 @@ export class EventsService {
 
     async register(user: User, eventId: string, dto: RegisterEventDto) {
         const event = await this.getEvent(eventId);
+
+        if (event.isArchived || new Date(event.dateTime) < new Date()) {
+            throw new BadRequestException('This event has already taken place and is closed for registration.');
+        }
 
         if (!event.isForAllMembers) {
             if (!event.targetMembershipTiers?.includes(user.communityTier)) {
@@ -342,12 +393,31 @@ export class EventsService {
     async getEventAttendees(eventId: string) {
         return this.eventRegistrationRepo.findAll({
             where: { eventId, status: 'COMPLETED' },
-            include: [{
-                model: User,
-                as: 'user',
-                attributes: ['id', 'firstName', 'lastName', 'profilePicture', 'professionTitle', 'communityTier', 'chapterId'],
-                include: [{ model: Chapter, as: 'chapter' }]
-            }],
+            include: [
+                { model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture', 'communityTier'] }
+            ],
+            order: [['createdAt', 'DESC']],
         });
+    }
+
+    async toggleArchive(admin: User, id: string, isArchived: boolean) {
+        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN];
+        if (!allowedRoles.includes(admin.systemRole) && !admin.flags?.includes(AccountFlags.CAN_ACCESS_EVENTS)) {
+            throw new ForbiddenException('Only Org admins and content admins can archive events.');
+        }
+
+        const event = await this.eventRepo.findByPk(id);
+        if (!event) throw new NotFoundException('Event not found');
+
+        await event.update({
+            isArchived,
+            archivedAt: isArchived ? new Date() : null,
+        });
+
+        return {
+            success: true,
+            message: isArchived ? 'Event archived successfully.' : 'Event restored successfully.',
+            event,
+        };
     }
 }

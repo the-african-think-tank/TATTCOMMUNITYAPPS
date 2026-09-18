@@ -75,6 +75,18 @@ export class Event extends Model<Event> {
     })
     targetMembershipTiers?: CommunityTier[];
 
+    @Column({
+        type: DataType.BOOLEAN,
+        defaultValue: false,
+    })
+    isArchived: boolean;
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: true,
+    })
+    archivedAt?: Date;
+
     @BelongsToMany(() => Chapter, () => EventChapter)
     chapters: Chapter[];
 

@@ -35,6 +35,7 @@ interface Event {
     isForAllMembers: boolean;
     basePrice: number;
     targetMembershipTiers?: string[];
+    isArchived?: boolean;
     locations: Array<{
         chapterId: string;
         address: string;
@@ -94,10 +95,17 @@ export default function EventsPage() {
         return basePrice;
     };
 
+    const isGlobalMember =
+        user?.chapterCode === "1007" ||
+        user?.chapterName?.toLowerCase().includes("global") ||
+        user?.tattMemberId?.startsWith("TATT-1007-");
+
     const filteredEvents = (events || []).filter(e => {
         if (!e) return false;
+        if (e.isArchived) return false;
         if (filter === "ALL") return true;
         if (filter === "MY_CHAPTER") {
+            if (isGlobalMember) return true;
             return (e.locations || []).some(l => l?.chapterId === user?.chapterId);
         }
         return e.type === filter;
@@ -119,15 +127,22 @@ export default function EventsPage() {
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${filter === f
+                        className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all border cursor-pointer ${filter === f
                             ? "bg-tatt-lime text-tatt-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
                             : "bg-surface text-tatt-gray border-border hover:border-tatt-lime/50"
                             }`}
                     >
-                        {f.replace("_", " ")}
+                        {f === "MY_CHAPTER" && isGlobalMember ? "My Chapter (Global)" : f.replace("_", " ")}
                     </button>
                 ))}
             </div>
+
+            {filter === "MY_CHAPTER" && isGlobalMember && (
+                <div className="mb-6 p-4 rounded-2xl bg-surface border border-border flex items-center gap-3 text-xs font-medium text-foreground">
+                    <Globe className="size-4 text-tatt-lime shrink-0" />
+                    <span>As a <strong>Global Chapter</strong> member, you have universal access to events hosted across all regional chapters.</span>
+                </div>
+            )}
 
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -148,6 +163,7 @@ export default function EventsPage() {
                         const price = calculatePrice(event);
                         const isFree = price === 0;
                         const hasDiscount = price < event.basePrice;
+                        const isPast = dayjs(event.dateTime).isBefore(dayjs());
 
                         return (
                             <div 
@@ -220,7 +236,12 @@ export default function EventsPage() {
                                     {/* Footer / Pricing */}
                                     <div className="pt-6 border-t border-border flex items-center justify-between mt-auto">
                                         <div>
-                                            {isFree ? (
+                                            {isPast ? (
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-tatt-gray uppercase tracking-widest leading-none mb-1">Status</span>
+                                                    <span className="text-sm font-black text-tatt-gray uppercase tracking-wider">Event Concluded</span>
+                                                </div>
+                                            ) : isFree ? (
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] font-black text-tatt-lime uppercase tracking-widest leading-none mb-1">Full Access</span>
                                                     <span className="text-xl font-black text-foreground italic uppercase italic tracking-tighter">FREE PASS</span>
@@ -238,7 +259,7 @@ export default function EventsPage() {
                                             )}
                                         </div>
                                         <div
-                                            className={`size-12 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isFree ? 'bg-tatt-black text-white group-hover:bg-tatt-lime group-hover:text-tatt-black' : 'bg-tatt-lime text-tatt-black group-hover:scale-110 active:scale-95'}`}
+                                            className={`size-12 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isPast ? 'bg-surface text-tatt-gray border border-border' : isFree ? 'bg-tatt-black text-white group-hover:bg-tatt-lime group-hover:text-tatt-black' : 'bg-tatt-lime text-tatt-black group-hover:scale-110 active:scale-95'}`}
                                         >
                                             <ArrowRight className="size-5" />
                                         </div>

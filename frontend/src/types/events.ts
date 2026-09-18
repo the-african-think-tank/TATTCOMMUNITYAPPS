@@ -33,6 +33,8 @@ export type EventItem = {
     updatedAt: string;
     locations?: EventLocation[];
     featuredGuests?: EventGuest[];
+    isArchived?: boolean;
+    archivedAt?: string | null;
     registrations?: unknown[];
 };
 
