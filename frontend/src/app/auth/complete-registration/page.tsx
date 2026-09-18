@@ -140,7 +140,7 @@ function CompleteRegistrationForm() {
                     <CheckCircle size={48} className="animate-in slide-in-from-bottom duration-1000 fill-tatt-lime/20" />
                 </div>
                 <div className="space-y-4">
-                  <h1 className="text-4xl font-black text-foreground italic uppercase tracking-tighter">Welcome to TATT</h1>
+                  <h1 className="text-4xl font-black text-foreground italic uppercase tracking-tighter">Welcome to TATT-U</h1>
                   <p className="text-tatt-gray font-medium leading-relaxed">
                     Your account has been verified and activated. You now have full administrative access to the platform management dashboard.
                   </p>

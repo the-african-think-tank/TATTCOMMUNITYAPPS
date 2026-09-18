@@ -55,7 +55,7 @@ const DEFINED_ROLES = [
         color: "text-purple-500",
         bgColor: "bg-purple-500/10",
         borderColor: "border-purple-500/20",
-        permissions: ["TATT Feed Moderation", "Community Feed", "Post Removal", "Shadow Banning"],
+        permissions: ["TATT-U Feed Moderation", "Community Feed", "Post Removal", "Shadow Banning"],
         description: "Ensures community safety. Has tools to review reported content, shadow ban disruptive users, and remove inappropriate posts."
     },
     {

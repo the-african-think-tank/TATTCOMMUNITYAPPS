@@ -81,10 +81,10 @@ export function LoginForm() {
     <section className="w-full max-w-[448px]">
       <header className="space-y-2">
         <h1 className="text-[32px] sm:text-[42px] font-black leading-[1.2] tracking-[-0.75px] text-tatt-black">
-          Welcome TATT Community
+          Welcome to TATT-U
         </h1>
         <p className="text-sm sm:text-base leading-6 text-tatt-gray">
-          Please enter your details to access the member portal.
+          Please enter your details to access the TATT-U member portal.
         </p>
       </header>
 
@@ -151,7 +151,7 @@ export function LoginForm() {
       <div className="mt-8 flex items-center justify-center gap-2 pt-2">
         <ShieldCheck className="h-4 w-4 text-tatt-lime" aria-hidden="true" />
         <p className="text-center text-xs font-bold uppercase tracking-[1.2px] text-tatt-gray">
-          Secure NGO Member Portal
+          Secure TATT-U Member Portal
         </p>
       </div>
     </section>

@@ -126,7 +126,7 @@ function DashboardPaymentContent() {
                     <div>
                         <h1 className="text-3xl font-black text-foreground mb-1">Checkout</h1>
                         <p className="text-tatt-gray text-sm">
-                            Complete your TATT <strong>{planDetails.name}</strong> subscription upgrade with Stripe.
+                            Complete your TATT-U <strong>{planDetails.name}</strong> membership upgrade with Stripe.
                         </p>
                     </div>
 
@@ -141,7 +141,7 @@ function DashboardPaymentContent() {
                             <div className="p-6 border-2 border-tatt-lime rounded-2xl bg-tatt-lime/5 shadow-sm space-y-6">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <span className="font-black text-xl text-foreground block">TATT {planDetails.name}</span>
+                                        <span className="font-black text-xl text-foreground block">TATT-U {planDetails.name}</span>
                                         <span className="text-xs text-tatt-gray font-medium uppercase tracking-wider">Tier Upgrade</span>
                                     </div>
                                     <span className="text-tatt-lime font-black text-2xl">
@@ -200,7 +200,7 @@ function DashboardPaymentContent() {
                                         <CheckCircle className="h-7 w-7 text-tatt-lime" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-black text-foreground">TATT {planDetails.name}</p>
+                                        <p className="font-black text-foreground">TATT-U {planDetails.name}</p>
                                         <div className="flex flex-col">
                                             <p className="text-tatt-lime font-bold text-lg mt-0.5">
                                                 ${fmt(planDetails.price)}

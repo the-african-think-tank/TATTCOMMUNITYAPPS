@@ -199,7 +199,7 @@ export function VolunteerApplyForm({ roleId, onSuccess, compact = false }: Volun
                     {role ? (
                         <>Applying for <span className="text-tatt-lime italic uppercase tracking-tighter">{role.name}</span></>
                     ) : (
-                        "Join the TATT Volunteer Network"
+                        "Join the TATT-U Volunteer Network"
                     )}
                 </h2>
                 <p className="text-tatt-gray text-sm max-w-lg">
@@ -393,7 +393,7 @@ export function VolunteerApplyForm({ roleId, onSuccess, compact = false }: Volun
                             <span className="size-9 rounded-lg bg-tatt-lime/10 flex items-center justify-center text-tatt-lime-dark shrink-0">
                                 <FileEdit className="h-5 w-5" />
                             </span>
-                            <h3 className="text-base font-bold text-foreground">Why join TATT?</h3>
+                            <h3 className="text-base font-bold text-foreground">Why join TATT-U?</h3>
                         </div>
                         <label className="block text-sm font-medium text-foreground mb-2">
                             Tell us about your motivation and what you hope to achieve.
@@ -427,7 +427,7 @@ export function VolunteerApplyForm({ roleId, onSuccess, compact = false }: Volun
                                 className="mt-0.5 w-4 h-4 rounded border-border accent-tatt-lime shrink-0"
                             />
                             <label htmlFor="tatt-terms" className="text-xs text-tatt-gray leading-relaxed cursor-pointer">
-                                I agree to the TATT Volunteer Conduct Agreement and Privacy Policy. I understand my application will be reviewed by regional leads.
+                                I agree to the TATT-U Volunteer Conduct Agreement and Privacy Policy. I understand my application will be reviewed by regional leads.
                             </label>
                         </div>
                     </section>

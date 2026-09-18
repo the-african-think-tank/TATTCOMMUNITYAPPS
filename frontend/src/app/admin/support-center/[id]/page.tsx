@@ -302,7 +302,7 @@ export default function TicketDetails() {
                             </span>
                         </div>
                         <div className="flex justify-between items-center py-2">
-                            <span className="text-[12px] font-medium text-tatt-gray">TATT ID</span>
+                            <span className="text-[12px] font-medium text-tatt-gray">TATT-U Member ID</span>
                             <span className="text-[13px] font-bold text-foreground tracking-widest">{ticket.user?.tattMemberId || 'N/A'}</span>
                         </div>
                     </div>

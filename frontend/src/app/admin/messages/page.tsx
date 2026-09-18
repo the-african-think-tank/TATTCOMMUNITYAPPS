@@ -670,7 +670,7 @@ function CommunicationsContent() {
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-xs text-tatt-gray truncate">{partner.professionTitle || partner.industry || "TATT Member"}</p>
+                                <p className="text-xs text-tatt-gray truncate">{partner.professionTitle || partner.industry || "TATT-U Member"}</p>
                             </div>
                         </div>
                         <button onClick={() => { }} className="p-2 hover:bg-background rounded-full transition-colors text-tatt-gray hover:text-foreground group relative">

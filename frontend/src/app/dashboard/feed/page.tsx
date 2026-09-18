@@ -777,7 +777,7 @@ export default function FeedPage() {
                         </div>
                         <h2 className="text-2xl font-black text-foreground mb-4">Strategic Profile Required</h2>
                         <p className="text-tatt-gray text-sm leading-relaxed mb-8">
-                            TATT is a network of identified professionals. To start sharing insights, participating in polls, or commenting, please complete your professional setup in settings.
+                            TATT-U is a network of identified professionals. To start sharing insights, participating in polls, or commenting, please complete your professional setup in settings.
                         </p>
                         
                         <div className="space-y-3 bg-black/5 p-5 rounded-2xl text-left mb-8">
@@ -826,7 +826,7 @@ export default function FeedPage() {
                         </div>
                         <h2 className="text-2xl font-black text-white mb-4">Strategic Connection Locked</h2>
                         <p className="text-white/60 text-sm leading-relaxed mb-8">
-                            Expanding your professional network is a premium TATT feature. Upgrade to Ubuntu, Imani, or Kiongozi to send connection requests and build your circle.
+                            Expanding your professional network is a premium TATT-U feature. Upgrade to Ubuntu, Imani, or Kiongozi to send connection requests and build your circle.
                         </p>
                         
                         <div className="flex flex-col gap-3">

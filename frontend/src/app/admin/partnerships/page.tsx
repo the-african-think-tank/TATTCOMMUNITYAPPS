@@ -652,7 +652,7 @@ export default function PartnershipsPage() {
                                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                                     rows={4}
                                                     className="w-full bg-white border border-border rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-tatt-lime outline-none transition-all font-medium resize-none" 
-                                                    placeholder="Brief overview of the partnership benefits for TATT members..."
+                                                    placeholder="Brief overview of the partnership benefits for TATT-U members..."
                                                 />
                                             </div>
                                             <div className="space-y-2 relative">
@@ -714,7 +714,7 @@ export default function PartnershipsPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">TATT Member Price</label>
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1">TATT-U Member Price</label>
                                                 <div className="relative">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-tatt-lime-dark font-black text-sm">$</span>
                                                     <input 

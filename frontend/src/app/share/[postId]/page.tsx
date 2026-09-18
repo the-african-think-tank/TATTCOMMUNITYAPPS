@@ -243,7 +243,7 @@ export default function SharePostPage() {
     }
 
     const cleanContent = post.content ? post.content.replace(/<[^>]*>?/gm, "").substring(0, 160) : "";
-    const authorName = post.author ? `${post.author.firstName} ${post.author.lastName}` : "TATT Member";
+    const authorName = post.author ? `${post.author.firstName} ${post.author.lastName}` : "TATT-U Member";
 
     // JSON-LD Structured Data
     const jsonLd = {
@@ -322,7 +322,7 @@ export default function SharePostPage() {
                             {post.isPremiumLocked ? (
                                 <div className="space-y-8">
                                     <div className="text-foreground/90 text-lg leading-relaxed italic opacity-50 select-none">
-                                        {post.content ? post.content : "The strategic wisdom contained in this insight is reserved for the TATT community elite..."}
+                                        {post.content ? post.content : "The strategic wisdom contained in this insight is reserved for the TATT-U community elite..."}
                                     </div>
 
                                     <div className="bg-black/5 rounded-[2rem] p-8 sm:p-10 border border-dashed border-border flex flex-col items-center text-center space-y-6 relative overflow-hidden group">
@@ -332,12 +332,12 @@ export default function SharePostPage() {
                                         <div className="max-w-md relative z-10">
                                             <h4 className="text-xl font-black mb-2 uppercase tracking-tighter italic">Strategic Intelligence Locked</h4>
                                             <p className="text-tatt-gray text-sm font-medium leading-relaxed">
-                                                This high-value resource is exclusive to TATT members. Join the movement to unlock full access and participate in the dialogue.
+                                                This high-value resource is exclusive to TATT-U members. Join the movement to unlock full access and participate in the dialogue.
                                             </p>
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center relative z-10">
                                             <Link href="/signup" className="bg-tatt-lime text-black font-black px-8 py-3.5 rounded-2xl text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-tatt-lime/20 flex items-center justify-center gap-2">
-                                                <UserPlus className="h-4 w-4" /> Join TATT Community
+                                                <UserPlus className="h-4 w-4" /> Join TATT-U Community
                                             </Link>
                                             <Link href="/login" className="bg-white/10 backdrop-blur-md border border-white/20 text-foreground font-black px-8 py-3.5 rounded-2xl text-xs uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2">
                                                 <LogIn className="h-4 w-4" /> Sign In
@@ -468,7 +468,7 @@ export default function SharePostPage() {
                                     Sign In
                                 </Link>
                                 <Link href="/signup" className="px-4 py-2 bg-surface border border-border text-foreground font-bold text-xs rounded-lg uppercase tracking-wider hover:bg-black/5">
-                                    Join TATT
+                                    Join TATT-U
                                 </Link>
                             </div>
                         </div>
@@ -565,7 +565,7 @@ export default function SharePostPage() {
                         </div>
                         <div className="pt-2 flex justify-center gap-4">
                             <Link href="/signup" className="px-8 py-3.5 bg-tatt-lime text-black font-black text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-md shadow-tatt-lime/20">
-                                Join TATT Network
+                                Join TATT-U Network
                             </Link>
                         </div>
                     </div>

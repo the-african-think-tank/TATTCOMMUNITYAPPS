@@ -135,7 +135,7 @@ export function OnboardingPaymentPage() {
                 Checkout
               </h1>
               <p className="text-tatt-gray">
-                Complete your TATT <strong>{planDetails.name}</strong> subscription and unlock premium access.
+                Complete your TATT-U <strong>{planDetails.name}</strong> membership and unlock premium access.
               </p>
             </section>
 
@@ -202,7 +202,7 @@ export function OnboardingPaymentPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-lg">
-                        TATT {planDetails.name} Access
+                        TATT-U {planDetails.name} Access
                       </p>
                       <p className="text-tatt-lime font-bold text-xl">
                         ${Number(planDetails.price).toFixed(2)}{" "}

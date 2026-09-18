@@ -248,7 +248,7 @@ export default function EventDetailPage() {
                                     <div>
                                         <p className="font-bold text-sm">{event.isForAllMembers ? "Public Protocol" : "Tier-Restricted"}</p>
                                         <p className="text-xs text-tatt-gray font-medium leading-relaxed">
-                                            {event.isForAllMembers ? "Access granted to entire TATT community." : `Available to: ${event.targetMembershipTiers?.join(", ") || "Specific Tiers"}`}
+                                            {event.isForAllMembers ? "Access granted to entire TATT-U community." : `Available to: ${event.targetMembershipTiers?.join(", ") || "Specific Tiers"}`}
                                         </p>
                                     </div>
                                 </div>

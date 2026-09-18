@@ -17,9 +17,9 @@ export async function generateMetadata({ params }: { params: Promise<{ postId: s
         }
 
         const post = await res.json();
-        const authorName = post.author ? `${post.author.firstName} ${post.author.lastName}` : "TATT Member";
+        const authorName = post.author ? `${post.author.firstName} ${post.author.lastName}` : "TATT-U Member";
         const cleanContent = post.content ? post.content.replace(/<[^>]*>?/gm, "").substring(0, 160) : "";
-        const title = post.title || `${authorName} on TATT: Strategic Insight`;
+        const title = post.title || `${authorName} on TATT-U: Strategic Insight`;
         const description = cleanContent || `Strategic insight shared by ${authorName} in The African Think Tank.`;
         const ogImage = post.mediaUrls && post.mediaUrls.length > 0 
             ? post.mediaUrls[0] 

@@ -208,7 +208,7 @@ export default function MemberBusinessDetails() {
                   {business.perkOffer}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-tatt-gray font-medium">
-                  <span>Available for all verified TATT members</span>
+                  <span>Available for all verified TATT-U members</span>
                   {business.benefitType && (
                     <>
                       <span className="text-border">•</span>
@@ -413,7 +413,7 @@ export default function MemberBusinessDetails() {
                   Primary Point of Contact
                 </p>
                 <p className="text-sm font-bold tracking-tight text-white transition-colors">{business.contactName || 'Corporate Relations'}</p>
-                 <p className="text-[9px] text-white/20 font-black uppercase tracking-widest mt-0.5">Verified TATT Representative</p>
+                 <p className="text-[9px] text-white/20 font-black uppercase tracking-widest mt-0.5">Verified TATT-U Representative</p>
               </div>
             </div>
 

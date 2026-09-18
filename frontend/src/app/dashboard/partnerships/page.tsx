@@ -133,7 +133,7 @@ export default function PartnershipsDirectory() {
             Partner <span className="text-tatt-lime italic">Perks</span> & Benefits
           </h1>
           <p className="text-tatt-gray text-lg font-medium leading-relaxed mb-8 max-w-2xl">
-            Exclusive corporate partnerships negotiated for the TATT community. Access preferential rates, services, and opportunities within our trusted ecosystem.
+            Exclusive corporate partnerships negotiated for the TATT-U community. Access preferential rates, services, and opportunities within our trusted ecosystem.
           </p>
         </div>
       </div>
@@ -344,7 +344,7 @@ export default function PartnershipsDirectory() {
                     <textarea 
                        required
                        rows={4}
-                       placeholder="Briefly describe your organisation, proposed partnership offer, and value for TATT members..."
+                       placeholder="Briefly describe your organisation, proposed partnership offer, and value for TATT-U members..."
                        value={enquiryForm.details}
                        onChange={(e) => setEnquiryForm({ ...enquiryForm, details: e.target.value })}
                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-bold text-white focus:outline-none focus:border-tatt-lime transition-all placeholder:text-white/20 custom-scrollbar"

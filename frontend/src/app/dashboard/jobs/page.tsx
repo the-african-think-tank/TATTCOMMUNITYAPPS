@@ -76,10 +76,10 @@ function getPaginationPages(current: number, total: number): (number | "...")[] 
 
 function PremiumGate() {
   const benefits = [
-    { icon: Briefcase, title: "Curated Listings", desc: "Roles matched to TATT Professionals" },
-    { icon: Star, title: "Priority Applications", desc: "Apply directly through the TATT platform" },
+    { icon: Briefcase, title: "Curated Listings", desc: "Roles matched to TATT-U Members" },
+    { icon: Star, title: "Priority Applications", desc: "Apply directly through the TATT-U platform" },
     { icon: TrendingUp, title: "Talent Matchmaking", desc: "Get discovered by top employers in our network" },
-    { icon: Users, title: "TATT Job Alerts", desc: "Get notified when roles match your profile" },
+    { icon: Users, title: "TATT-U Job Alerts", desc: "Get notified when roles match your profile" },
   ];
 
   const plans = [

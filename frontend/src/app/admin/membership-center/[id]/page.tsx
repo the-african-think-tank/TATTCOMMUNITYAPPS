@@ -66,7 +66,7 @@ export default function EditMembershipPlanPage() {
             { title: 'Free Vendor Tables', subtitle: 'Exhibition and sales opportunities', enabled: false },
             { title: 'Pitch Event Access', subtitle: 'Priority invitation to funding sessions', enabled: false },
             { title: 'Talent Access', subtitle: 'Recruitment and networking priority', enabled: false },
-            { title: 'TATT Job Board', subtitle: 'Exclusive Talent Matchmaking', enabled: false },
+            { title: 'TATT-U Job Board', subtitle: 'Exclusive Talent Matchmaking', enabled: false },
             { title: 'Premium Resource Library', subtitle: 'Research, Reports & Whitepapers', enabled: true }
         ]
     });
@@ -120,7 +120,7 @@ export default function EditMembershipPlanPage() {
                                 { title: 'Free Vendor Tables', subtitle: 'Exhibition and sales opportunities', enabled: false },
                                 { title: 'Pitch Event Access', subtitle: 'Priority invitation to funding sessions', enabled: false },
                                 { title: 'Talent Access', subtitle: 'Recruitment and networking priority', enabled: false },
-                                { title: 'TATT Job Board', subtitle: 'Exclusive Talent Matchmaking', enabled: false },
+                                { title: 'TATT-U Job Board', subtitle: 'Exclusive Talent Matchmaking', enabled: false },
                                 { title: 'Premium Resource Library', subtitle: 'Research, Reports & Whitepapers', enabled: true }
                             ]
                         });
@@ -238,7 +238,7 @@ export default function EditMembershipPlanPage() {
                         <span className="text-tatt-lime">{isNew ? 'Create New Plan' : `Edit ${planData.name || 'Plan'}`}</span>
                     </nav>
                     <h2 className="text-3xl font-black tracking-tight text-foreground">{isNew ? 'Create Membership Plan' : `Edit ${planData.name || 'Membership Plan'}`}</h2>
-                    <p className="text-tatt-gray text-xs font-bold uppercase tracking-widest">{isNew ? 'Configure a new tier for the TATT community ecosystem.' : 'Modify tier perks and parameters for the TATT community ecosystem.'}</p>
+                    <p className="text-tatt-gray text-xs font-bold uppercase tracking-widest">{isNew ? 'Configure a new tier for the TATT-U community ecosystem.' : 'Modify tier perks and parameters for the TATT-U community ecosystem.'}</p>
                 </header>
 
                 <form onSubmit={handleSave} className="grid grid-cols-12 gap-8">

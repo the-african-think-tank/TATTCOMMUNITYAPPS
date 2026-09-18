@@ -102,9 +102,9 @@ export default function SupportCenterPage() {
                     <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-tatt-lime rounded-full blur-[120px]"></div>
                 </div>
                 <div className="relative z-10 max-w-4xl mx-auto text-center">
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight italic">TATT Support Center</h2>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight italic">TATT-U Support Center</h2>
                     <p className="text-white/60 text-sm md:text-base max-w-2xl mx-auto mb-10 leading-relaxed">
-                        Find instant answers in our Common FAQs or submit a support ticket to receive direct assistance from the TATT executive team.
+                        Find instant answers in our Common FAQs or submit a support ticket to receive direct assistance from the TATT-U executive team.
                     </p>
                     <div className="relative max-w-2xl mx-auto group">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">

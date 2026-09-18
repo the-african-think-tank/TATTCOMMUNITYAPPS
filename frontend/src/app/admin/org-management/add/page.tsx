@@ -39,7 +39,7 @@ const roles = [
 const moduleFlags = [
     { id: 'CAN_ACCESS_ORG_MANAGEMENT', label: 'Org Management', icon: Building },
     { id: 'CAN_ACCESS_REGIONAL_CHAPTERS', label: 'Regional Chapters', icon: Globe },
-    { id: 'CAN_ACCESS_FORUM_MODERATION', label: 'TATT Feed Moderation', icon: Rss },
+    { id: 'CAN_ACCESS_FORUM_MODERATION', label: 'TATT-U Feed Moderation', icon: Rss },
     { id: 'CAN_ACCESS_VOLUNTEER_CENTER', label: 'Volunteer Center', icon: Heart },
     { id: 'CAN_ACCESS_EVENTS', label: 'Events & Mixers', icon: Calendar },
     { id: 'CAN_ACCESS_PARTNERSHIPS', label: 'Promotions', icon: Handshake },

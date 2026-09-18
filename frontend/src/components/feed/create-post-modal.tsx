@@ -176,7 +176,7 @@ export function CreatePostModal({
                 isOpen={isOpen}
                 onClose={handleClose}
                 title="Choose Post Type"
-                subtitle="Select the nature of your contribution to the TATT community."
+                subtitle="Select the nature of your contribution to the TATT-U community."
                 headerClass="bg-gradient-to-r from-tatt-lime/10 to-transparent p-8"
                 bodyClass="grid gap-4 p-6"
                 maxWidth="max-w-2xl"

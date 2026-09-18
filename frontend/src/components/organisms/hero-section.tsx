@@ -24,7 +24,7 @@ export function HeroSection() {
           The African Think Tank
         </p>
         <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-          TATT Membership Frontend
+          TATT-U Member Portal
         </h1>
         <p className="max-w-2xl text-base text-foreground/80 md:text-lg">
           A modern membership platform frontend built with Next.js 16, strict

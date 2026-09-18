@@ -263,7 +263,7 @@ export function PostCard({
         const loadingToast = toast.loading("Deleting post...");
         try {
             await api.delete(`/feed/${post.id}`);
-            toast.success("Post successfully removed from the TATT Feed.", { id: loadingToast });
+            toast.success("Post successfully removed from the TATT-U Feed.", { id: loadingToast });
             if (onPostDeleted) onPostDeleted();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to delete post", { id: loadingToast });
@@ -518,7 +518,7 @@ export function PostCard({
                             </div>
                             <div className="max-w-md">
                                 <h4 className="text-lg font-black mb-1">Elite Strategic Insight</h4>
-                                <p className="text-sm text-tatt-gray">This resource is exclusive to TATT Ubuntu, Imani, and Kiongozi members. Upgrade your tier to unlock full access.</p>
+                                <p className="text-sm text-tatt-gray">This resource is exclusive to TATT-U Ubuntu, Imani, and Kiongozi members. Upgrade your tier to unlock full access.</p>
                             </div>
                             <button className="bg-tatt-lime text-black font-black px-8 py-2.5 rounded-xl text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-tatt-lime/10 cursor-pointer">
                                 Upgrade Now

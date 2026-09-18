@@ -186,7 +186,7 @@ export default function AdminCreateJobPage() {
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-tatt-lime mb-1">Admin / Jobs / Create</p>
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground uppercase">Create Job Opportunity</h1>
                 <p className="text-tatt-gray text-sm mt-1 max-w-xl">
-                    Define the requirements for a new placement. Published listings are immediately visible to all verified TATT members.
+                    Define the requirements for a new placement. Published listings are immediately visible to all verified TATT-U members.
                 </p>
             </div>
 
@@ -392,7 +392,7 @@ export default function AdminCreateJobPage() {
                                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-tatt-lime/70 mb-1">Final Review</p>
                                 <h4 className="text-white text-lg font-black leading-tight">Ready to Publish?</h4>
                                 <p className="text-white/50 text-xs mt-2 leading-relaxed">
-                                    Published roles are immediately visible to all verified TATT members with access to the Job Board.
+                                    Published roles are immediately visible to all verified TATT-U members with access to the Job Board.
                                 </p>
 
                                 {/* Completeness bar */}

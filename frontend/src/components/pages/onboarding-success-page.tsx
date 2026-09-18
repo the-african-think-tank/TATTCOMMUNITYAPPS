@@ -115,7 +115,7 @@ export function OnboardingSuccessPage() {
                             ) : (
                                 <>
                                     Welcome to the <br />
-                                    <span className="text-tatt-lime uppercase">TATT Family, {user?.firstName || "Member"}!</span>
+                                    <span className="text-tatt-lime uppercase">TATT-U Family, {user?.firstName || "Member"}!</span>
                                 </>
                             )}
                         </h1>

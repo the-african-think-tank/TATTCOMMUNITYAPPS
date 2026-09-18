@@ -194,10 +194,10 @@ export default function MemberBusinessCenter() {
             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-lime">Impact Ecosystem</span>
           </div>
           <h1 className="text-4xl lg:text-5xl font-black text-foreground leading-tight tracking-tight mb-6">
-            The TATT <span className="text-tatt-lime underline decoration-wavy underline-offset-8">Business Center</span>
+            The TATT-U <span className="text-tatt-lime underline decoration-wavy underline-offset-8">Business Center</span>
           </h1>
           <p className="text-tatt-gray text-lg font-medium leading-relaxed mb-8">
-            Access exclusive perks, discounts, and professional services from vetted businesses within the TATT community. This is our parallel economy in action.
+            Access exclusive perks, discounts, and professional services from vetted businesses within the TATT-U community. This is our parallel economy in action.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {!hasBusiness ? (

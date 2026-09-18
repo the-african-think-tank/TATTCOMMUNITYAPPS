@@ -117,7 +117,7 @@ export default function AdminDashboardOverview() {
         <div className="space-y-8 pb-12 animate-in fade-in duration-500">
             <div>
                 <h2 className="text-2xl font-black text-foreground tracking-tight">Dashboard Overview</h2>
-                <p className="text-tatt-gray text-sm font-medium">Welcome back to the TATT Control Center.</p>
+                <p className="text-tatt-gray text-sm font-medium">Welcome back to the TATT-U Control Center.</p>
             </div>
 
             {/* KPIs */}

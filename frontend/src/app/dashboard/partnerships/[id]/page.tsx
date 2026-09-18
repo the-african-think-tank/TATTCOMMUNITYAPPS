@@ -180,7 +180,7 @@ export default function PartnershipDetailsPage() {
                       <CheckCircle2 className="h-5 w-5 text-tatt-lime shrink-0 mt-0.5" />
                       <div>
                         <p className="font-bold text-base leading-tight">Documentation</p>
-                        <p className="text-sm text-tatt-gray font-medium mt-1">TATT Digital ID may be requested during {partnership.buttonLabel || "redemption"}.</p>
+                        <p className="text-sm text-tatt-gray font-medium mt-1">TATT-U Digital ID may be requested during {partnership.buttonLabel || "redemption"}.</p>
                       </div>
                     </li>
                   </ul>
@@ -261,7 +261,7 @@ export default function PartnershipDetailsPage() {
                    <div className="space-y-4 relative">
                       <div className="size-14 rounded-2xl bg-tatt-black text-tatt-lime flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-background">1</div>
                       <h4 className="font-black text-lg">Identity Check</h4>
-                      <p className="text-sm text-tatt-gray font-medium leading-relaxed">Ensure your profile is complete with your TATT Member ID verified.</p>
+                      <p className="text-sm text-tatt-gray font-medium leading-relaxed">Ensure your profile is complete with your TATT-U Member ID verified.</p>
                       <div className="hidden md:block absolute top-7 left-14 w-full h-[2px] bg-border -z-10" />
                    </div>
                    
@@ -277,7 +277,7 @@ export default function PartnershipDetailsPage() {
                    <div className="space-y-4">
                       <div className="size-14 rounded-2xl bg-tatt-black text-tatt-lime flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-background">3</div>
                       <h4 className="font-black text-lg">Apply Benefit</h4>
-                      <p className="text-sm text-tatt-gray font-medium leading-relaxed">Apply your TATT credentials at checkout to unlock your exclusive network pricing.</p>
+                      <p className="text-sm text-tatt-gray font-medium leading-relaxed">Apply your TATT-U credentials at checkout to unlock your exclusive network pricing.</p>
                    </div>
                 </div>
 

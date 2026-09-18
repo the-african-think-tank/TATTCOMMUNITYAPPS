@@ -82,10 +82,10 @@ export default function UpgradePage() {
                         Membership Upgrade
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-4">
-                        Unlock Your Full <span className="text-tatt-lime">TATT Potential</span>
+                        Unlock Your Full <span className="text-tatt-lime">TATT-U Potential</span>
                     </h1>
                     <p className="text-white/60 text-base font-medium max-w-xl mx-auto">
-                        Join thousands of African diaspora leaders who use TATT's paid tiers to connect, collaborate, and drive measurable impact.
+                        Join thousands of African diaspora leaders who use TATT-U's paid tiers to connect, collaborate, and drive measurable impact.
                     </p>
 
                     <div className="mt-7 inline-flex items-center gap-2 bg-white/5 border border-white/10 text-white/50 text-xs font-bold uppercase tracking-widest px-5 py-2 rounded-full">

@@ -263,7 +263,7 @@ export default function MembershipCenterPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight text-foreground">Membership Management</h2>
-                    <p className="text-xs text-tatt-gray font-medium mt-1 uppercase tracking-widest">Efficiency-first administration for TATT membership</p>
+                    <p className="text-xs text-tatt-gray font-medium mt-1 uppercase tracking-widest">Efficiency-first administration for TATT-U membership</p>
                 </div>
                 <div className="flex space-x-3 w-full md:w-auto">
 

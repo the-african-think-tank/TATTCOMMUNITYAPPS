@@ -43,7 +43,7 @@ export default function VolunteerApplyPage() {
                         </div>
                         <div className="min-w-0">
                             <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight truncate">Volunteer Application</h1>
-                            <p className="text-tatt-gray text-xs sm:text-sm mt-0.5">Join the TATT global movement</p>
+                            <p className="text-tatt-gray text-xs sm:text-sm mt-0.5">Join the TATT-U global movement</p>
                         </div>
                     </div>
                 </div>

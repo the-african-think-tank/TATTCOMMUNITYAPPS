@@ -64,7 +64,7 @@ export default function SavedJobsPage() {
           <Lock className="size-8 text-tatt-lime" />
         </div>
         <h1 className="text-2xl font-black text-foreground mb-2">Members Only</h1>
-        <p className="text-tatt-gray text-sm max-w-sm mb-6">Saved roles are available to paid TATT members. Upgrade to access the full Job Board.</p>
+        <p className="text-tatt-gray text-sm max-w-sm mb-6">Saved roles are available to paid TATT-U members. Upgrade to access the full Job Board.</p>
         <Link href="/dashboard/upgrade" className="px-6 py-3 bg-tatt-lime text-black font-black text-xs uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg shadow-tatt-lime/20">
           Upgrade Now
         </Link>

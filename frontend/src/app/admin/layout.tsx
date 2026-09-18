@@ -156,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             group: "Community", items: [
                 { icon: <Users size={20} />, label: "Org Management", href: "/admin/org-management", badge: "NEW", flag: "CAN_ACCESS_ORG_MANAGEMENT" },
                 { icon: <Globe size={20} />, label: "Regional Chapters", href: "/admin/regional-chapters", flag: "CAN_ACCESS_REGIONAL_CHAPTERS" },
-                { icon: <Rss size={20} />, label: "TATT Feed Moderation", href: "/admin/feed-moderation", dot: true, flag: "CAN_ACCESS_FORUM_MODERATION" },
+                { icon: <Rss size={20} />, label: "TATT-U Feed Moderation", href: "/admin/feed-moderation", dot: true, flag: "CAN_ACCESS_FORUM_MODERATION" },
                 { icon: <Globe size={20} />, label: "Community Feed", href: "/admin/community-feed", flag: "CAN_ACCESS_FORUM_MODERATION" },
                 { icon: <Heart size={20} />, label: "Volunteer Center", href: "/admin/volunteers", flag: "CAN_ACCESS_VOLUNTEER_CENTER" },
                 { icon: <Calendar size={20} />, label: "Events & Mixers", href: "/admin/events", flag: "CAN_ACCESS_EVENTS" },

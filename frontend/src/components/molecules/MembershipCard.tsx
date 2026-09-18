@@ -125,7 +125,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({ member, isCurrentUser }
             {isFree && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#00000066] backdrop-blur-[2px] p-6 text-center">
                     <div className="bg-[#9fcc00e6] text-black px-3 py-1 rounded-full text-[10px] font-black mb-2 uppercase tracking-tighter">Upgrade Required</div>
-                    <p className="text-xs font-bold leading-tight">Upgrade to a paid tier to get your official TATT member ID card.</p>
+                    <p className="text-xs font-bold leading-tight">Upgrade to a paid tier to get your official TATT-U member ID card.</p>
                 </div>
             )}
         </div>
@@ -147,7 +147,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({ member, isCurrentUser }
             {isFree ? (
                 <div className="p-4 bg-tatt-lime/5 border border-tatt-lime/10 rounded-xl max-w-[480px]">
                     <p className="text-[11px] text-tatt-gray font-medium leading-relaxed">
-                        <span className="text-tatt-lime font-black">PRO TIP:</span> TATT Member IDs unlock exclusive discounts across our 
+                        <span className="text-tatt-lime font-black">PRO TIP:</span> TATT-U Member IDs unlock exclusive discounts across our 
                         partner network and community businesses worldwide.
                     </p>
                 </div>

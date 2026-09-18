@@ -267,7 +267,7 @@ export interface PublicConfig {
 
 export const DEFAULT_PUBLIC_CONFIG: PublicConfig = {
     showBetaNotice: true,
-    betaBannerMessage: 'Welcome to TATT Community Apps Beta. You are exploring early access features.',
+    betaBannerMessage: 'Welcome to TATT-U Beta. You are exploring early access features.',
     betaVersionTag: 'v0.9.0-beta',
 };
 

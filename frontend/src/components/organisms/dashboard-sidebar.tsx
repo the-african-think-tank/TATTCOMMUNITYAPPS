@@ -36,7 +36,7 @@ export function DashboardSidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIs
 
     const mainLinks = [
         { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-        { name: "TATT Feed", href: "/dashboard/feed", icon: Rss },
+        { name: "TATT-U Feed", href: "/dashboard/feed", icon: Rss },
         { name: "Network", href: "/dashboard/network", icon: Users },
         { name: "Messages", href: "/dashboard/messages", icon: MailIcon },
         { name: "Events", href: "/dashboard/events", icon: Calendar },
