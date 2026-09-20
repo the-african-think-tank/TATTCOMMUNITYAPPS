@@ -14,6 +14,10 @@ import {
     User,
     Search,
     ChevronDown,
+    X,
+    Globe,
+    Lock,
+    Sparkles,
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
@@ -33,7 +37,7 @@ export default function EditResourcePage() {
         category: "General",
         contentUrl: "",
     });
-    const [selectedTiers, setSelectedTiers] = useState<string[]>(["FREE"]);
+    const [accessMode, setAccessMode] = useState<'FREE' | 'PAID'>('FREE');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [existingCategories, setExistingCategories] = useState<string[]>(["General", "Strategic", "Community", "Leadership"]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -57,8 +61,9 @@ export default function EditResourcePage() {
                         category: resource.tags?.[0] || "General",
                         contentUrl: resource.contentUrl || "",
                     });
-                    // Set selectedTiers directly
-                    setSelectedTiers(resource.allowedTiers || [resource.minTier || "FREE"]);
+                    // Determine accessMode from resource data
+                    const isFree = resource.allowedTiers?.includes("FREE") || resource.minTier === "FREE";
+                    setAccessMode(isFree ? "FREE" : "PAID");
                 }
 
                 const tags = new Set<string>(["General", "Strategic", "Community", "Leadership"]);
@@ -82,13 +87,6 @@ export default function EditResourcePage() {
 
 
 
-    const handleTierChange = (tier: string) => {
-        if (selectedTiers.includes(tier)) {
-            setSelectedTiers(selectedTiers.filter(t => t !== tier));
-        } else {
-            setSelectedTiers([...selectedTiers, tier]);
-        }
-    };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -128,20 +126,16 @@ export default function EditResourcePage() {
         }
 
         try {
-            // Determine hierarchical minTier as the highest selected tier
-            const tiers = ["FREE", "UBUNTU", "IMANI", "KIONGOZI"];
-            let minTier = "FREE";
-            for (const tier of tiers) {
-                if (selectedTiers.includes(tier)) {
-                    minTier = tier;
-                }
-            }
+            const minTier = accessMode === 'FREE' ? 'FREE' : 'UBUNTU';
+            const allowedTiers = accessMode === 'FREE'
+                ? ['FREE', 'UBUNTU', 'IMANI', 'KIONGOZI']
+                : ['UBUNTU', 'IMANI', 'KIONGOZI'];
 
             await api.patch(`/resources/${id}`, {
                 ...formData,
                 contentUrl: finalContentUrl,
                 minTier,
-                allowedTiers: selectedTiers,
+                allowedTiers,
                 tags: formData.category ? [formData.category] : [],
                 visibility: "PUBLIC"
             });
@@ -355,48 +349,86 @@ export default function EditResourcePage() {
                         <div className="flex flex-wrap items-center justify-between gap-6 mb-8">
                             <h3 className="text-2xl font-black flex items-center gap-3 text-slate-900 tracking-tight uppercase italic">
                                 <div className="w-2.5 h-8 bg-tatt-lime rounded-full"></div>
-                                Access Control Grid
+                                Access Control
                             </h3>
                             <span className="text-[10px] font-black bg-slate-900 text-tatt-lime px-4 py-2 rounded-full uppercase tracking-widest border border-tatt-lime/20 shadow-lg shadow-black/10">
                                 Deployment Status: Admin Only
                             </span>
                         </div>
-                        <p className="text-lg font-medium text-slate-500 mb-10 leading-relaxed">Select organizational membership tiers enabled to decrypt and access this asset. Resources not mapped to a tier remain restricted to platform leadership.</p>
+                        <p className="text-lg font-medium text-slate-500 mb-8 leading-relaxed">
+                            Specify membership access criteria. Choose whether this asset is unlocked for the entire community or reserved exclusively for paid members.
+                        </p>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {[
-                                { id: 'FREE', label: 'Free Access', sub: 'General Public', icon: <User size={32} /> },
-                                { id: 'UBUNTU', label: 'Ubuntu Core', sub: 'Standard Network', icon: <Users size={32} /> },
-                                { id: 'IMANI', label: 'Imani Elite', sub: 'Premium Strategic', icon: <PlusCircle size={32} /> },
-                                { id: 'KIONGOZI', label: 'Kiongozi Apex', sub: 'Executive Council', icon: <Shield size={32} /> }
-                            ].map((tier) => (
-                                <label 
-                                    key={tier.id}
-                                    className={`group relative flex flex-col items-center justify-center p-8 border-2 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${
-                                        selectedTiers.includes(tier.id) 
-                                            ? 'bg-tatt-lime/10 border-tatt-lime shadow-lg shadow-tatt-lime/10' 
-                                            : 'bg-slate-50 border-slate-200 hover:border-tatt-lime/50'
-                                    }`}
-                                >
-                                    <input 
-                                        type="checkbox"
-                                        className="hidden"
-                                        checked={selectedTiers.includes(tier.id)}
-                                        onChange={() => handleTierChange(tier.id)}
-                                    />
-                                    <div className={`mb-4 transition-transform duration-300 group-hover:scale-110 ${selectedTiers.includes(tier.id) ? 'text-tatt-lime-dark' : 'text-slate-400'}`}>
-                                        {tier.icon}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <label 
+                                className={`group relative flex flex-col p-8 border-2 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${
+                                    accessMode === 'FREE' 
+                                        ? 'bg-tatt-lime/10 border-tatt-lime shadow-lg shadow-tatt-lime/10' 
+                                        : 'bg-slate-50 border-slate-200 hover:border-tatt-lime/50'
+                                }`}
+                            >
+                                <input 
+                                    type="radio"
+                                    name="accessMode"
+                                    className="hidden"
+                                    checked={accessMode === 'FREE'}
+                                    onChange={() => setAccessMode('FREE')}
+                                />
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className={`p-4 rounded-2xl transition-transform duration-300 group-hover:scale-110 ${
+                                        accessMode === 'FREE' 
+                                            ? 'bg-tatt-lime text-slate-950 shadow-md' 
+                                            : 'bg-slate-200/80 text-slate-500'
+                                    }`}>
+                                        <Globe size={32} />
                                     </div>
-                                    <span className="font-black text-slate-900 uppercase italic tracking-tighter text-lg">{tier.label}</span>
-                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">{tier.sub}</span>
-                                    
-                                    {selectedTiers.includes(tier.id) && (
-                                        <div className="absolute top-4 right-4 text-tatt-lime">
-                                            <CheckCircle2 size={24} />
+                                    {accessMode === 'FREE' && (
+                                        <div className="text-tatt-lime">
+                                            <CheckCircle2 size={28} />
                                         </div>
                                     )}
-                                </label>
-                            ))}
+                                </div>
+                                <span className="font-black text-slate-900 uppercase italic tracking-tighter text-xl">Free for All Members</span>
+                                <span className="text-xs font-black uppercase text-tatt-lime-dark tracking-widest mt-1">General Public &amp; All Members</span>
+                                <p className="text-sm font-medium text-slate-500 mt-3 leading-relaxed">
+                                    Open to everyone in the network, including Free tier accounts, Ubuntu, Imani, and Kiongozi members.
+                                </p>
+                            </label>
+
+                            <label 
+                                className={`group relative flex flex-col p-8 border-2 rounded-[1.5rem] cursor-pointer transition-all duration-300 ${
+                                    accessMode === 'PAID' 
+                                        ? 'bg-tatt-lime/10 border-tatt-lime shadow-lg shadow-tatt-lime/10' 
+                                        : 'bg-slate-50 border-slate-200 hover:border-tatt-lime/50'
+                                }`}
+                            >
+                                <input 
+                                    type="radio"
+                                    name="accessMode"
+                                    className="hidden"
+                                    checked={accessMode === 'PAID'}
+                                    onChange={() => setAccessMode('PAID')}
+                                />
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className={`p-4 rounded-2xl transition-transform duration-300 group-hover:scale-110 ${
+                                        accessMode === 'PAID' 
+                                            ? 'bg-slate-900 text-tatt-lime shadow-md' 
+                                            : 'bg-slate-200/80 text-slate-500'
+                                    }`}>
+                                        <Lock size={32} />
+                                    </div>
+                                    {accessMode === 'PAID' && (
+                                        <div className="text-tatt-lime">
+                                            <CheckCircle2 size={28} />
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="font-black text-slate-900 uppercase italic tracking-tighter text-xl">Paid Members Only</span>
+                                <span className="text-xs font-black uppercase text-tatt-lime-dark tracking-widest mt-1">Ubuntu, Imani &amp; Kiongozi</span>
+                                <p className="text-sm font-medium text-slate-500 mt-3 leading-relaxed">
+                                    Restricted to active paid tiers. Free members will see a locked preview and an invitation to upgrade.
+                                </p>
+                            </label>
                         </div>
                     </section>
 

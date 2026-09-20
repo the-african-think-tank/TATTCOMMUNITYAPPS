@@ -17,7 +17,9 @@ import {
     X,
     ExternalLink,
     AlertCircle,
-    Pencil
+    Pencil,
+    Globe,
+    Lock
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
@@ -217,16 +219,20 @@ export default function ResourcesAdminPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5">
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {(resource.allowedTiers && resource.allowedTiers.length > 0 ? resource.allowedTiers : [resource.minTier]).map((t: string) => (
-                                                        <span key={t} className={`text-xs font-bold px-2.5 py-0.5 rounded border ${
-                                                            t === 'FREE' ? 'border-slate-200 text-slate-600 bg-slate-50' :
-                                                            'border-tatt-lime-dark/20 text-tatt-lime-dark bg-tatt-lime/10'
-                                                        }`}>
-                                                            {t}
+                                                {(() => {
+                                                    const isFree = resource.allowedTiers?.includes('FREE') || resource.minTier === 'FREE';
+                                                    return isFree ? (
+                                                        <span className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full border border-slate-200 text-slate-700 bg-slate-100/90 shadow-sm">
+                                                            <Globe size={13} className="text-slate-500" />
+                                                            Free for All
                                                         </span>
-                                                    ))}
-                                                </div>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full border border-tatt-lime-dark/30 text-tatt-lime-dark bg-tatt-lime/15 shadow-sm">
+                                                            <Lock size={13} className="text-tatt-lime-dark" />
+                                                            Paid Members Only
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-6 py-5 text-right">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
