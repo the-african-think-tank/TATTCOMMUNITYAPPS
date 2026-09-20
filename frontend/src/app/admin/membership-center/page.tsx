@@ -29,8 +29,10 @@ import {
     Ticket,
     Activity,
     Shield,
-    Save
+    Save,
+    RotateCcw
 } from "lucide-react";
+import { format } from "date-fns";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
 import api from "@/services/api";
 import toast from "react-hot-toast";
@@ -86,6 +88,7 @@ export default function MembershipCenterPage() {
         billingCycle: "",
         search: "",
         role: "",
+        status: "",
         page: 1,
         limit: 10
     });
@@ -106,7 +109,13 @@ export default function MembershipCenterPage() {
     const fetchAllData = useCallback(async () => {
         setLoading(true);
         try {
-            const query = new URLSearchParams(filters as any).toString();
+            const activeParams: any = {};
+            Object.entries(filters).forEach(([k, v]) => {
+                if (v !== "" && v !== undefined && v !== null) {
+                    activeParams[k] = String(v);
+                }
+            });
+            const query = new URLSearchParams(activeParams).toString();
             const [tiersRes, subscribersRes, discountsRes, analyticsRes, chaptersRes] = await Promise.all([
                 api.get("/billing/plans"),
                 api.get(`/membership-center/subscribers?${query}`),
@@ -201,22 +210,34 @@ export default function MembershipCenterPage() {
         toast.success("Member data exported successfully");
     };
 
-    const handleBulkAction = async (action: 'archive' | 'reassign') => {
-        if (!selectedMembers.length) return;
+    const handleBulkAction = async (action: 'archive' | 'restore' | 'reassign', targetMemberId?: string) => {
+        const ids = targetMemberId ? [targetMemberId] : selectedMembers;
+        if (!ids.length) return;
         
-        const msg = action === 'archive' 
-            ? `Are you sure you want to archive ${selectedMembers.length} members?`
-            : "Reassign selected members to which tier? (Simplified for now - contact dev for full logic)";
+        let msg = "";
+        if (action === 'archive') {
+            msg = `Are you sure you want to archive ${ids.length === 1 ? 'this member' : `${ids.length} members`}?`;
+        } else if (action === 'restore') {
+            msg = `Are you sure you want to restore ${ids.length === 1 ? 'this member' : `${ids.length} members`}?`;
+        } else {
+            msg = "Reassign selected members to which tier? (Simplified for now - contact dev for full logic)";
+        }
             
         if (!confirm(msg)) return;
         
         try {
-            await api.post(`/membership-center/bulk-${action}`, { memberIds: selectedMembers });
-            toast.success(`Bulk ${action} completed successfully`);
-            setSelectedMembers([]);
+            if (targetMemberId && action === 'archive') {
+                await api.post(`/membership-center/members/${targetMemberId}/archive`);
+            } else if (targetMemberId && action === 'restore') {
+                await api.post(`/membership-center/members/${targetMemberId}/restore`);
+            } else {
+                await api.post(`/membership-center/bulk-${action}`, { memberIds: ids });
+            }
+            toast.success(`Member${ids.length > 1 ? 's' : ''} ${action === 'restore' ? 'restored' : action + 'd'} successfully`);
+            if (!targetMemberId) setSelectedMembers([]);
             fetchAllData();
-        } catch (err) {
-            toast.error(`Failed to perform bulk ${action}`);
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || `Failed to perform ${action}`);
         }
     };
 
@@ -703,17 +724,35 @@ export default function MembershipCenterPage() {
                                         ...data.chapters.map((c: any) => ({ label: c.name, value: c.id }))
                                     ]}
                                 />
+                                <FilterSelect 
+                                    value={filters.status} 
+                                    onChange={(v) => handleFilterChange("status", v)}
+                                    options={[
+                                        { label: "All Statuses", value: "" },
+                                        { label: "Active Members", value: "ACTIVE" },
+                                        { label: "Archived Members", value: "ARCHIVED" },
+                                    ]}
+                                />
                                 <button
                                     onClick={() => handleBulkAction('archive')}
                                     disabled={!selectedMembers.length}
-                                    className="px-4 py-2 bg-background border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 disabled:opacity-40 transition-all flex items-center gap-2"
+                                    className="px-4 py-2 bg-background border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 disabled:opacity-40 transition-all flex items-center gap-2 cursor-pointer"
+                                    title="Archive selected members"
                                 >
                                     <Trash2 size={12} /> Archive
                                 </button>
                                 <button
+                                    onClick={() => handleBulkAction('restore')}
+                                    disabled={!selectedMembers.length}
+                                    className="px-4 py-2 bg-background border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-50 disabled:opacity-40 transition-all flex items-center gap-2 cursor-pointer"
+                                    title="Restore selected archived members"
+                                >
+                                    <RotateCcw size={12} /> Restore
+                                </button>
+                                <button
                                     onClick={() => handleBulkAction('reassign')}
                                     disabled={!selectedMembers.length}
-                                    className="px-4 py-2 bg-background border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-tatt-lime-dark hover:bg-tatt-lime/5 disabled:opacity-40 transition-all flex items-center gap-2"
+                                    className="px-4 py-2 bg-background border border-border rounded-xl text-[10px] font-black uppercase tracking-widest text-tatt-lime-dark hover:bg-tatt-lime/5 disabled:opacity-40 transition-all flex items-center gap-2 cursor-pointer"
                                 >
                                     <Shield size={12} /> Reassign
                                 </button>
@@ -735,7 +774,8 @@ export default function MembershipCenterPage() {
                                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Active Tier</th>
                                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Region</th>
                                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Cycle</th>
-                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Sync Status</th>
+                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Join Date</th>
+                                        <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray">Status</th>
                                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray text-right">Edit</th>
                                     </tr>
                                 </thead>
@@ -775,11 +815,21 @@ export default function MembershipCenterPage() {
                                                     <span className="text-[8px] text-tatt-gray font-bold uppercase mt-1">Next: {member.subscriptionExpiresAt ? new Date(member.subscriptionExpiresAt).toLocaleDateString() : 'Infinite'}</span>
                                                 </div>
                                             </td>
+                                            <td className="px-8 py-5 text-[11px] font-bold text-foreground">
+                                                {member.createdAt ? format(new Date(member.createdAt), 'MMM d, yyyy') : '—'}
+                                            </td>
                                             <td className="px-8 py-5">
-                                                <div className="flex items-center gap-1.5 text-[9px] font-black text-green-500 uppercase tracking-widest">
-                                                    <div className="size-1.5 rounded-full bg-green-500"></div>
-                                                    Connected
-                                                </div>
+                                                {member.deletedAt ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                                        <span className="size-1.5 rounded-full bg-amber-500"></span>
+                                                        Archived
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-green-500/10 text-green-500 border border-green-500/20">
+                                                        <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                        Active
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-8 py-5 text-right relative">
                                                 <button 
@@ -787,7 +837,7 @@ export default function MembershipCenterPage() {
                                                         e.stopPropagation();
                                                         setOpenMenuId(openMenuId === member.id ? null : member.id);
                                                     }}
-                                                    className="text-tatt-gray hover:text-foreground p-1 rounded-lg hover:bg-background"
+                                                    className="text-tatt-gray hover:text-foreground p-1 rounded-lg hover:bg-background cursor-pointer"
                                                 >
                                                     <MoreVertical size={16} />
                                                 </button>
@@ -803,19 +853,30 @@ export default function MembershipCenterPage() {
                                                                 setReassignTier(member.communityTier || 'FREE');
                                                                 setOpenMenuId(null); 
                                                             }}
-                                                            className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:bg-background hover:text-foreground rounded-xl transition-all flex items-center gap-3"
+                                                            className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-gray hover:bg-background hover:text-foreground rounded-xl transition-all flex items-center gap-3 cursor-pointer"
                                                         >
                                                             <IdCard size={14} /> Reassign Tier
                                                         </button>
-                                                        <button 
-                                                            onClick={() => { handleBulkAction('archive'); setOpenMenuId(null); }}
-                                                            className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-3"
-                                                        >
-                                                            <Activity size={14} /> Archive Status
-                                                        </button>
+
+                                                        {member.deletedAt ? (
+                                                            <button 
+                                                                onClick={() => { handleBulkAction('restore', member.id); setOpenMenuId(null); }}
+                                                                className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all flex items-center gap-3 cursor-pointer"
+                                                            >
+                                                                <RotateCcw size={14} /> Restore Member
+                                                            </button>
+                                                        ) : (
+                                                            <button 
+                                                                onClick={() => { handleBulkAction('archive', member.id); setOpenMenuId(null); }}
+                                                                className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-xl transition-all flex items-center gap-3 cursor-pointer"
+                                                            >
+                                                                <Trash2 size={14} /> Archive Member
+                                                            </button>
+                                                        )}
+
                                                         <button 
                                                             onClick={() => { toast.success(`Login link sent to ${member.email}`); setOpenMenuId(null); }}
-                                                            className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-lime-dark hover:bg-tatt-lime/10 rounded-xl transition-all flex items-center gap-3"
+                                                            className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-tatt-lime-dark hover:bg-tatt-lime/10 rounded-xl transition-all flex items-center gap-3 cursor-pointer"
                                                         >
                                                             <Bell size={14} /> Send Alert
                                                         </button>
