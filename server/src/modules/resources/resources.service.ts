@@ -99,8 +99,26 @@ export class ResourcesService implements OnApplicationBootstrap {
                     contentUrl: 'https://theafricanthinktank.org/playbook'
                 });
             }
+
+            // Normalize legacy resource access tiers (Free for All vs Paid Members Only)
+            const sequelize = this.resourceRepository.sequelize;
+            if (sequelize) {
+                await sequelize.query(`
+                    UPDATE "resources"
+                    SET "minTier" = 'FREE',
+                        "allowedTiers" = ARRAY['FREE', 'UBUNTU', 'IMANI', 'KIONGOZI']::character varying[]
+                    WHERE ("minTier" = 'FREE' OR 'FREE' = ANY("allowedTiers") OR "allowedTiers" IS NULL OR "allowedTiers" = '{}')
+                      AND ("allowedTiers" IS DISTINCT FROM ARRAY['FREE', 'UBUNTU', 'IMANI', 'KIONGOZI']::character varying[]);
+
+                    UPDATE "resources"
+                    SET "minTier" = 'UBUNTU',
+                        "allowedTiers" = ARRAY['UBUNTU', 'IMANI', 'KIONGOZI']::character varying[]
+                    WHERE NOT ("minTier" = 'FREE' OR 'FREE' = ANY("allowedTiers") OR "allowedTiers" IS NULL OR "allowedTiers" = '{}')
+                      AND ("minTier" != 'UBUNTU' OR "allowedTiers" IS DISTINCT FROM ARRAY['UBUNTU', 'IMANI', 'KIONGOZI']::character varying[]);
+                `);
+            }
         } catch (err: any) {
-            this.logger.error('Failed to seed sample resources:', err?.message);
+            this.logger.error('Failed to initialize or normalize resources:', err?.message);
         }
     }
 

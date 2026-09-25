@@ -385,9 +385,15 @@ export class MembershipService implements OnApplicationBootstrap {
     // --- Members Management ---
 
     async getSubscribedMembers(filters: any) {
-        const { chapterId, tier, billingCycle, search, role, page = 1, limit = 10 } = filters;
+        const { chapterId, tier, billingCycle, search, role, status, page = 1, limit = 10 } = filters;
         const where: any = {};
         const offset = (page - 1) * limit;
+
+        if (status === 'ACTIVE') {
+            where.deletedAt = null;
+        } else if (status === 'ARCHIVED') {
+            where.deletedAt = { [Op.ne]: null };
+        }
 
         if (chapterId) {
             where.chapterId = chapterId;
@@ -556,9 +562,32 @@ export class MembershipService implements OnApplicationBootstrap {
         };
     }
 
+    async archiveMember(id: string) {
+        this.logger.log(`Archiving member ${id}`);
+        const user = await this.userRepo.findByPk(id, { paranoid: false });
+        if (!user) throw new NotFoundException(`Member ${id} not found`);
+        return user.destroy();
+    }
+
+    async restoreMember(id: string) {
+        this.logger.log(`Restoring member ${id}`);
+        return this.userRepo.restore({
+            where: { id }
+        });
+    }
+
     async bulkArchive(memberIds: string[]) {
         this.logger.log(`Bulk archiving ${memberIds.length} members`);
         return this.userRepo.destroy({
+            where: {
+                id: { [Op.in]: memberIds }
+            }
+        });
+    }
+
+    async bulkRestore(memberIds: string[]) {
+        this.logger.log(`Bulk restoring ${memberIds.length} members`);
+        return this.userRepo.restore({
             where: {
                 id: { [Op.in]: memberIds }
             }

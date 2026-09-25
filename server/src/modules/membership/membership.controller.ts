@@ -91,10 +91,11 @@ export class MembershipController {
         @Query('billingCycle') billingCycle?: 'MONTHLY' | 'YEARLY',
         @Query('search') search?: string,
         @Query('role') role?: 'COMMUNITY_MEMBER' | 'STAFF',
+        @Query('status') status?: 'ALL' | 'ACTIVE' | 'ARCHIVED',
         @Query('page') page: number = 1,
         @Query('limit') limit: number = 10,
     ) {
-        const filters = { chapterId, tier, billingCycle, search, role, page: Number(page), limit: Number(limit) };
+        const filters = { chapterId, tier, billingCycle, search, role, status, page: Number(page), limit: Number(limit) };
         return this.membershipService.getSubscribedMembers(filters);
     }
 
@@ -112,11 +113,32 @@ export class MembershipController {
         return this.membershipService.getChapters();
     }
 
+    @ApiOperation({ summary: 'Archive a single member' })
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
+    @Post('members/:id/archive')
+    async archiveMember(@Param('id') id: string) {
+        return this.membershipService.archiveMember(id);
+    }
+
+    @ApiOperation({ summary: 'Restore a single member' })
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
+    @Post('members/:id/restore')
+    async restoreMember(@Param('id') id: string) {
+        return this.membershipService.restoreMember(id);
+    }
+
     @ApiOperation({ summary: 'Bulk archive members' })
     @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
     @Post('bulk-archive')
     async bulkArchive(@Body() body: { memberIds: string[] }) {
         return this.membershipService.bulkArchive(body.memberIds);
+    }
+
+    @ApiOperation({ summary: 'Bulk restore members' })
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
+    @Post('bulk-restore')
+    async bulkRestore(@Body() body: { memberIds: string[] }) {
+        return this.membershipService.bulkRestore(body.memberIds);
     }
 
     @ApiOperation({ summary: 'Bulk reassign members to a tier' })
