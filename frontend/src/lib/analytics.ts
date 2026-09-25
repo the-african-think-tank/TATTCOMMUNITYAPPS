@@ -32,8 +32,10 @@ export interface AnalyticsEventItem {
   id: string;
   title: string;
   category?: string | undefined;
+  type?: string | undefined;
   isPaid?: boolean | undefined;
   price?: number | undefined;
+  basePrice?: number | undefined;
 }
 
 export interface AnalyticsResourceItem {
@@ -42,6 +44,7 @@ export interface AnalyticsResourceItem {
   fileType?: string | undefined;
   accessTier?: string | undefined;
 }
+
 
 
 export const analytics = {
@@ -170,9 +173,9 @@ export const analytics = {
     analytics.track('Event Viewed', {
       event_id: event.id,
       title: event.title,
-      category: event.category,
-      is_paid: event.isPaid,
-      price: event.price,
+      category: event.category || event.type,
+      is_paid: event.isPaid ?? (event.basePrice !== undefined ? event.basePrice > 0 : false),
+      price: event.price ?? event.basePrice,
       user_id: user?.id,
       user_tier: user?.communityTier,
     });
@@ -180,7 +183,7 @@ export const analytics = {
 
   trackEventRSVP: (
     event: AnalyticsEventItem,
-    ticketType?: string,
+    ticketType?: string | undefined,
     user?: AnalyticsUser | null
   ): void => {
     analytics.track('Event RSVP Clicked', {
@@ -191,6 +194,7 @@ export const analytics = {
       user_tier: user?.communityTier,
     });
   },
+
 
   trackResourceViewed: (
     resource: AnalyticsResourceItem,
@@ -219,6 +223,30 @@ export const analytics = {
       user_tier: user?.communityTier,
     });
   },
+
+  // ─── BUSINESS DIRECTORY ───────────────────────────────────────────────────
+  trackBusinessViewed: (biz: { id: string; name: string; category?: string | undefined }): void => {
+    analytics.track('Business Profile Viewed', {
+      business_id: biz.id,
+      business_name: biz.name,
+      category: biz.category,
+    });
+  },
+
+  trackBusinessContactClicked: (biz: {
+    id: string;
+    name?: string | undefined;
+    websiteUrl?: string | undefined;
+    contactType?: string | undefined;
+  }): void => {
+    analytics.track('Business Contact Clicked', {
+      business_id: biz.id,
+      business_name: biz.name,
+      website_url: biz.websiteUrl,
+      contact_type: biz.contactType || 'website',
+    });
+  },
 };
 
 export default analytics;
+

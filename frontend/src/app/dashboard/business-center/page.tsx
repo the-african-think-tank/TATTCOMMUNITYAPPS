@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/services/api";
+import { analytics } from "@/lib/analytics";
+
 
 interface BusinessPartner {
   id: string;
@@ -163,6 +165,11 @@ export default function MemberBusinessCenter() {
   };
 
   const handleTrackClick = async (bizId: string, websiteUrl: string) => {
+    analytics.trackBusinessContactClicked({
+      id: bizId,
+      websiteUrl,
+      contactType: 'website',
+    });
     try {
       await api.post(`/business-directory/${bizId}/click`);
     } catch (err) {
@@ -170,6 +177,7 @@ export default function MemberBusinessCenter() {
     }
     window.open(websiteUrl, '_blank');
   };
+
 
   const filteredBusinesses = businesses.filter(b => {
     const query = searchQuery.toLowerCase();

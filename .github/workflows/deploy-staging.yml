@@ -59,6 +59,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=https://staff.theafricanthinktank.org/api
             NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51TrcC0PFrQabPyhVDEB07cQJLylaqBQgRTim936glLCu9ZlUJsl1V8a1CjmUrkE4O2iq7dG6lqUJ8a4CUeQQFAq500naAa01Dt
+
           tags: |
             ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:staging
             ${{ env.DOCKERHUB_USERNAME }}/tatt-frontend:staging-${{ github.sha }}
