@@ -22,6 +22,8 @@ import {
 import Link from "next/link";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
+import { analytics } from "@/lib/analytics";
+
 
 interface BusinessPartner {
   id: string;
@@ -91,6 +93,9 @@ export default function MemberBusinessDetails() {
       setLoading(true);
       const response = await api.get(`/business-directory/${id}`);
       setBusiness(response.data);
+      if (response.data) {
+        analytics.trackBusinessViewed(response.data);
+      }
     } catch (error) {
       console.error("Failed to fetch business details:", error);
       toast.error("Venture details currently unavailable.");
@@ -102,6 +107,12 @@ export default function MemberBusinessDetails() {
 
   const handleRedeem = async () => {
     if (!business) return;
+    analytics.trackBusinessContactClicked({
+      id: business.id,
+      name: business.name,
+      websiteUrl: business.website,
+      contactType: 'website',
+    });
     try {
       await api.post(`/business-directory/${business.id}/click`);
       window.open(business.website, '_blank');
@@ -110,6 +121,7 @@ export default function MemberBusinessDetails() {
       window.open(business.website, '_blank');
     }
   };
+
 
   if (loading) {
     return (

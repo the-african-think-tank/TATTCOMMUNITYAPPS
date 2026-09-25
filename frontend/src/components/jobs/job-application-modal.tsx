@@ -7,6 +7,8 @@ import type { JobListing, ApplyJobPayload } from "@/types/jobs";
 import type { User } from "@/context/auth-context";
 import toast from "react-hot-toast";
 import { RichTextView, hasHtmlTags } from "@/components/shared/rich-text-view";
+import { analytics } from "@/lib/analytics";
+
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [".pdf", ".doc", ".docx"];
@@ -304,6 +306,12 @@ export function JobApplicationModal({
                   href={job.externalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    analytics.trackJobApplyClicked(
+                      { ...job, applicationUrl: job.externalUrl },
+                      user
+                    )
+                  }
                   className="w-full py-4.5 bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl shadow-tatt-lime/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer"
                 >
                   Apply on Company Site <ExternalLink className="size-4" />
@@ -311,13 +319,17 @@ export function JobApplicationModal({
               ) : (
                 <button
                   type="button"
-                  onClick={() => setShowApplyForm(true)}
+                  onClick={() => {
+                    analytics.trackJobApplyClicked(job, user);
+                    setShowApplyForm(true);
+                  }}
                   className="w-full py-4.5 bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-[0.25em] rounded-2xl shadow-xl shadow-tatt-lime/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer"
                 >
                   Proceed to Application <Briefcase className="size-4" />
                 </button>
               )}
             </div>
+
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 sm:p-10 scroll-smooth">

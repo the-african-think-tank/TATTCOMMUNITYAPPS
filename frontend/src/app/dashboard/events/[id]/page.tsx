@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import dayjs, { formatLocalTimeString } from "@/lib/dayjs";
 import type { EventItem } from "@/types/events";
+import { analytics } from "@/lib/analytics";
+
 
 function formatDate(dateTime: string) {
     try {
@@ -68,6 +70,7 @@ export default function EventDetailPage() {
             try {
                 const { data } = await api.get<EventItem>(`/events/${id}`);
                 setEvent(data);
+                analytics.trackEventViewed(data, user);
             } catch (err: unknown) {
                 const msg = err && typeof err === "object" && "response" in err
                     ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
@@ -97,7 +100,11 @@ export default function EventDetailPage() {
 
     const handleRegister = async (isBusinessRegistration = false) => {
         if (!id || registering || isConcluded) return;
+        if (event) {
+            analytics.trackEventRSVP(event, isBusinessRegistration ? "business" : "individual", user);
+        }
         setRegistering(true);
+
         try {
             const { data } = await api.post<{ registration?: unknown; message?: string; checkoutUrl?: string }>(
                 `/events/${id}/register`,

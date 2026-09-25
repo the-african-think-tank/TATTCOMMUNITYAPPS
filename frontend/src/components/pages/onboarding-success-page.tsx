@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Footer, Navbar } from "@/components/organisms";
 import { useAuth } from "@/context/auth-context";
+import { analytics } from "@/lib/analytics";
 
 export function OnboardingSuccessPage() {
     const { user, updateUser } = useAuth();
@@ -28,6 +29,11 @@ export function OnboardingSuccessPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [userRefreshed, setUserRefreshed] = useState(false);
 
+    // Track onboarding completion once on success
+    useEffect(() => {
+        analytics.trackOnboardingCompleted();
+    }, []);
+
     // ✅ Fetch the latest user data on mount to ensure auth context is updated
     useEffect(() => {
         const fetchUser = async () => {
@@ -43,6 +49,7 @@ export function OnboardingSuccessPage() {
         };
         fetchUser();
     }, [updateUser]);
+
 
     // Fetch plans for display
     useEffect(() => {

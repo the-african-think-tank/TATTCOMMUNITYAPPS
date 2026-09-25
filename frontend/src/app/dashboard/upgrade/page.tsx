@@ -10,6 +10,7 @@ import {
     Loader2,
 } from "lucide-react";
 import api from "@/services/api";
+import { analytics } from "@/lib/analytics";
 
 import { PricingPlanCard, Plan } from "@/components/molecules/pricing-plan-card";
 
@@ -32,6 +33,8 @@ export default function UpgradePage() {
     useEffect(() => {
         if (user?.communityTier === "KIONGOZI") {
             router.replace("/dashboard");
+        } else if (user) {
+            analytics.trackUpgradePageViewed(user.communityTier);
         }
     }, [user, router]);
 
@@ -55,8 +58,20 @@ export default function UpgradePage() {
 
     const handleSelectPlan = (plan: Plan) => {
         if (plan.monthlyPrice === 0) return; // FREE — no action
+        const amount = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+        analytics.trackPlanSelected({
+            plan: plan.tier,
+            billingCycle: isYearly ? "YEARLY" : "MONTHLY",
+            price: amount,
+        });
+        analytics.trackCheckoutInitiated({
+            tier: plan.tier,
+            billingCycle: isYearly ? "YEARLY" : "MONTHLY",
+            amount,
+        });
         router.push(`/dashboard/upgrade/payment?plan=${plan.tier}&yearly=${isYearly}`);
     };
+
 
     const fmt = (n: number) => {
         const rounded = Math.round(n * 100) / 100;

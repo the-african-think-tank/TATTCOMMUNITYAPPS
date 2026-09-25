@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import type { ResourceCard, ResourcesListResponse, ResourceType } from "@/types/resources";
 import { AppModal } from "@/components/modals/app-modal";
+import { analytics } from "@/lib/analytics";
+
 
 const RESOURCE_TYPES: { value: ResourceType | ""; label: string; icon: typeof FileText }[] = [
   { value: "", label: "All", icon: Folder },
@@ -109,8 +111,10 @@ export default function ResourcesPage() {
   const handleOpenQuickView = (resource: ResourceCard, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    analytics.trackResourceViewed(resource, user);
     setPreviewResource(resource);
   };
+
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground pb-12">

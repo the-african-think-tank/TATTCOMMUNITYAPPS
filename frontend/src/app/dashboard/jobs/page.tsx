@@ -30,6 +30,8 @@ import { JobCard } from "@/components/jobs/job-card";
 import { JobApplicationModal } from "@/components/jobs/job-application-modal";
 import { JobsSidebar } from "@/components/jobs/jobs-sidebar";
 import { JOB_CATEGORIES, type JobListing, type JobsResponse } from "@/types/jobs";
+import { analytics } from "@/lib/analytics";
+
 
 const CATEGORIES = ["All Categories", ...JOB_CATEGORIES];
 
@@ -350,9 +352,11 @@ function JobsContent() {
   }, [urlJobId, jobs]);
 
   const handleOpenJobModal = (job: JobListing) => {
+    analytics.trackJobViewed(job, user);
     setApplyModalJob(job);
     updateUrl({ jobId: job.id });
   };
+
 
   const handleCloseJobModal = () => {
     setApplyModalJob(null);

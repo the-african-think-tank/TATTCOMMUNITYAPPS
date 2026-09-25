@@ -37,7 +37,7 @@ import QueryProvider from "@/context/query-provider";
 import { TermsProvider } from "@/context/terms-context";
 import { HeroUIAppProvider } from "@/providers/hero-ui-provider";
 import { GlobalBetaBanner } from "@/components/molecules/global-beta-banner";
-
+import { PostHogProvider } from "@/components/providers/posthog-provider";
 
 export default function RootLayout({
   children,
@@ -52,15 +52,18 @@ export default function RootLayout({
         <ToastProvider />
         <HeroUIAppProvider>
           <QueryProvider>
+            <PostHogProvider>
               <AuthProvider>
                 <TermsProvider>
                   <GlobalBetaBanner />
                   {children}
                 </TermsProvider>
               </AuthProvider>
+            </PostHogProvider>
           </QueryProvider>
         </HeroUIAppProvider>
       </body>
     </html>
   );
 }
+

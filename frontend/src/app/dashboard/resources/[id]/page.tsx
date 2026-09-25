@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, ArrowLeft, ExternalLink, Lock, FileText, PlayCircle } from "lucide-react";
 import type { ResourceDetail } from "@/types/resources";
+import { analytics } from "@/lib/analytics";
+
 
 export default function ResourceDetailPage() {
   const { user } = useAuth();
@@ -27,7 +29,11 @@ export default function ResourceDetailPage() {
       try {
         const { data } = await api.get<{ data: ResourceDetail }>(`/resources/${id}`);
         setResource(data?.data ?? null);
+        if (data?.data) {
+          analytics.trackResourceViewed(data.data, user);
+        }
       } catch (err: unknown) {
+
         const res =
           err && typeof err === "object" && "response" in err
             ? (err as { response?: { data?: { message?: string }; status?: number } }).response
@@ -168,6 +174,7 @@ export default function ResourceDetailPage() {
                               href={resource.contentUrl} 
                               target="_blank" 
                               rel="noreferrer"
+                              onClick={() => analytics.trackResourceDownloaded(resource, user)}
                               className="px-8 py-3 bg-tatt-lime text-tatt-black rounded-xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
                             >
                               Play Production
@@ -193,6 +200,7 @@ export default function ResourceDetailPage() {
                             href={resource.contentUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => analytics.trackResourceDownloaded(resource, user)}
                             className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl font-black bg-tatt-lime text-tatt-black hover:brightness-105 transition-all uppercase tracking-widest shadow-xl shadow-tatt-lime/20"
                           >
                             Access Full Asset
@@ -200,6 +208,7 @@ export default function ResourceDetailPage() {
                           </a>
                         </div>
                       </div>
+
                     )}
                   </div>
                 ) : (
