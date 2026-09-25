@@ -14,6 +14,7 @@ import { toast } from "react-hot-toast";
 import { Eye, EyeOff, CheckCircle, XCircle, AlertTriangle, ShieldCheck, Loader2 } from "lucide-react";
 import { useHibpCheck } from "@/hooks/use-hibp-check";
 import { TermsModal } from "@/components/shared/terms-modal";
+import { analytics } from "@/lib/analytics";
 
 // ─── Password validation rules ───────────────────────────────────────────────
 const PASSWORD_RULES = [
@@ -235,9 +236,15 @@ export function SignupForm() {
       }
 
       if (response.data.access_token) {
+        analytics.trackSignUp({
+          method: "email",
+          joinAs: data.joinAs,
+          tier: "FREE",
+        });
         authLogin(response.data.access_token, response.data.user);
         router.push("/onboarding/plans");
       }
+
     } catch (err: any) {
       console.error("Signup error:", err);
       const status = err.response?.status;

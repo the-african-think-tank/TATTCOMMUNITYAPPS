@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
-
+import { analytics } from "@/lib/analytics";
 
 import { PricingPlanCard, Plan } from "@/components/molecules/pricing-plan-card";
 
@@ -17,7 +17,6 @@ export function OnboardingPlansPage() {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const { updateUser } = useAuth();
-
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -34,7 +33,14 @@ export function OnboardingPlansPage() {
     }, []);
 
     const handleSelectPlan = async (planId: string, price: number) => {
+        analytics.trackPlanSelected({
+            plan: planId,
+            billingCycle: isYearly ? "YEARLY" : "MONTHLY",
+            price,
+        });
+
         if (planId === "FREE") {
+
             try {
                 // Call subscribe for FREE plan to record onboarding completion
                 const resp = await api.post("/billing/subscribe", {

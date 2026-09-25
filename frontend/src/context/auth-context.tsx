@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { tokenStore } from '@/services/token-store';
+import { analytics } from '@/lib/analytics';
 
 export type User = {
     id: string;
@@ -78,10 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const response = await api.get('/auth/me');
                 const verifiedUser: User = response.data;
                 setUser(verifiedUser);
+                analytics.identify(verifiedUser);
             } catch {
                 // Token is expired or invalid — clear everything silently.
                 tokenStore.clear();
                 setUser(null);
+                analytics.reset();
             } finally {
                 setIsLoading(false);
             }
@@ -94,19 +97,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Store token securely in memory, not localStorage
         tokenStore.set(newToken);
         setUser(newUser);
+        analytics.identify(newUser);
     }, []);
 
     const logout = useCallback(() => {
         tokenStore.clear();
         setUser(null);
+        analytics.reset();
         // Clear all cached queries on logout to prevent data leaks between sessions
         queryClient.clear();
         window.location.href = '/';
     }, [queryClient]);
 
     const updateUser = useCallback((updates: Partial<User>) => {
-        setUser((prev) => (prev ? { ...prev, ...updates } : prev));
+        setUser((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev, ...updates };
+            analytics.identify(updated);
+            return updated;
+        });
     }, []);
+
 
     // ─── Inactivity Auto-Logout ────────────────────────────────────────────────
     useEffect(() => {
