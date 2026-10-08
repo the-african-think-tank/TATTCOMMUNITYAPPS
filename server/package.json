@@ -12,7 +12,7 @@
     "db:harvest-jobs": "node scripts/harvest-jobs.js",
     "db:seed-events": "npx ts-node -r tsconfig-paths/register scripts/seed-future-events.ts",
     "db:seed-volunteers": "npx ts-node -r tsconfig-paths/register scripts/seed-volunteers.ts",
-    "send:baobab-emails": "npx ts-node -r tsconfig-paths/register scripts/send-baobab-reception-emails.ts",
+    "send:baobab-emails": "node scripts/send-baobab-reception-emails.js",
     "stripe:seed-catalog": "npx ts-node -r tsconfig-paths/register scripts/seed-stripe-catalog.ts",
     "test": "jest",
     "test:watch": "jest --watch",
