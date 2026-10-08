@@ -29,7 +29,7 @@ export enum NotificationType {
     timestamps: true,
     paranoid: true,
 })
-export class Notification extends Model<Notification> {
+export class Notification extends Model {
     @Column({
         type: DataType.UUID,
         defaultValue: DataType.UUIDV4,
@@ -75,13 +75,13 @@ export class Notification extends Model<Notification> {
         type: DataType.DATE,
         allowNull: true,
     })
-    readAt?: Date;
+    readAt?: Date | null;
 
     @Column({
         type: DataType.DATE,
         allowNull: true,
     })
-    dismissedAt?: Date;
+    dismissedAt?: Date | null;
 
     @Default(false)
     @Column(DataType.BOOLEAN)

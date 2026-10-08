@@ -3,7 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { SystemSettingsService } from '../../modules/system-settings/system-settings.service';
 import { Resend } from 'resend';
 
-interface MailOptions {
+import {
+  BaobabEmailParams,
+  generateBaobabEmailHtml,
+  generateBaobabEmailText,
+} from './templates/baobab-reception-email.template';
+
+export interface MailOptions {
   to: string | string[];
   subject: string;
   html: string;
@@ -591,5 +597,27 @@ export class MailService {
     } catch (error) {
       this.logger.error(`Failed to send business rejection email to ${email}`, error.stack);
     }
+  }
+
+  /**
+   * Generic custom email sender
+   */
+  async sendCustomEmail(options: MailOptions): Promise<any> {
+    return this.sendResendEmail(options);
+  }
+
+  /**
+   * Dispatches the Baobab Reception exclusive invitation email to a member
+   */
+  async sendBaobabInvitationEmail(to: string, params: BaobabEmailParams): Promise<any> {
+    const html = generateBaobabEmailHtml(params);
+    const text = generateBaobabEmailText(params);
+
+    return this.sendResendEmail({
+      to,
+      subject: `Exclusive Invitation: The Baobab Reception • ${params.discountPercent}% Member Discount`,
+      html,
+      text,
+    });
   }
 }
