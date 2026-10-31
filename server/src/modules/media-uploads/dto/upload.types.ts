@@ -39,10 +39,10 @@ export const ALL_ALLOWED_MIMES = new Set<string>(
 
 /** Maximum file size (bytes) per category */
 export const SIZE_LIMITS: Record<MediaCategory, number> = {
-    image: 10 * 1024 * 1024,   // 10 MB
-    video: 200 * 1024 * 1024,   // 200 MB
-    audio: 50 * 1024 * 1024,   // 50 MB
-    document: 25 * 1024 * 1024,   // 25 MB
+    image: 50 * 1024 * 1024,    // 50 MB
+    video: 500 * 1024 * 1024,   // 500 MB
+    audio: 100 * 1024 * 1024,   // 100 MB
+    document: 100 * 1024 * 1024,// 100 MB
 };
 
 /** Resolve which category a MIME type belongs to */

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
     MessageSquare, Briefcase, Zap, Calendar, MapPin, Link2, Lock,
     Pencil, Trash2, Repeat2, Flag, Highlighter, ArrowBigUp, ExternalLink,
-    X, MoreHorizontal, Send, Image as ImageIcon, Heart, Share2, Eye
+    X, MoreHorizontal, Send, Image as ImageIcon, Heart, Share2, Eye, Upload
 } from "lucide-react";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
 import { useAuth } from "@/context/auth-context";
@@ -13,6 +13,7 @@ import api from "@/services/api";
 import toast from "react-hot-toast";
 import { AppModal } from "@/components/modals/app-modal";
 import { formatTimeAgo, formatForDateTimeLocal } from "@/utils/date";
+import { PostMediaGallery } from "./post-media-gallery";
 
 export interface Comment {
     id: string;
@@ -81,6 +82,7 @@ export function PostCard({
     const [editMediaUrls, setEditMediaUrls] = useState<string[]>(post.mediaUrls || []);
     const [localMediaUrls, setLocalMediaUrls] = useState<string[]>(post.mediaUrls || []);
     const [savingPost, setSavingPost] = useState(false);
+    const [isDraggingEdit, setIsDraggingEdit] = useState(false);
 
     // Comment edit state
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -101,22 +103,44 @@ export function PostCard({
         setIsEditingPost(true);
     };
 
-    const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
+    const processEditFiles = async (files: File[]) => {
         if (!files.length) return;
+
+        for (const file of files) {
+            const isVideo = file.type.startsWith("video/");
+            const isImage = file.type.startsWith("image/");
+            const maxBytes = isVideo ? 500 * 1024 * 1024 : isImage ? 50 * 1024 * 1024 : 100 * 1024 * 1024;
+            const maxMb = isVideo ? 500 : isImage ? 50 : 100;
+            if (file.size > maxBytes) {
+                toast.error(`"${file.name}" exceeds the ${maxMb}MB limit.`);
+                return;
+            }
+        }
 
         const uploadFormData = new FormData();
         files.forEach(f => uploadFormData.append("files", f));
 
         try {
-            toast.loading("Uploading image...", { id: "edit-upload" });
-            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
+            toast.loading("Uploading media...", { id: "edit-upload" });
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 300000 });
             const uploadedUrls = response.data.files?.map((f: any) => f.url) || [];
             setEditMediaUrls((prev: string[]) => [...prev, ...uploadedUrls]);
-            toast.success("Image uploaded!", { id: "edit-upload" });
-        } catch (err) {
-            toast.error("Upload failed.", { id: "edit-upload" });
+            toast.success("Media uploaded!", { id: "edit-upload" });
+        } catch (err: any) {
+            const apiError =
+                err.response?.data?.errors?.[0] ||
+                (typeof err.response?.data?.message === "string" ? err.response.data.message : err.response?.data?.message?.[0]) ||
+                (err.response?.status === 413 ? "File is too large (exceeds maximum upload limit)." : null) ||
+                err.message ||
+                "Upload failed.";
+            toast.error(apiError, { id: "edit-upload" });
         }
+    };
+
+    const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        processEditFiles(files);
+        if (e.target) e.target.value = "";
     };
 
     const removeEditMediaUrl = (index: number) => {
@@ -631,14 +655,7 @@ export function PostCard({
 
                     {/* Media Attachments */}
                     {localMediaUrls && localMediaUrls.length > 0 && !post.isPremiumLocked && (
-                        <div className={`grid gap-3 mt-4 ${localMediaUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                            {localMediaUrls.map((url, i) => (
-                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative group rounded-2xl overflow-hidden border border-border bg-black/5 aspect-video block">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={url} alt="Attachment" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                </a>
-                            ))}
-                        </div>
+                        <PostMediaGallery mediaUrls={localMediaUrls} />
                     )}
 
                     {/* Parent Post (if Repost) */}
@@ -996,16 +1013,19 @@ export function PostCard({
                                     onChange={handleEditFileUpload}
                                     multiple
                                     hidden
-                                    accept="image/*,video/*,application/pdf"
+                                    accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => editFileInputRef.current?.click()}
-                                    className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer text-tatt-gray"
-                                    title="Add Images"
+                                    className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer text-tatt-gray active:scale-95"
+                                    title="Add Media (Images 50MB, Videos 500MB, Docs 100MB)"
                                 >
                                     <ImageIcon className="h-5 w-5" />
                                 </button>
+                                <span className="text-[10px] text-tatt-gray ml-2 hidden sm:inline">
+                                    Max: Images 50MB • Videos 500MB • Docs 100MB
+                                </span>
                             </div>
                             <div className="flex gap-3">
                                 <button
@@ -1027,6 +1047,24 @@ export function PostCard({
                         </div>
                     }
                 >
+                    <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDraggingEdit(true); }}
+                        onDragLeave={(e) => { e.preventDefault(); setIsDraggingEdit(false); }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDraggingEdit(false);
+                            const f = Array.from(e.dataTransfer.files || []);
+                            if (f.length) processEditFiles(f);
+                        }}
+                        className={`relative transition-all rounded-2xl ${isDraggingEdit ? "ring-2 ring-tatt-lime ring-dashed bg-tatt-lime/5 p-2" : ""}`}
+                    >
+                        {isDraggingEdit && (
+                            <div className="absolute inset-0 z-30 bg-background/90 backdrop-blur-xs border-2 border-dashed border-tatt-lime rounded-2xl flex flex-col items-center justify-center pointer-events-none p-6">
+                                <Upload className="size-8 text-tatt-lime mb-2 animate-bounce" />
+                                <p className="text-sm font-bold text-foreground">Drop media to attach to post</p>
+                                <p className="text-xs text-tatt-gray mt-1">Images 50MB • Videos 500MB • Docs 100MB</p>
+                            </div>
+                        )}
                     <input
                         value={editPostTitle}
                         onChange={(e) => setEditPostTitle(e.target.value)}
@@ -1081,6 +1119,7 @@ export function PostCard({
                             ))}
                         </div>
                     )}
+                    </div>
                 </AppModal>
             )}
         </article>

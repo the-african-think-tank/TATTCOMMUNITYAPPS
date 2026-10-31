@@ -192,7 +192,7 @@ Examples:
 
     await sleep(500);
 
-    // 2. Imani/Kiongozi test (25%)
+    // 2. Imani test (25%)
     const imaniParams: BaobabEmailParams = {
       recipientName: 'Test Member',
       tierName: TIER_CONFIGS[CommunityTier.IMANI].displayName,
@@ -200,7 +200,7 @@ Examples:
       promoCode: TIER_CONFIGS[CommunityTier.IMANI].promoCode,
       eventbriteUrl: TIER_CONFIGS[CommunityTier.IMANI].eventbriteUrl,
     };
-    console.log(`  -> Sending Imani/Kiongozi (25% - ${imaniParams.promoCode}) test...`);
+    console.log(`  -> Sending Imani (25% - ${imaniParams.promoCode}) test...`);
     try {
       await resend.emails.send({
         from: fromAddress,
@@ -214,7 +214,31 @@ Examples:
       console.error(`     ❌ Failed to send Imani test email: ${err.message}`);
     }
 
-    console.log('\n🎉 Test emails dispatched. Check the inbox and spam folder of:', testEmail);
+    await sleep(500);
+
+    // 3. Kiongozi test (25%)
+    const kiongoziParams: BaobabEmailParams = {
+      recipientName: 'Test Member',
+      tierName: TIER_CONFIGS[CommunityTier.KIONGOZI].displayName,
+      discountPercent: TIER_CONFIGS[CommunityTier.KIONGOZI].discountPercent,
+      promoCode: TIER_CONFIGS[CommunityTier.KIONGOZI].promoCode,
+      eventbriteUrl: TIER_CONFIGS[CommunityTier.KIONGOZI].eventbriteUrl,
+    };
+    console.log(`  -> Sending Kiongozi (25% - ${kiongoziParams.promoCode}) test...`);
+    try {
+      await resend.emails.send({
+        from: fromAddress,
+        to: testEmail,
+        subject: `Exclusive Invitation: The Baobab Reception • 25% Member Discount`,
+        html: generateBaobabEmailHtml(kiongoziParams),
+        text: generateBaobabEmailText(kiongoziParams),
+      });
+      console.log(`     ✅ Sent Kiongozi test email successfully.`);
+    } catch (err: any) {
+      console.error(`     ❌ Failed to send Kiongozi test email: ${err.message}`);
+    }
+
+    console.log('\n🎉 Test emails dispatched (Ubuntu, Imani, Kiongozi). Check the inbox and spam folder of:', testEmail);
     process.exit(0);
   }
 

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { initiateFeedSocket, disconnectFeedSocket } from "@/services/feed-socket";
+import { PostMediaGallery } from "@/components/feed/post-media-gallery";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -592,13 +593,7 @@ export default function MyChapterPage() {
                       </p>
 
                       {post.mediaUrls?.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 mt-3 rounded-xl overflow-hidden">
-                          {post.mediaUrls.slice(0, 4).map((url, i) => (
-                            <div key={i} className="relative aspect-video">
-                              <Image src={url} alt="Post media" fill className="object-cover rounded-xl" />
-                            </div>
-                          ))}
-                        </div>
+                        <PostMediaGallery mediaUrls={post.mediaUrls} className="mt-3" />
                       )}
 
                       {post.tags?.length > 0 && (

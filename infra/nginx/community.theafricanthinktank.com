@@ -5,6 +5,7 @@ server {
     server_name community.theafricanthinktank.com;
     root /var/www/html;
     index index.html;
+    client_max_body_size 500M;
 
     location /adminer/ {
         proxy_pass http://localhost:8081/;
@@ -15,6 +16,7 @@ server {
     }
 
     location /api/ {
+        client_max_body_size 500M;
         add_header 'Access-Control-Allow-Origin' 'https://community.theafricanthinktank.com' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, Accept' always;

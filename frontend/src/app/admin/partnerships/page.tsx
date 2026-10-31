@@ -32,6 +32,7 @@ import {
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 import { toast } from "react-hot-toast";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 interface Partnership {
     id: string;
@@ -100,6 +101,7 @@ export default function PartnershipsPage() {
     const [formData, setFormData] = useState(initialFormData);
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
@@ -315,25 +317,65 @@ export default function PartnershipsPage() {
         });
     };
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const processLogoFile = async (file: File) => {
+        const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, "Partner logo");
+        if (!validation.valid) {
+            toast.error(validation.error!);
+            return;
+        }
 
         setIsUploading(true);
         const formDataUpload = new FormData();
         formDataUpload.append("files", file);
 
         try {
+            toast.loading("Uploading logo...", { id: "partner-logo" });
             const res = await api.post("/uploads/media", formDataUpload, {
-                headers: { "Content-Type": "multipart/form-data" }
+                headers: { "Content-Type": "multipart/form-data" },
+                timeout: 120000,
             });
-            if (res.data?.files?.[0]?.url) {
-                setFormData(prev => ({ ...prev, logoUrl: res.data.files[0].url }));
+            const urls = extractUploadedUrls(res.data);
+            if (urls[0]) {
+                setFormData(prev => ({ ...prev, logoUrl: urls[0] || "" }));
+                toast.success("Logo uploaded successfully!", { id: "partner-logo" });
+            } else {
+                toast.error("Failed to retrieve upload URL", { id: "partner-logo" });
             }
         } catch (error) {
             console.error("Upload failed", error);
+            toast.error(getUploadErrorMessage(error, "Failed to upload logo."), { id: "partner-logo" });
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        processLogoFile(file);
+        e.target.value = "";
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isUploading) setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (isUploading) return;
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            processLogoFile(file);
         }
     };
 
@@ -867,7 +909,16 @@ export default function PartnershipsPage() {
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-tatt-gray mb-8">Visual Identity</h4>
                                         <div 
                                             onClick={() => document.getElementById('logo-upload')?.click()}
-                                            className={`w-full aspect-square bg-background border-2 border-dashed border-border rounded-3xl flex flex-col items-center justify-center p-8 transition-all mb-6 cursor-pointer relative overflow-hidden ${isUploading ? 'opacity-50' : 'hover:border-tatt-lime hover:bg-tatt-lime/5'}`}
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            className={`w-full aspect-square bg-background border-2 border-dashed rounded-3xl flex flex-col items-center justify-center p-8 transition-all mb-6 cursor-pointer relative overflow-hidden ${
+                                                isDragging
+                                                    ? 'border-tatt-lime bg-tatt-lime/10 scale-[1.01]'
+                                                    : isUploading
+                                                        ? 'opacity-50 border-border'
+                                                        : 'border-border hover:border-tatt-lime hover:bg-tatt-lime/5'
+                                            }`}
                                         >
                                             <input 
                                                 id="logo-upload"
@@ -881,11 +932,13 @@ export default function PartnershipsPage() {
                                                 <img src={formData.logoUrl} alt="Logo Preview" className="absolute inset-0 w-full h-full object-contain p-8" />
                                             ) : (
                                                 <>
-                                                    <div className="size-20 bg-white border border-border rounded-full flex items-center justify-center shadow-sm text-tatt-gray group-hover:text-tatt-lime transition-colors mb-4">
+                                                    <div className={`size-20 border rounded-full flex items-center justify-center shadow-sm transition-colors mb-4 ${
+                                                        isDragging ? 'bg-tatt-lime text-black border-tatt-lime' : 'bg-surface border-border text-tatt-gray group-hover:text-tatt-lime'
+                                                    }`}>
                                                         {isUploading ? <Loader2 className="animate-spin" size={32} /> : <ImagePlus size={32} />}
                                                     </div>
-                                                    <p className="text-sm font-bold text-tatt-black">Logo Upload</p>
-                                                    <p className="text-[10px] text-tatt-gray mt-1 leading-relaxed">Directly upload your logo or paste a URL below.</p>
+                                                    <p className="text-sm font-bold text-foreground">Click to upload or drag and drop</p>
+                                                    <p className="text-[10px] text-tatt-gray mt-1 leading-relaxed">PNG, JPG, SVG up to 50MB</p>
                                                 </>
                                             )}
                                         </div>

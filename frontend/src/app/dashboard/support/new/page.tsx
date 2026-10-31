@@ -16,12 +16,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
+import { UPLOAD_LIMITS, validateFileSize, getUploadErrorMessage } from "@/lib/upload-utils";
 
 export default function SubmitTicketPage() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [submitting, setSubmitting] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
     const [ticketForm, setTicketForm] = useState({
         subject: "",
         description: "",
@@ -33,8 +35,34 @@ export default function SubmitTicketPage() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 10 * 1024 * 1024) {
-                toast.error("File size exceeds 10MB limit.");
+            const validation = validateFileSize(file, UPLOAD_LIMITS.LOGO.maxBytes, "Attachment");
+            if (!validation.valid) {
+                toast.error(validation.error!);
+                e.target.value = "";
+                return;
+            }
+            setSelectedFile(file);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            const validation = validateFileSize(file, UPLOAD_LIMITS.LOGO.maxBytes, "Attachment");
+            if (!validation.valid) {
+                toast.error(validation.error!);
                 return;
             }
             setSelectedFile(file);
@@ -82,7 +110,7 @@ export default function SubmitTicketPage() {
             toast.success("Broadcast successful. The Archive team has been notified.");
             router.push("/dashboard/support");
         } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to submit ticket.");
+            toast.error(getUploadErrorMessage(error, "Failed to submit ticket."));
         } finally {
             setSubmitting(false);
         }
@@ -171,11 +199,14 @@ export default function SubmitTicketPage() {
                                     {!selectedFile ? (
                                         <div 
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="border-2 border-dashed border-border rounded-2xl p-10 flex flex-col items-center justify-center bg-background/50 hover:bg-tatt-lime/[0.02] hover:border-tatt-lime/40 transition-all cursor-pointer group"
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center transition-all cursor-pointer group ${isDragging ? "border-tatt-lime bg-tatt-lime/10" : "border-border bg-background/50 hover:bg-tatt-lime/[0.02] hover:border-tatt-lime/40"}`}
                                         >
-                                            <CloudUpload className="h-10 w-10 text-tatt-gray group-hover:text-tatt-lime transition-colors mb-4" />
+                                            <CloudUpload className={`h-10 w-10 transition-colors mb-4 ${isDragging ? "text-tatt-lime scale-110" : "text-tatt-gray group-hover:text-tatt-lime"}`} />
                                             <p className="text-sm font-bold text-foreground">Click to upload or drag and drop</p>
-                                            <p className="text-[10px] uppercase font-black tracking-widest text-tatt-gray mt-2">PDF, PNG, JPG (MAX. 10MB)</p>
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-tatt-gray mt-2">PDF, DOC, DOCX, PNG, JPG (MAX. 10MB)</p>
                                         </div>
                                     ) : (
                                         <div className="bg-background border border-border rounded-2xl p-6 flex items-center justify-between group">
