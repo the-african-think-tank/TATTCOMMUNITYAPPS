@@ -2,7 +2,7 @@ import axios from 'axios';
 import { tokenStore } from './token-store';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://staff.theafricanthinktank.org/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://staff.theafricanthinktank.com/api',
     withCredentials: true,
     timeout: 60000, // 60 seconds to allow larger file uploads (images, videos, docs)
 });

@@ -59,7 +59,7 @@ docker push tatt/tatt-api:staging
 ```bash
 # Build Frontend with staging environment variables
 docker build --platform linux/amd64 --no-cache \
-  --build-arg NEXT_PUBLIC_API_URL="https://staff.theafricanthinktank.org/api" \
+  --build-arg NEXT_PUBLIC_API_URL="https://staff.theafricanthinktank.com/api" \
   --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..." \
   -t tatt/tatt-frontend:staging \
   -f frontend/Dockerfile \
@@ -129,7 +129,7 @@ docker-compose -f docker-compose.ec2.yml logs -f
 ### 5. Test Staging
 ```bash
 curl -I https://staff.theafricanthinktank.com
-curl https://staff.theafricanthinktank.org/api/billing/plans
+curl https://staff.theafricanthinktank.com/api/billing/plans
 ```
 
 ---
@@ -255,7 +255,7 @@ docker exec tatt-frontend-production env | grep -E "NEXT_PUBLIC_API_URL|NEXT_PUB
 | Action | Command |
 |--------|---------|
 | Build API | `docker build --no-cache -t tatt/tatt-api:staging -f server/Dockerfile ./server` |
-| Build Frontend | `docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="https://staff.theafricanthinktank.org/api" --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..." -t tatt/tatt-frontend:staging -f frontend/Dockerfile ./frontend` |
+| Build Frontend | `docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="https://staff.theafricanthinktank.com/api" --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..." -t tatt/tatt-frontend:staging -f frontend/Dockerfile ./frontend` |
 | Push Images | `docker push tatt/tatt-api:staging && docker push tatt/tatt-frontend:staging` |
 | Deploy | `docker-compose -f docker-compose.ec2.yml --env-file .env up -d --force-recreate` |
 | Seed Stripe Catalog | `make stripe-seed-staging` *(or `docker exec -it tatt-api-ec2 npm run stripe:seed-catalog`)* |

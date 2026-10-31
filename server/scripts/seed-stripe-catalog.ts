@@ -206,7 +206,7 @@ async function run() {
     console.log('\n🔔 Checking Webhook Endpoints on Stripe...');
     const webhookUrl = isLive
         ? 'https://community.theafricanthinktank.com/api/billing/webhook/stripe'
-        : 'https://staff.theafricanthinktank.org/api/billing/webhook/stripe';
+        : 'https://staff.theafricanthinktank.com/api/billing/webhook/stripe';
 
     const existingWebhooks = await stripe.webhookEndpoints.list({ limit: 10 });
     const matchedWebhook = existingWebhooks.data.find(w => w.url === webhookUrl);

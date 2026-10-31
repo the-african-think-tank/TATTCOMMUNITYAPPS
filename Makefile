@@ -1,5 +1,5 @@
 DOCKER_USER ?= yayamamoudou
-STAGING_API_URL ?= https://staff.theafricanthinktank.org/api
+STAGING_API_URL ?= https://staff.theafricanthinktank.com/api
 PROD_API_URL ?= https://community.theafricanthinktank.com/api
 STAGING_STRIPE_KEY ?= pk_test_51TrcC0PFrQabPyhVDEB07cQJLylaqBQgRTim936glLCu9ZlUJsl1V8a1CjmUrkE4O2iq7dG6lqUJ8a4CUeQQFAq500naAa01Dt
 PROD_STRIPE_KEY ?= pk_live_your_production_stripe_key
