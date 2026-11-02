@@ -40,17 +40,50 @@ export class ChaptersController {
     }
 
     @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get assigned chapter for authenticated user' })
+    @UseGuards(JwtAuthGuard)
+    @Get('my-chapter')
+    async getMyChapter(@Request() req) {
+        return this.chaptersService.getMyChapter(req.user);
+    }
+
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get chapter dashboard overview stats (Admin only)' })
+    @ApiParam({ name: 'id', format: 'uuid' })
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN, SystemRole.REGIONAL_ADMIN)
+    @Get(':id/dashboard-overview')
+    async getDashboardOverview(@Param('id') id: string) {
+        return this.chaptersService.getChapterDashboardOverview(id);
+    }
+
+    @ApiBearerAuth()
     @ApiOperation({ summary: 'Get chapter members' })
     @ApiParam({ name: 'id', format: 'uuid' })
     @ApiQuery({ name: 'excludeSelf', required: false, type: Boolean })
+    @ApiQuery({ name: 'search', required: false, type: String })
+    @ApiQuery({ name: 'tier', required: false, type: String })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
     @UseGuards(JwtAuthGuard)
     @Get(':id/members')
     async getMembers(
         @Param('id') id: string,
         @Request() req,
         @Query('excludeSelf') excludeSelf?: string,
+        @Query('search') search?: string,
+        @Query('tier') tier?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
     ) {
-        return this.chaptersService.getChapterMembers(id, req.user?.id, excludeSelf === 'true');
+        const pageNum = page ? parseInt(page, 10) : 1;
+        const limitNum = limit ? parseInt(limit, 10) : 20;
+        return this.chaptersService.getChapterMembers(id, req.user?.id, excludeSelf === 'true', {
+            search,
+            tier,
+            page: pageNum,
+            limit: limitNum,
+        });
     }
 
     @ApiBearerAuth()

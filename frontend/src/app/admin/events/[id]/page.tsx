@@ -124,6 +124,11 @@ export default function EventDetailPage() {
 
     const totalRevenue = attendees.reduce((sum, reg) => sum + (Number(reg.amountPaid) || 0), 0);
 
+    const isRegionalAdmin = user?.systemRole === 'REGIONAL_ADMIN';
+    const isChapterEvent = Boolean(user?.chapterId && event.locations?.some((loc: any) => loc.chapterId === user?.chapterId));
+    const isGlobalEvent = Boolean(event.isForAllMembers || event.locations?.some((loc: any) => loc.chapter?.code === '1007') || !event.locations?.length);
+    const canEdit = !isRegionalAdmin || (!event.isForAllMembers && isChapterEvent);
+
     return (
         <div className="min-h-screen bg-background p-6 lg:p-12 animate-in fade-in duration-700">
             
@@ -138,13 +143,19 @@ export default function EventDetailPage() {
                         <span className="text-[10px] font-black uppercase tracking-[0.3em]">Back to Directory</span>
                     </button>
 
-                    <button
-                        onClick={openEditModal}
-                        className="flex items-center gap-2 bg-tatt-lime text-tatt-black px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-lg shadow-tatt-lime/20"
-                    >
-                        <Edit2 size={14} />
-                        <span>Edit Event</span>
-                    </button>
+                    {canEdit ? (
+                        <button
+                            onClick={openEditModal}
+                            className="flex items-center gap-2 bg-tatt-lime text-tatt-black px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-lg shadow-tatt-lime/20"
+                        >
+                            <Edit2 size={14} />
+                            <span>Edit Event</span>
+                        </button>
+                    ) : (
+                        <span className="px-4 py-2 bg-surface text-tatt-gray text-xs font-bold rounded-xl border border-border">
+                            {isGlobalEvent ? "Global Event (Read Only)" : "Read Only"}
+                        </span>
+                    )}
                 </div>
 
                 <div className="relative rounded-[48px] overflow-hidden bg-surface border border-border shadow-2xl min-h-[340px] flex flex-col justify-end p-10 lg:p-16">
@@ -163,6 +174,15 @@ export default function EventDetailPage() {
                             <span className="px-4 py-1.5 bg-tatt-lime text-tatt-black text-[10px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-tatt-lime/20">
                                 Event Type: {event.type}
                             </span>
+                            {isChapterEvent ? (
+                                <span className="px-4 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-[0.2em] rounded-full flex items-center gap-1.5">
+                                    <Building2 className="size-3" /> Chapter Event
+                                </span>
+                            ) : isGlobalEvent ? (
+                                <span className="px-4 py-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[10px] font-black uppercase tracking-[0.2em] rounded-full flex items-center gap-1.5">
+                                    <Globe className="size-3" /> Global Event
+                                </span>
+                            ) : null}
                             <span className="px-4 py-1.5 bg-background/50 backdrop-blur-md border border-border text-tatt-gray text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
                                 SID: {event.id.slice(0, 8)}
                             </span>
@@ -434,42 +454,50 @@ export default function EventDetailPage() {
                                     <select
                                         value={form.isForAllMembers ? "true" : "false"}
                                         onChange={e => setForm({ ...form, isForAllMembers: e.target.value === "true" })}
-                                        disabled={user?.systemRole === 'REGIONAL_ADMIN'}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime disabled:opacity-50"
+                                        disabled={isRegionalAdmin}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                                     >
-                                        <option value="true">Public / All Members</option>
-                                        <option value="false">Restricted / Tier-based</option>
+                                        {!isRegionalAdmin && <option value="true">Public / All Members</option>}
+                                        <option value="false">{isRegionalAdmin ? "Local Chapter Members Only" : "Restricted / Tier-based"}</option>
                                     </select>
+                                    {isRegionalAdmin && (
+                                        <p className="text-[10px] text-tatt-gray mt-1">Regional events are restricted to your chapter membership.</p>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="space-y-3 pt-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-sm font-bold">Locations & Chapters</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setForm({ ...form, locations: [...form.locations, { chapterId: chapters[0]?.id || "", address: "" }] })}
-                                        className="text-xs font-bold text-tatt-lime-dark hover:underline flex items-center gap-1 cursor-pointer"
-                                    >
-                                        <Plus className="size-3" /> Add Location
-                                    </button>
+                                    <label className="text-sm font-bold">{isRegionalAdmin ? "Chapter & Venue" : "Locations & Chapters"}</label>
+                                    {!isRegionalAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm({ ...form, locations: [...form.locations, { chapterId: chapters[0]?.id || "", address: "" }] })}
+                                            className="text-xs font-bold text-tatt-lime-dark hover:underline flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <Plus className="size-3" /> Add Location
+                                        </button>
+                                    )}
                                 </div>
                                 {form.locations.map((loc, idx) => (
                                     <div key={idx} className="flex gap-2 items-end">
                                         <div className="flex-1 space-y-1">
+                                            <label className="text-[10px] text-tatt-gray font-bold uppercase tracking-wider">Chapter</label>
                                             <select
                                                 value={loc.chapterId}
+                                                disabled={isRegionalAdmin}
                                                 onChange={e => {
                                                     const newLocs = [...form.locations];
                                                     if (newLocs[idx]) newLocs[idx].chapterId = e.target.value;
                                                     setForm({ ...form, locations: newLocs });
                                                 }}
-                                                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs cursor-pointer"
+                                                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs disabled:opacity-75 cursor-pointer disabled:cursor-not-allowed"
                                             >
                                                 {chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="flex-[2] space-y-1">
+                                            <label className="text-[10px] text-tatt-gray font-bold uppercase tracking-wider">Venue / Address</label>
                                             <input
                                                 value={loc.address}
                                                 onChange={e => {
@@ -481,13 +509,15 @@ export default function EventDetailPage() {
                                                 className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs"
                                             />
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm({ ...form, locations: form.locations.filter((_, i) => i !== idx) })}
-                                            className="p-2 text-tatt-bronze hover:bg-tatt-yellow/10 rounded-lg transition-colors cursor-pointer"
-                                        >
-                                            <X className="size-4" />
-                                        </button>
+                                        {!isRegionalAdmin && form.locations.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm({ ...form, locations: form.locations.filter((_, i) => i !== idx) })}
+                                                className="p-2 text-tatt-bronze hover:bg-tatt-yellow/10 rounded-lg transition-colors cursor-pointer"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>

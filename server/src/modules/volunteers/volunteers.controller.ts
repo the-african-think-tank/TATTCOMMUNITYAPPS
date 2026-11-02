@@ -200,8 +200,8 @@ export class VolunteersController {
     @UseGuards(RolesGuard)
     @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN, SystemRole.VOLUNTEER_ADMIN, SystemRole.REGIONAL_ADMIN)
     @Get('admin/stats')
-    async getAdminStats() {
-        return this.volunteersService.getAdminDashboardStats();
+    async getAdminStats(@Query('chapterId') chapterId?: string) {
+        return this.volunteersService.getAdminDashboardStats(chapterId);
     }
 
     @ApiOperation({ summary: 'Get paginated volunteers list (Admin)' })
@@ -228,8 +228,9 @@ export class VolunteersController {
         @Query('search') search?: string,
         @Query('status') status?: string,
         @Query('roleId') roleId?: string,
+        @Query('chapterId') chapterId?: string,
     ) {
-        return this.volunteersService.getAdminApplicationsList({ page, limit, search, status, roleId });
+        return this.volunteersService.getAdminApplicationsList({ page, limit, search, status, roleId, chapterId });
     }
 
     @ApiOperation({ summary: 'Get training resource stats (Admin)' })

@@ -20,9 +20,13 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/auth-context";
 
 export default function CreateVolunteerRolePage() {
     const router = useRouter();
+    const { user } = useAuth();
+    const isRegionalAdmin = user?.systemRole === 'REGIONAL_ADMIN';
+
     const [loading, setLoading] = useState(false);
     const [chapters, setChapters] = useState<any[]>([]);
     
@@ -50,12 +54,16 @@ export default function CreateVolunteerRolePage() {
         const fetchChapters = async () => {
             try {
                 const res = await api.get("/chapters");
-                setChapters(res.data);
-                if (res.data.length > 0) {
+                const availableChapters = isRegionalAdmin
+                    ? res.data.filter((c: any) => c.id === user?.chapterId || c.regionalManagerId === user?.id || c.associateRegionalDirectorId === user?.id)
+                    : res.data;
+                setChapters(availableChapters);
+                const defaultChapter = availableChapters.find((c: any) => c.id === user?.chapterId) || availableChapters[0];
+                if (defaultChapter) {
                     setFormData(prev => ({ 
                         ...prev, 
-                        chapterId: res.data[0].id,
-                        location: res.data[0].location || res.data[0].name 
+                        chapterId: defaultChapter.id,
+                        location: defaultChapter.location || defaultChapter.name 
                     }));
                 }
             } catch (err) {
@@ -63,7 +71,7 @@ export default function CreateVolunteerRolePage() {
             }
         };
         fetchChapters();
-    }, []);
+    }, [isRegionalAdmin, user?.chapterId]);
 
     const handleAddResp = () => {
         if (!newResp.trim()) return;
@@ -254,20 +262,27 @@ export default function CreateVolunteerRolePage() {
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-tatt-gray uppercase tracking-widest mb-2">Target Chapter</label>
-                                <select 
-                                    value={formData.chapterId}
-                                    onChange={(e) => {
-                                        const chapter = chapters.find(c => c.id === e.target.value);
-                                        setFormData({ 
-                                            ...formData, 
-                                            chapterId: e.target.value,
-                                            location: chapter?.location || chapter?.name || ""
-                                        });
-                                    }}
-                                    className="w-full bg-surface border border-border rounded-xl p-4 focus:ring-2 focus:ring-tatt-lime/20 focus:border-tatt-lime transition-all text-foreground font-bold outline-none shadow-sm cursor-pointer"
-                                >
-                                    {chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
+                                {isRegionalAdmin ? (
+                                    <div className="w-full bg-surface border border-border rounded-xl p-4 text-foreground font-bold shadow-sm flex items-center justify-between">
+                                        <span>{chapters.find(c => c.id === formData.chapterId)?.name || "Your Chapter Hub"}</span>
+                                        <span className="text-[10px] text-tatt-lime font-bold uppercase tracking-wider bg-tatt-lime/10 px-2 py-0.5 rounded-md border border-tatt-lime/20">Locked to Hub</span>
+                                    </div>
+                                ) : (
+                                    <select 
+                                        value={formData.chapterId}
+                                        onChange={(e) => {
+                                            const chapter = chapters.find(c => c.id === e.target.value);
+                                            setFormData({ 
+                                                ...formData, 
+                                                chapterId: e.target.value,
+                                                location: chapter?.location || chapter?.name || ""
+                                            });
+                                        }}
+                                        className="w-full bg-surface border border-border rounded-xl p-4 focus:ring-2 focus:ring-tatt-lime/20 focus:border-tatt-lime transition-all text-foreground font-bold outline-none shadow-sm cursor-pointer"
+                                    >
+                                        {chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-tatt-gray uppercase tracking-widest mb-2">Specific Location</label>

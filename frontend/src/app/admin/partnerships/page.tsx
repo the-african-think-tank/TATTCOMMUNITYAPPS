@@ -33,6 +33,7 @@ import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
 import { toast } from "react-hot-toast";
 import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 interface Partnership {
     id: string;
@@ -556,28 +557,27 @@ export default function PartnershipsPage() {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="relative group/menu inline-block">
-                                                <button className="p-2 text-tatt-gray hover:text-tatt-black hover:bg-background rounded-lg transition-all">
-                                                    <MoreVertical size={18} />
-                                                </button>
-                                                <div className="absolute right-0 mt-0 w-48 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden hidden group-hover/menu:block text-left">
-                                                    <button 
-                                                        onClick={() => handleOpenModal(partner)}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-tatt-gray hover:bg-border/30 hover:text-tatt-black transition-colors"
-                                                    >
-                                                        <Edit2 size={18} />
-                                                        Edit Partnership
-                                                    </button>
-                                                    <button 
-                                                        onClick={(e) => handleDeletePartner(partner.id, e)}
-                                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors border-t border-border"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                        Delete Partnership
-                                                    </button>
-                                                </div>
-                                            </div>
+                                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                            <ActionDropdown
+                                                ariaLabel="Partnership Actions"
+                                                placement="bottom end"
+                                                items={[
+                                                    {
+                                                        key: "edit",
+                                                        label: "Edit Partnership",
+                                                        icon: <Edit2 size={16} />,
+                                                        onPress: () => handleOpenModal(partner)
+                                                    },
+                                                    "divider",
+                                                    {
+                                                        key: "delete",
+                                                        label: "Delete Partnership",
+                                                        icon: <Trash2 size={16} />,
+                                                        isDanger: true,
+                                                        onPress: () => handleDeletePartner(partner.id)
+                                                    }
+                                                ]}
+                                            />
                                         </td>
                                     </tr>
                                 ))

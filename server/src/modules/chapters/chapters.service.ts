@@ -208,21 +208,181 @@ export class ChaptersService implements OnApplicationBootstrap {
         return chapter;
     }
 
-    async getChapterMembers(chapterId: string, viewerId?: string, excludeSelf = false) {
+    async getMyChapter(user: any) {
+        if (!user) throw new NotFoundException('User not authenticated');
+        let chapter = null;
+        if (user.chapterId) {
+            chapter = await this.chapterRepository.findByPk(user.chapterId, {
+                include: [
+                    { model: User, as: 'regionalManager', attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture'] },
+                    { model: User, as: 'associateRegionalDirector', attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture'] },
+                ],
+            });
+        }
+        if (!chapter) {
+            chapter = await this.chapterRepository.findOne({
+                where: {
+                    [Op.or]: [
+                        { regionalManagerId: user.id },
+                        { associateRegionalDirectorId: user.id },
+                    ],
+                },
+                include: [
+                    { model: User, as: 'regionalManager', attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture'] },
+                    { model: User, as: 'associateRegionalDirector', attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture'] },
+                ],
+            });
+        }
+        if (!chapter) {
+            throw new NotFoundException('No chapter assigned to this user.');
+        }
+        return chapter;
+    }
+
+    async getChapterDashboardOverview(chapterId: string) {
+        const chapter = await this.getChapterById(chapterId);
+
+        const [
+            totalMembers,
+            activeVolunteers,
+            openRoles,
+            pendingApplications,
+            totalActivities,
+            recentMembers,
+            recentActivities,
+            rolesList,
+            pendingAppsList,
+        ] = await Promise.all([
+            // 1. Total Members in this chapter
+            this.userRepository.count({
+                where: { chapterId, isActive: true },
+            }),
+            // 2. Active Volunteers in this chapter
+            this.userRepository.count({
+                where: {
+                    chapterId,
+                    isActive: true,
+                    flags: { [Op.contains]: [AccountFlags.VOLUNTEER] },
+                },
+            }),
+            // 3. Open Roles in this chapter
+            this.volunteerRoleRepo.count({
+                where: { chapterId },
+            }),
+            // 4. Pending Applications for this chapter
+            this.volunteerAppRepo.count({
+                where: { status: ApplicationStatus.PENDING },
+                include: [{
+                    model: User,
+                    as: 'user',
+                    where: { chapterId },
+                    required: true,
+                }],
+            }),
+            // 5. Total Published Activities
+            this.activityRepository.count({
+                where: { chapterId, isPublished: true },
+            }),
+            // 6. Recent Members
+            this.userRepository.findAll({
+                where: { chapterId, isActive: true },
+                attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture', 'professionTitle', 'communityTier', 'createdAt'],
+                order: [['createdAt', 'DESC']],
+                limit: 8,
+            }),
+            // 7. Recent Activities
+            this.activityRepository.findAll({
+                where: { chapterId, isPublished: true },
+                include: [
+                    { model: User, as: 'author', attributes: [...ACTIVITY_AUTHOR_ATTRS] },
+                    { model: User, as: 'volunteerManager', attributes: [...ACTIVITY_AUTHOR_ATTRS] },
+                ],
+                order: [['createdAt', 'DESC']],
+                limit: 6,
+            }),
+            // 8. Open Roles list
+            this.volunteerRoleRepo.findAll({
+                where: { chapterId },
+                include: [
+                    { model: Chapter, attributes: ['id', 'name', 'code'] },
+                    { model: VolunteerApplication, as: 'applications', attributes: ['id', 'status'] },
+                ],
+                order: [['createdAt', 'DESC']],
+                limit: 10,
+            }),
+            // 9. Pending Applications list
+            this.volunteerAppRepo.findAll({
+                where: { status: ApplicationStatus.PENDING },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        where: { chapterId },
+                        attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture'],
+                    },
+                    {
+                        model: VolunteerRole,
+                        as: 'role',
+                        attributes: ['id', 'name'],
+                    },
+                ],
+                order: [['createdAt', 'DESC']],
+                limit: 10,
+            }),
+        ]);
+
+        return {
+            chapter,
+            kpis: {
+                totalMembers,
+                activeVolunteers,
+                openRoles,
+                pendingApplications,
+                totalActivities,
+            },
+            recentMembers,
+            recentActivities,
+            openRoles: rolesList,
+            pendingApplications: pendingAppsList,
+        };
+    }
+
+    async getChapterMembers(chapterId: string, viewerId?: string, excludeSelf = false, query?: { search?: string; tier?: string; page?: number; limit?: number }) {
         await this.getChapterById(chapterId); // ensure chapter exists
+        const page = query?.page || 1;
+        const limit = query?.limit || 20;
+        const offset = (page - 1) * limit;
+
         const where: any = { chapterId };
         if (excludeSelf && viewerId) {
             where.id = { [Op.ne]: viewerId };
         }
-        const [members, total] = await Promise.all([
-            this.userRepository.findAll({
-                where,
-                attributes: ['id', 'firstName', 'lastName', 'profilePicture', 'professionTitle', 'communityTier', 'chapterId'],
-                limit: 50,
-            }),
-            this.userRepository.count({ where }),
-        ]);
-        return { members, total };
+        if (query?.tier && query.tier !== 'all') {
+            where.communityTier = query.tier;
+        }
+        if (query?.search) {
+            where[Op.or] = [
+                { firstName: { [Op.iLike]: `%${query.search}%` } },
+                { lastName: { [Op.iLike]: `%${query.search}%` } },
+                { email: { [Op.iLike]: `%${query.search}%` } },
+                { professionTitle: { [Op.iLike]: `%${query.search}%` } },
+            ];
+        }
+
+        const { rows: members, count: total } = await this.userRepository.findAndCountAll({
+            where,
+            attributes: ['id', 'firstName', 'lastName', 'email', 'profilePicture', 'professionTitle', 'communityTier', 'chapterId', 'createdAt'],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset,
+        });
+
+        return {
+            members,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        };
     }
 
     async updateChapterManager(id: string, managerId: string) {
@@ -278,7 +438,7 @@ export class ChaptersService implements OnApplicationBootstrap {
     async createChapterActivity(chapterId: string, author: User, dto: CreateChapterActivityDto) {
         const chapter = await this.getChapterById(chapterId);
         const isAdmin = [SystemRole.ADMIN, SystemRole.SUPERADMIN].includes(author.systemRole);
-        const isRegionalAdminForChapter = author.systemRole === SystemRole.REGIONAL_ADMIN && (chapter.regionalManagerId === author.id || chapter.associateRegionalDirectorId === author.id);
+        const isRegionalAdminForChapter = author.systemRole === SystemRole.REGIONAL_ADMIN && (chapter.regionalManagerId === author.id || chapter.associateRegionalDirectorId === author.id || author.chapterId === chapter.id);
 
         if (!isAdmin && !isRegionalAdminForChapter) {
             throw new ForbiddenException('Only chapter admins can post chapter activities for this chapter.');
@@ -301,7 +461,7 @@ export class ChaptersService implements OnApplicationBootstrap {
         const chapter = await this.getChapterById(activity.chapterId);
         
         const isAdmin = [SystemRole.ADMIN, SystemRole.SUPERADMIN].includes(author.systemRole);
-        const isRegionalAdminForChapter = author.systemRole === SystemRole.REGIONAL_ADMIN && (chapter.regionalManagerId === author.id || chapter.associateRegionalDirectorId === author.id);
+        const isRegionalAdminForChapter = author.systemRole === SystemRole.REGIONAL_ADMIN && (chapter.regionalManagerId === author.id || chapter.associateRegionalDirectorId === author.id || author.chapterId === chapter.id);
         const isOwner = activity.authorId === author.id;
         
         if (!isAdmin && !isRegionalAdminForChapter && !isOwner) {
@@ -320,7 +480,7 @@ export class ChaptersService implements OnApplicationBootstrap {
         const chapter = await this.getChapterById(activity.chapterId);
 
         const isAdmin = [SystemRole.ADMIN, SystemRole.SUPERADMIN].includes(author.systemRole);
-        const isRegionalAdminForChapter = author.systemRole === SystemRole.REGIONAL_ADMIN && (chapter.regionalManagerId === author.id || chapter.associateRegionalDirectorId === author.id);
+        const isRegionalAdminForChapter = author.systemRole === SystemRole.REGIONAL_ADMIN && (chapter.regionalManagerId === author.id || chapter.associateRegionalDirectorId === author.id || author.chapterId === chapter.id);
         const isOwner = activity.authorId === author.id;
         
         if (!isAdmin && !isRegionalAdminForChapter && !isOwner) {

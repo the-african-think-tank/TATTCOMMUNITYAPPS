@@ -18,8 +18,8 @@ import {
     Users
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useState, Suspense } from "react";
 import toast from "react-hot-toast";
 
 interface VolunteerStat {
@@ -50,9 +50,18 @@ interface Stats {
     trainingCompletionRate: number;
 }
 
-export default function VolunteerCenterPage() {
+function VolunteerCenterContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user } = useAuth();
+    const isRegionalAdmin = user?.systemRole === 'REGIONAL_ADMIN';
+
+    const tabParam = searchParams.get('tab');
+    const initialTab: 'registry' | 'activities' | 'roles' | 'applications' =
+        tabParam && ['registry', 'activities', 'roles', 'applications'].includes(tabParam)
+            ? (tabParam as any)
+            : 'registry';
+
     const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -60,11 +69,20 @@ export default function VolunteerCenterPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
     const [totalItems, setTotalItems] = useState(0);
-    const [activeTab, setActiveTab] = useState<'registry' | 'activities' | 'roles' | 'applications'>('registry');
+    const [activeTab, setActiveTab] = useState<'registry' | 'activities' | 'roles' | 'applications'>(initialTab);
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['registry', 'activities', 'roles', 'applications'].includes(tab)) {
+            setActiveTab(tab as any);
+        }
+    }, [searchParams]);
     const [applications, setApplications] = useState<any[]>([]);
     const [appsLoading, setAppsLoading] = useState(false);
     const [chapters, setChapters] = useState<any[]>([]);
-    const [selectedChapter, setSelectedChapter] = useState<string>("all");
+    const [selectedChapter, setSelectedChapter] = useState<string>(
+        isRegionalAdmin && user?.chapterId ? user.chapterId : "all"
+    );
     const [activities, setActivities] = useState<any[]>([]);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
     const [roles, setRoles] = useState<any[]>([]);
@@ -75,9 +93,21 @@ export default function VolunteerCenterPage() {
     const [assignActivityVol, setAssignActivityVol] = useState<Volunteer | null>(null);
     const [assignTrainingVol, setAssignTrainingVol] = useState<Volunteer | null>(null);
 
+    const effectiveChapterId = isRegionalAdmin
+        ? (user?.chapterId || (selectedChapter !== 'all' ? selectedChapter : undefined))
+        : (selectedChapter !== 'all' ? selectedChapter : undefined);
+
+    useEffect(() => {
+        if (isRegionalAdmin && user?.chapterId && selectedChapter !== user.chapterId) {
+            setSelectedChapter(user.chapterId);
+        }
+    }, [isRegionalAdmin, user?.chapterId, selectedChapter]);
+
     const fetchStats = async () => {
         try {
-            const { data } = await api.get("/volunteers/admin/stats");
+            const { data } = await api.get("/volunteers/admin/stats", {
+                params: { chapterId: effectiveChapterId }
+            });
             setStats(data);
         } catch (error) {
             console.error("Failed to fetch stats", error);
@@ -92,7 +122,7 @@ export default function VolunteerCenterPage() {
                     page,
                     limit: 10,
                     search: search || undefined,
-                    chapterId: selectedChapter !== 'all' ? selectedChapter : undefined
+                    chapterId: effectiveChapterId
                 }
             });
             setVolunteers(data.data);
@@ -109,11 +139,11 @@ export default function VolunteerCenterPage() {
     const fetchChapters = async () => {
         try {
             const { data } = await api.get("/chapters");
-            const availableChapters = user?.systemRole === 'REGIONAL_ADMIN' 
-                ? data.filter((c: any) => c.regionalManagerId === user?.id || c.associateRegionalDirectorId === user?.id)
+            const availableChapters = isRegionalAdmin 
+                ? data.filter((c: any) => c.id === user?.chapterId || c.regionalManagerId === user?.id || c.associateRegionalDirectorId === user?.id)
                 : data;
             setChapters(availableChapters);
-            if (user?.systemRole === 'REGIONAL_ADMIN' && availableChapters.length > 0 && selectedChapter === 'all') {
+            if (isRegionalAdmin && availableChapters.length > 0) {
                 setSelectedChapter(availableChapters[0].id);
             }
         } catch (error) {
@@ -124,12 +154,12 @@ export default function VolunteerCenterPage() {
     const fetchAllActivities = async () => {
         setActivitiesLoading(true);
         try {
-            if (selectedChapter !== "all") {
-                const { data } = await api.get(`/chapters/${selectedChapter}/activities`);
-                setActivities(data.data);
-            } else {
+            if (effectiveChapterId) {
+                const { data } = await api.get(`/chapters/${effectiveChapterId}/activities`);
+                setActivities(data.data || []);
+            } else if (!isRegionalAdmin) {
                 const { data } = await api.get(`/chapters/all-activities`);
-                setActivities(data.data);
+                setActivities(data.data || []);
             }
         } catch (error) {
             console.error("Failed to fetch activities", error);
@@ -142,7 +172,7 @@ export default function VolunteerCenterPage() {
         setRolesLoading(true);
         try {
             const { data } = await api.get(`/volunteers/admin/roles`, {
-                params: { chapterId: selectedChapter !== 'all' ? selectedChapter : undefined }
+                params: { chapterId: effectiveChapterId }
             });
             setRoles(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -160,7 +190,8 @@ export default function VolunteerCenterPage() {
                     page,
                     limit: 10,
                     search: search || undefined,
-                    status: 'PENDING'
+                    status: 'PENDING',
+                    chapterId: effectiveChapterId
                 }
             });
             setApplications(data.data);
@@ -193,6 +224,7 @@ export default function VolunteerCenterPage() {
     }, []);
 
     useEffect(() => {
+        fetchStats();
         if (activeTab === 'registry') {
             fetchVolunteers();
         } else if (activeTab === 'activities') {
@@ -218,29 +250,50 @@ export default function VolunteerCenterPage() {
         );
     };
 
+    const currentChapter = chapters.find(c => c.id === effectiveChapterId);
+
     return (
-        <main className="min-h-screen p-6 md:p-10 lg:p-14 space-y-12 max-w-[1600px] mx-auto animate-in fade-in duration-700">
+        <main className="min-h-screen p-4 sm:p-6 md:p-10 lg:p-14 space-y-8 sm:space-y-12 max-w-[1600px] mx-auto animate-in fade-in duration-700 pb-16">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-6">
                 <div className="space-y-1">
-                    <h3 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Management Overview</h3>
-                    <p className="text-tatt-gray font-medium">Monitor community performance and application pipelines.</p>
+                    {isRegionalAdmin ? (
+                        <>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-tatt-lime/10 border border-tatt-lime/20 text-tatt-lime text-xs font-bold uppercase tracking-wider mb-1">
+                                <Users size={13} />
+                                {currentChapter?.name || "Regional"} Hub
+                            </div>
+                            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground italic uppercase">
+                                Volunteer Center — {currentChapter?.name || "Localised"}
+                            </h3>
+                            <p className="text-tatt-gray text-xs sm:text-sm font-medium">
+                                Monitor volunteer personnel, localized activities, and role applications for your chapter.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground italic uppercase">Management Overview</h3>
+                            <p className="text-tatt-gray text-xs sm:text-sm font-medium">Monitor community performance and application pipelines.</p>
+                        </>
+                    )}
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     <button 
                         onClick={() => router.push('/admin/volunteers/create')}
-                        className="px-5 py-2.5 rounded-xl bg-surface border border-border text-foreground font-bold text-xs uppercase tracking-widest hover:bg-background transition-all flex items-center gap-2 transform active:scale-95"
+                        className="px-5 py-2.5 rounded-xl bg-surface border border-border text-foreground font-bold text-xs uppercase tracking-widest hover:bg-background transition-all flex items-center gap-2 transform active:scale-95 cursor-pointer shadow-sm"
                     >
                         <PlusCircle size={18} className="text-tatt-lime" />
                         Create Role
                     </button>
-                    <button 
-                        onClick={() => router.push('/admin/volunteers/training/create')}
-                        className="px-5 py-2.5 rounded-xl bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-widest hover:brightness-105 transition-all flex items-center gap-2 shadow-lg shadow-tatt-lime/20"
-                    >
-                        <BookOpen size={18} />
-                        New Training
-                    </button>
+                    {!isRegionalAdmin && (
+                        <button 
+                            onClick={() => router.push('/admin/volunteers/training/create')}
+                            className="px-5 py-2.5 rounded-xl bg-tatt-lime text-tatt-black font-black text-xs uppercase tracking-widest hover:brightness-105 transition-all flex items-center gap-2 shadow-lg shadow-tatt-lime/20 cursor-pointer"
+                        >
+                            <BookOpen size={18} />
+                            New Training
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -366,29 +419,36 @@ export default function VolunteerCenterPage() {
                             />
                         </div>
                         <div className="flex gap-3">
-                            <ActionDropdown
-                                ariaLabel="Filter Chapters"
-                                placement="bottom end"
-                                popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
-                                trigger={
-                                    <button className="px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-background transition-all cursor-pointer outline-none">
-                                        <Filter size={14} className="text-tatt-lime" />
-                                        <span>{selectedChapter === 'all' ? 'All Chapters' : chapters.find(c => c.id === selectedChapter)?.name}</span>
-                                    </button>
-                                }
-                                items={[
-                                    {
-                                        key: "all",
-                                        label: "All Chapters (Global)",
-                                        onPress: () => setSelectedChapter('all')
-                                    },
-                                    ...chapters.map(c => ({
-                                        key: c.id,
-                                        label: c.name,
-                                        onPress: () => setSelectedChapter(c.id)
-                                    }))
-                                ]}
-                            />
+                            {isRegionalAdmin ? (
+                                <div className="px-4 py-3 rounded-xl bg-tatt-lime/10 border border-tatt-lime/20 text-tatt-lime text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Users size={14} />
+                                    <span>{currentChapter?.name || "Your Chapter Hub"}</span>
+                                </div>
+                            ) : (
+                                <ActionDropdown
+                                    ariaLabel="Filter Chapters"
+                                    placement="bottom end"
+                                    popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
+                                    trigger={
+                                        <button className="px-4 py-3 rounded-xl border border-border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-background transition-all cursor-pointer outline-none">
+                                            <Filter size={14} className="text-tatt-lime" />
+                                            <span>{selectedChapter === 'all' ? 'All Chapters' : chapters.find(c => c.id === selectedChapter)?.name}</span>
+                                        </button>
+                                    }
+                                    items={[
+                                        {
+                                            key: "all",
+                                            label: "All Chapters (Global)",
+                                            onPress: () => setSelectedChapter('all')
+                                        },
+                                        ...chapters.map(c => ({
+                                            key: c.id,
+                                            label: c.name,
+                                            onPress: () => setSelectedChapter(c.id)
+                                        }))
+                                    ]}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -483,29 +543,33 @@ export default function VolunteerCenterPage() {
                         <div className="flex items-center gap-3 bg-surface border border-border px-4 py-2 rounded-2xl shadow-sm relative">
                             <Filter size={16} className="text-tatt-lime" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Regional Link:</span>
-                            <ActionDropdown
-                                ariaLabel="Regional Hub Filter"
-                                placement="bottom start"
-                                popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
-                                trigger={
-                                    <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground cursor-pointer outline-none">
-                                        <span>{selectedChapter === 'all' ? 'All Active Hubs' : chapters.find(c => c.id === selectedChapter)?.name}</span>
-                                        <ChevronRight size={14} />
-                                    </button>
-                                }
-                                items={[
-                                    {
-                                        key: "all",
-                                        label: "All Hubs",
-                                        onPress: () => setSelectedChapter('all')
-                                    },
-                                    ...chapters.map(c => ({
-                                        key: c.id,
-                                        label: c.name,
-                                        onPress: () => setSelectedChapter(c.id)
-                                    }))
-                                ]}
-                            />
+                            {isRegionalAdmin ? (
+                                <span className="text-xs font-black uppercase tracking-widest text-tatt-lime">{currentChapter?.name || "Your Chapter Hub"}</span>
+                            ) : (
+                                <ActionDropdown
+                                    ariaLabel="Regional Hub Filter"
+                                    placement="bottom start"
+                                    popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
+                                    trigger={
+                                        <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground cursor-pointer outline-none">
+                                            <span>{selectedChapter === 'all' ? 'All Active Hubs' : chapters.find(c => c.id === selectedChapter)?.name}</span>
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    }
+                                    items={[
+                                        {
+                                            key: "all",
+                                            label: "All Hubs",
+                                            onPress: () => setSelectedChapter('all')
+                                        },
+                                        ...chapters.map(c => ({
+                                            key: c.id,
+                                            label: c.name,
+                                            onPress: () => setSelectedChapter(c.id)
+                                        }))
+                                    ]}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -547,29 +611,33 @@ export default function VolunteerCenterPage() {
                         <div className="flex items-center gap-3 bg-background border border-border px-4 py-2 rounded-2xl shadow-sm relative">
                             <Filter size={16} className="text-tatt-lime" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-tatt-gray">Filter Hub:</span>
-                            <ActionDropdown
-                                ariaLabel="Role Chapter Filter"
-                                placement="bottom end"
-                                popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
-                                trigger={
-                                    <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground cursor-pointer outline-none">
-                                        <span>{selectedChapter === 'all' ? 'All Roles' : chapters.find(c => c.id === selectedChapter)?.name}</span>
-                                        <ChevronRight size={14} />
-                                    </button>
-                                }
-                                items={[
-                                    {
-                                        key: "all",
-                                        label: "All Hub Roles",
-                                        onPress: () => setSelectedChapter('all')
-                                    },
-                                    ...chapters.map(c => ({
-                                        key: c.id,
-                                        label: c.name,
-                                        onPress: () => setSelectedChapter(c.id)
-                                    }))
-                                ]}
-                            />
+                            {isRegionalAdmin ? (
+                                <span className="text-xs font-black uppercase tracking-widest text-tatt-lime">{currentChapter?.name || "Your Chapter Hub"}</span>
+                            ) : (
+                                <ActionDropdown
+                                    ariaLabel="Role Chapter Filter"
+                                    placement="bottom end"
+                                    popoverClassName="bg-surface border border-border rounded-xl shadow-xl p-1 z-50 min-w-56 max-h-80 overflow-y-auto"
+                                    trigger={
+                                        <button className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground cursor-pointer outline-none">
+                                            <span>{selectedChapter === 'all' ? 'All Roles' : chapters.find(c => c.id === selectedChapter)?.name}</span>
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    }
+                                    items={[
+                                        {
+                                            key: "all",
+                                            label: "All Hub Roles",
+                                            onPress: () => setSelectedChapter('all')
+                                        },
+                                        ...chapters.map(c => ({
+                                            key: c.id,
+                                            label: c.name,
+                                            onPress: () => setSelectedChapter(c.id)
+                                        }))
+                                    ]}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -768,5 +836,13 @@ export default function VolunteerCenterPage() {
             )}
 
         </main>
+    );
+}
+
+export default function VolunteerCenterPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-tatt-lime size-8" /></div>}>
+            <VolunteerCenterContent />
+        </Suspense>
     );
 }

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 const STATUS_META: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
     PENDING:              { label: "Pending Review",       color: "text-tatt-yellow bg-tatt-yellow/10 border-tatt-yellow/30",     Icon: Clock },
@@ -198,36 +199,39 @@ export default function RoleApplicantsPage() {
                                                 <td className="px-8 py-6">
                                                     <span className="text-foreground text-xs font-bold italic">{new Date(app.createdAt).toLocaleDateString()}</span>
                                                 </td>
-                                                <td className="px-8 py-6 text-right">
+                                                <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <div className="relative group/menu">
-                                                            <button className="p-2 hover:bg-background rounded-lg text-tatt-gray hover:text-foreground transition-all">
-                                                                <MoreVertical size={18} />
-                                                            </button>
-                                                            <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-2xl py-2 invisible group-hover/menu:visible opacity-0 group-hover/menu:opacity-100 transition-all z-50">
-                                                                <button 
-                                                                    onClick={() => handleUpdateStatus(app.id, 'APPROVED')}
-                                                                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-tatt-lime/10 text-tatt-lime flex items-center gap-2"
-                                                                >
-                                                                    <CheckCircle2 size={14} /> Approve Application
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleUpdateStatus(app.id, 'INTERVIEW_SCHEDULED')}
-                                                                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-tatt-lime/10 text-foreground flex items-center gap-2"
-                                                                >
-                                                                    <Calendar size={14} /> Schedule Interview
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleUpdateStatus(app.id, 'REJECTED')}
-                                                                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-red-500/10 text-red-500 flex items-center gap-2"
-                                                                >
-                                                                    <XCircle size={14} /> Reject Candidate
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                                        <ActionDropdown
+                                                            ariaLabel="Applicant Actions"
+                                                            placement="bottom end"
+                                                            items={[
+                                                                {
+                                                                    key: "approve",
+                                                                    label: "Approve Application",
+                                                                    icon: <CheckCircle2 size={14} className="text-tatt-lime" />,
+                                                                    className: "text-tatt-lime hover:bg-tatt-lime/10",
+                                                                    onPress: () => handleUpdateStatus(app.id, 'APPROVED')
+                                                                },
+                                                                {
+                                                                    key: "schedule-interview",
+                                                                    label: "Schedule Interview",
+                                                                    icon: <Calendar size={14} className="text-foreground" />,
+                                                                    onPress: () => handleUpdateStatus(app.id, 'INTERVIEW_SCHEDULED')
+                                                                },
+                                                                "divider",
+                                                                {
+                                                                    key: "reject",
+                                                                    label: "Reject Candidate",
+                                                                    icon: <XCircle size={14} className="text-red-500" />,
+                                                                    isDanger: true,
+                                                                    onPress: () => handleUpdateStatus(app.id, 'REJECTED')
+                                                                }
+                                                            ]}
+                                                        />
                                                         <button 
                                                             onClick={() => router.push(`/admin/volunteers/${app.userId}`)}
-                                                            className="p-2 hover:bg-background rounded-lg text-tatt-gray hover:text-tatt-lime transition-all"
+                                                            className="p-2 hover:bg-background rounded-xl text-tatt-gray hover:text-tatt-lime transition-all cursor-pointer active:scale-95"
+                                                            title="View Profile"
                                                         >
                                                             <Eye size={18} />
                                                         </button>

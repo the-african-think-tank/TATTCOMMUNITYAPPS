@@ -15,7 +15,7 @@ export class DashboardController {
 
     @ApiOperation({ summary: 'Get dashboard overview statistics' })
     @ApiResponse({ status: 200, description: 'Dashboard stats retrieved successfully.' })
-    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN)
+    @Roles(SystemRole.ADMIN, SystemRole.SUPERADMIN, SystemRole.REGIONAL_ADMIN)
     @Get('overview')
     async getOverview() {
         return this.dashboardService.getDashboardOverview();
