@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 interface BusinessIntakeFormProps {
   onSuccessRedirect?: string;
@@ -106,6 +107,8 @@ export default function BusinessIntakeForm({
   const [loading, setLoading] = useState(false);
   const [chapters, setChapters] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -177,9 +180,12 @@ export default function BusinessIntakeForm({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processLogoFile = async (file: File) => {
+    const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, "Logo");
+    if (!validation.valid) {
+      toast.error(validation.error!);
+      return;
+    }
 
     const uploadFormData = new FormData();
     uploadFormData.append("files", file);
@@ -188,23 +194,32 @@ export default function BusinessIntakeForm({
     try {
       toast.loading("Uploading brand logo...", { id: 'logo-upload' });
       // Use the base api call, but avoid triggering the auth interceptor redirects if possible
-      const response = await api.post("/uploads/media", uploadFormData);
-      const imageUrl = response.data.files?.[0]?.url;
+      const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
+      const imageUrl = extractUploadedUrls(response.data)[0];
       
       if (imageUrl) {
         setFormData(prev => ({ ...prev, logoUrl: imageUrl }));
         toast.success("Logo uploaded successfully!", { id: 'logo-upload' });
+      } else {
+        toast.error("Failed to retrieve upload URL", { id: 'logo-upload' });
       }
     } catch (error: any) {
       // Check if it's a 401/403 despite our efforts, maybe guide the user
       if (error.response?.status === 401 && !isPublic) {
-        toast.error("Your session has expired. Please log in again.");
+        toast.error("Your session has expired. Please log in again.", { id: 'logo-upload' });
       } else {
-        toast.error("Failed to upload logo. Please check file type and size.");
+        toast.error(getUploadErrorMessage(error, "Failed to upload logo."), { id: 'logo-upload' });
       }
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processLogoFile(file);
+    e.target.value = "";
   };
 
   const validateStep = (s: number) => {
@@ -566,7 +581,23 @@ export default function BusinessIntakeForm({
                 <div className="shrink-0 flex flex-col items-center">
                    <p className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-3 text-center">Brand Logo *</p>
                    <div className="relative group">
-                     <div className="size-36 rounded-[32px] bg-background border-2 border-dashed border-border flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-tatt-lime/50 shadow-inner">
+                     <div 
+                       onClick={() => logoInputRef.current?.click()}
+                       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                       onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                       onDrop={(e) => {
+                         e.preventDefault();
+                         setIsDragging(false);
+                         const f = e.dataTransfer.files?.[0];
+                         if (f) processLogoFile(f);
+                       }}
+                       className={`size-36 rounded-[32px] bg-background border-2 border-dashed flex flex-col items-center justify-center overflow-hidden transition-all shadow-inner cursor-pointer ${
+                         isDragging
+                           ? "border-tatt-lime bg-tatt-lime/10 scale-105"
+                           : "border-border hover:border-tatt-lime/50"
+                       }`}
+                       title="Click or drag and drop logo"
+                     >
                        {formData.logoUrl ? (
                          <img src={formData.logoUrl} alt="Logo" className="size-full object-cover" />
                        ) : (
@@ -583,9 +614,10 @@ export default function BusinessIntakeForm({
                      </div>
                      <label className="absolute -bottom-2 -right-2 size-12 bg-tatt-lime text-tatt-black rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 active:scale-90 transition-transform shadow-tatt-lime/30 border-4 border-surface">
                        <Camera size={22} />
-                       <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                       <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                      </label>
                    </div>
+                   <span className="text-[9px] text-tatt-gray font-medium block mt-2 text-center">Click to upload or drag & drop (Up to 50MB)</span>
                 </div>
 
                 <div className="flex-1 space-y-8">

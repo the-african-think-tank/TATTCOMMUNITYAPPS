@@ -66,10 +66,10 @@ export class UploadsController {
             '### Supported types & size limits\n' +
             '| Category | Accepted formats | Max per file |\n' +
             '|---|---|---|\n' +
-            '| **Image** | JPEG, PNG, GIF, WebP, SVG, BMP, TIFF | 10 MB |\n' +
-            '| **Video** | MP4, MOV, AVI, WebM, MPEG, OGG, 3GP | 200 MB |\n' +
-            '| **Audio** | MP3, WAV, OGG, AAC, FLAC, WMA, WebM audio | 50 MB |\n' +
-            '| **Document** | PDF, DOCX, XLSX, PPTX, TXT, CSV, ZIP | 25 MB |\n\n' +
+            '| **Image** | JPEG, PNG, GIF, WebP, SVG, BMP, TIFF | 50 MB |\n' +
+            '| **Video** | MP4, MOV, AVI, WebM, MPEG, OGG, 3GP | 500 MB |\n' +
+            '| **Audio** | MP3, WAV, OGG, AAC, FLAC, WMA, WebM audio | 100 MB |\n' +
+            '| **Document** | PDF, DOCX, XLSX, PPTX, TXT, CSV, ZIP | 100 MB |\n\n' +
             '### Upload → Post workflow\n' +
             '1. Call `POST /uploads/media` with your files\n' +
             '2. Get back an array of `{ url, category, ... }` objects\n' +
@@ -122,7 +122,7 @@ export class UploadsController {
                 errors: {
                     type: 'array',
                     items: { type: 'string' },
-                    example: ['"huge-movie.mp4": file too large (250.0 MB). Video limit is 200 MB.'],
+                    example: ['"huge-movie.mp4": file too large (600.0 MB). Video limit is 500 MB.'],
                 },
             },
         },
@@ -135,7 +135,7 @@ export class UploadsController {
             storage: TEMP_STORAGE,
             fileFilter: mimeFilter,
             limits: {
-                fileSize: 200 * 1024 * 1024, // 200 MB overall cap (video max)
+                fileSize: 500 * 1024 * 1024, // 500 MB overall cap (video max)
                 files: 10,
             },
         }),

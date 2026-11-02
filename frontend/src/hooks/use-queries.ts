@@ -106,7 +106,7 @@ export function useVolunteerStats() {
 }
 
 // ─── Admin Dashboard ─────────────────────────────────────────────────────────
-export function useAdminDashboardOverview() {
+export function useAdminDashboardOverview(options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: QUERY_KEYS.dashboardOverview,
         queryFn: async () => {
@@ -114,6 +114,7 @@ export function useAdminDashboardOverview() {
             return data;
         },
         staleTime: 5 * 60 * 1000,
+        enabled: options?.enabled,
     });
 }
 

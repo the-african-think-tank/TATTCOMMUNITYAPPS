@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
@@ -12,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { JOB_CATEGORIES } from "@/types/jobs";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 const CATEGORIES = [...JOB_CATEGORIES];
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance", "Internship"];
@@ -23,6 +24,8 @@ export default function JobPostPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<{
     title: string;
@@ -95,27 +98,41 @@ export default function JobPostPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadLogoFile = async (file: File) => {
+    const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, "Logo");
+    if (!validation.valid) {
+      toast.error(validation.error!);
+      return;
+    }
 
     setUploading(true);
     const body = new FormData();
     body.append("files", file);
 
     try {
-      const { data } = await api.post<{ urls: string[] }>("/uploads/media", body, {
+      const { data } = await api.post("/uploads/media", body, {
         headers: { "Content-Type": "multipart/form-data" },
+        timeout: 120000,
       });
-      if (data.urls?.[0]) {
-        setFormData(prev => ({ ...prev, companyLogoUrl: data.urls[0] || "" }));
+      const urls = extractUploadedUrls(data);
+      if (urls[0]) {
+        setFormData(prev => ({ ...prev, companyLogoUrl: urls[0] || "" }));
         toast.success("Logo uploaded successfully");
+      } else {
+        toast.error("Failed to retrieve uploaded logo URL");
       }
-    } catch (err) {
-      toast.error("Logo upload failed");
+    } catch (err: any) {
+      toast.error(getUploadErrorMessage(err, "Logo upload failed"));
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadLogoFile(file);
+    e.target.value = "";
   };
 
   const validateStep1 = () => !!(formData.companyName);
@@ -195,7 +212,23 @@ export default function JobPostPage() {
                       {/* Logo Upload */}
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8 p-6 bg-background/50 rounded-3xl border border-border/30">
                         <div className="relative group">
-                          <div className="size-24 rounded-[30px] bg-background border border-border flex items-center justify-center overflow-hidden transition-all group-hover:border-tatt-lime/50">
+                          <div 
+                            onClick={() => logoInputRef.current?.click()}
+                            onDragOver={(e) => { e.preventDefault(); setIsDraggingLogo(true); }}
+                            onDragLeave={(e) => { e.preventDefault(); setIsDraggingLogo(false); }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              setIsDraggingLogo(false);
+                              const f = e.dataTransfer.files?.[0];
+                              if (f) uploadLogoFile(f);
+                            }}
+                            className={`size-24 rounded-[30px] bg-background border-2 border-dashed flex items-center justify-center overflow-hidden transition-all cursor-pointer ${
+                              isDraggingLogo 
+                                ? "border-tatt-lime bg-tatt-lime/10 scale-105" 
+                                : "border-border hover:border-tatt-lime/50"
+                            }`}
+                            title="Click or drag and drop logo"
+                          >
                             {formData.companyLogoUrl ? (
                               <img src={formData.companyLogoUrl} alt="Logo" className="w-full h-full object-cover" />
                             ) : (
@@ -204,7 +237,7 @@ export default function JobPostPage() {
                           </div>
                           <label className="absolute -right-2 -bottom-2 size-8 rounded-full bg-tatt-lime text-tatt-black flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 active:scale-95 transition-all">
                             <Upload className="size-4" />
-                            <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
+                            <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
                           </label>
                           {uploading && (
                             <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-[30px] z-10 backdrop-blur-sm">
@@ -214,7 +247,7 @@ export default function JobPostPage() {
                         </div>
                         <div>
                           <h3 className="font-extrabold text-foreground mb-1">Entity Branding</h3>
-                          <p className="text-xs text-tatt-gray font-medium mb-3">Square logos work best. Up to 2MB as JPG or PNG.</p>
+                          <p className="text-xs text-tatt-gray font-medium mb-3">Square logos work best. Up to 50MB as JPG, PNG, or WebP.</p>
                           {formData.companyLogoUrl && (
                             <button 
                               type="button" 

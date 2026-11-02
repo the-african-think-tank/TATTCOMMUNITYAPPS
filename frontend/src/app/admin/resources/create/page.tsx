@@ -28,6 +28,7 @@ import {
 import api from "@/services/api";
 import { useEffect } from "react";
 import { toast } from "react-hot-toast";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 export default function CreateResourcePage() {
     const router = useRouter();
@@ -67,10 +68,44 @@ export default function CreateResourcePage() {
         cat.toLowerCase().includes(categorySearch.toLowerCase())
     );
 
+    const [isDragging, setIsDragging] = useState(false);
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        const validation = validateFileSize(file, UPLOAD_LIMITS.DOCUMENT.maxBytes, "Document/Media");
+        if (!validation.valid) {
+            toast.error(validation.error!);
+            e.target.value = "";
+            return;
+        }
+
         setSelectedFile(file);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            const validation = validateFileSize(file, UPLOAD_LIMITS.DOCUMENT.maxBytes, "Document/Media");
+            if (!validation.valid) {
+                toast.error(validation.error!);
+                return;
+            }
+            setSelectedFile(file);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -87,15 +122,19 @@ export default function CreateResourcePage() {
             uploadFormData.append("files", selectedFile);
             try {
                 const res = await api.post("/uploads/media", uploadFormData, {
-                    headers: { "Content-Type": "multipart/form-data" }
+                    headers: { "Content-Type": "multipart/form-data" },
+                    timeout: 300000,
                 });
-                finalContentUrl = res.data.files[0].url;
-                toast.success("File uploaded successfully!");
+                const urls = extractUploadedUrls(res.data);
+                if (urls[0]) {
+                    finalContentUrl = urls[0];
+                    toast.success("File uploaded successfully!");
+                } else {
+                    throw new Error("Failed to retrieve upload URL");
+                }
             } catch (error: any) {
                 console.error("Upload failed", error);
-                const res = error?.response;
-                const errMsg = res?.data?.message ?? (res?.data?.errors?.[0] ? String(res.data.errors[0]) : "Failed to upload file");
-                toast.error(errMsg);
+                toast.error(getUploadErrorMessage(error, "Failed to upload file"));
                 setIsSubmitting(false);
                 setUploading(false);
                 return;
@@ -269,19 +308,22 @@ export default function CreateResourcePage() {
                                 />
                                 <label 
                                     htmlFor="doc-upload"
-                                    className="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 flex flex-col items-center justify-center text-center hover:bg-tatt-lime/5 hover:border-tatt-lime transition-all cursor-pointer group"
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    className={`border-2 border-dashed rounded-[2rem] p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer group ${isDragging ? "border-tatt-lime bg-tatt-lime/10" : "border-slate-200 hover:bg-tatt-lime/5 hover:border-tatt-lime"}`}
                                 >
                                     {uploading ? (
                                         <Loader2 size={48} className="animate-spin text-tatt-lime mb-4" />
                                     ) : selectedFile || (formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo')) ? (
                                         <CheckCircle2 size={48} className="text-tatt-lime mb-4" />
                                     ) : (
-                                        <UploadCloud size={48} className="text-slate-300 group-hover:text-tatt-lime transition-colors mb-4" />
+                                        <UploadCloud size={48} className={`transition-colors mb-4 ${isDragging ? "text-tatt-lime scale-110" : "text-slate-300 group-hover:text-tatt-lime"}`} />
                                     )}
                                     <p className="text-xl font-black text-slate-900 uppercase italic tracking-tighter mb-2">
-                                        {selectedFile ? selectedFile.name : (formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo') ? 'File Ready' : 'Upload Strategic Document')}
+                                        {selectedFile ? selectedFile.name : (formData.contentUrl && !formData.contentUrl.includes('youtube') && !formData.contentUrl.includes('vimeo') ? 'File Ready' : 'Click to upload or drag and drop')}
                                     </p>
-                                    <p className="text-sm font-medium text-slate-500">PDF, DOCX, or Media up to 25MB (Deployment Cap)</p>
+                                    <p className="text-sm font-medium text-slate-500">PDF, DOCX, or Media up to 100MB (Deployment Cap)</p>
                                 </label>
                             </div>
                             

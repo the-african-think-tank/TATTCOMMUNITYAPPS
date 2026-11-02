@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/auth-context";
 
 interface Volunteer {
     id: string;
@@ -35,6 +36,9 @@ interface Volunteer {
 
 export default function OnboardingPage() {
     const router = useRouter();
+    const { user } = useAuth();
+    const isRegionalAdmin = user?.systemRole === 'REGIONAL_ADMIN';
+
     const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -50,7 +54,8 @@ export default function OnboardingPage() {
                     page,
                     limit: 10,
                     search: search || undefined,
-                    status: 'TRAINING'
+                    status: 'TRAINING',
+                    chapterId: isRegionalAdmin ? user?.chapterId : undefined
                 }
             });
             // Mocking progress for visual effect since real data isn't joined yet
@@ -71,7 +76,7 @@ export default function OnboardingPage() {
 
     useEffect(() => {
         fetchVolunteers();
-    }, [page, search]);
+    }, [page, search, isRegionalAdmin, user?.chapterId]);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">

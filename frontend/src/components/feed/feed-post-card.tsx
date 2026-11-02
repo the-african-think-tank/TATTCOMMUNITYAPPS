@@ -21,6 +21,7 @@ import {
     Paperclip,
     Pencil,
     Trash2,
+    Upload,
     X
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,7 @@ import { useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import type { FeedPost } from "@/types/feed";
+import { PostMediaGallery } from "./post-media-gallery";
 
 type FeedPostCardProps = {
     post: FeedPost;
@@ -84,6 +86,7 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
 
     // Post edit state
     const [isEditingPost, setIsEditingPost] = useState(false);
+    const [isDraggingEdit, setIsDraggingEdit] = useState(false);
     const [editPostTitle, setEditPostTitle] = useState(post.title ?? "");
     const [editPostContent, setEditPostContent] = useState(post.content ?? "");
     const [editJobCompany, setEditJobCompany] = useState(post.jobCompany || "");
@@ -187,22 +190,44 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
         setIsEditingPost(true);
     };
 
-    const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
+    const processEditFiles = async (files: File[]) => {
         if (!files.length) return;
+
+        for (const file of files) {
+            const isVideo = file.type.startsWith("video/");
+            const isImage = file.type.startsWith("image/");
+            const maxBytes = isVideo ? 500 * 1024 * 1024 : isImage ? 50 * 1024 * 1024 : 100 * 1024 * 1024;
+            const maxMb = isVideo ? 500 : isImage ? 50 : 100;
+            if (file.size > maxBytes) {
+                toast.error(`"${file.name}" exceeds the ${maxMb}MB limit.`);
+                return;
+            }
+        }
 
         const uploadFormData = new FormData();
         files.forEach(f => uploadFormData.append("files", f));
 
         try {
-            toast.loading("Uploading image...", { id: "edit-upload" });
-            const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
+            toast.loading("Uploading media...", { id: "edit-upload" });
+            const response = await api.post("/uploads/media", uploadFormData, { timeout: 300000 });
             const uploadedUrls = response.data.files?.map((f: any) => f.url) || [];
             setEditMediaUrls(prev => [...prev, ...uploadedUrls]);
-            toast.success("Image uploaded!", { id: "edit-upload" });
-        } catch (err) {
-            toast.error("Upload failed.", { id: "edit-upload" });
+            toast.success("Media uploaded!", { id: "edit-upload" });
+        } catch (err: any) {
+            const apiError =
+                err.response?.data?.errors?.[0] ||
+                (typeof err.response?.data?.message === "string" ? err.response.data.message : err.response?.data?.message?.[0]) ||
+                (err.response?.status === 413 ? "File is too large (exceeds maximum upload limit)." : null) ||
+                err.message ||
+                "Upload failed.";
+            toast.error(apiError, { id: "edit-upload" });
         }
+    };
+
+    const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        processEditFiles(files);
+        if (e.target) e.target.value = "";
     };
 
     const removeEditMediaUrl = (index: number) => {
@@ -402,24 +427,7 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                                 </div>
                             )}
                             {post.mediaUrls?.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    {post.mediaUrls.slice(0, 4).map((url, i) => (
-                                        <a
-                                            key={i}
-                                            href={url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block size-16 sm:size-20 rounded-lg overflow-hidden border border-border bg-background shrink-0"
-                                        >
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img
-                                                src={url}
-                                                alt=""
-                                                className="object-cover w-full h-full"
-                                            />
-                                        </a>
-                                    ))}
-                                </div>
+                                <PostMediaGallery mediaUrls={post.mediaUrls} />
                             )}
                             {post.tags?.length > 0 && (
                                 <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
@@ -769,6 +777,24 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                 }
                 maxWidth="max-w-4xl"
             >
+                <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingEdit(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); setIsDraggingEdit(false); }}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingEdit(false);
+                        const f = Array.from(e.dataTransfer.files || []);
+                        if (f.length) processEditFiles(f);
+                    }}
+                    className={`relative transition-all rounded-2xl ${isDraggingEdit ? "ring-2 ring-tatt-lime ring-dashed bg-tatt-lime/5 p-2" : ""}`}
+                >
+                    {isDraggingEdit && (
+                        <div className="absolute inset-0 z-30 bg-background/90 backdrop-blur-xs border-2 border-dashed border-tatt-lime rounded-2xl flex flex-col items-center justify-center pointer-events-none p-6">
+                            <Upload className="size-8 text-tatt-lime mb-2 animate-bounce" />
+                            <p className="text-sm font-bold text-foreground">Drop media to attach to post</p>
+                            <p className="text-xs text-tatt-gray mt-1">Images 50MB • Videos 500MB • Docs 100MB</p>
+                        </div>
+                    )}
                 <form onSubmit={handleSavePostEdit} className="space-y-6">
                     <input
                         value={editPostTitle}
@@ -880,15 +906,20 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
 
                     {/* Image Attachments */}
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
-                                <ImageIcon className="size-3" /> Media Attachments
-                            </label>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray px-1 flex items-center gap-1.5">
+                                    <ImageIcon className="size-3" /> Media Attachments
+                                </label>
+                                <span className="text-[10px] text-tatt-gray">
+                                    (Images 50MB • Videos 500MB • Docs 100MB)
+                                </span>
+                            </div>
                             <label className="text-xs font-bold text-tatt-lime hover:underline cursor-pointer flex items-center gap-1">
-                                <Paperclip className="size-3.5" /> Add Images
+                                <Paperclip className="size-3.5" /> Add Media
                                 <input
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                                     multiple
                                     onChange={handleEditFileUpload}
                                     className="hidden"
@@ -945,6 +976,7 @@ export function FeedPostCard({ post, onLikeToggle, onCommentAdded, onDelete, onP
                         </div>
                     </div>
                 </form>
+                </div>
             </AppModal>
         </article>
     );

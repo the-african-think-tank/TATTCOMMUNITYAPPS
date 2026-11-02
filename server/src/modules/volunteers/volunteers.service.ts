@@ -341,12 +341,33 @@ export class VolunteersService {
 
     // ─── ADMIN DASHBOARD ───────────────────────────────────────────────────────
 
-    async getAdminDashboardStats() {
+    async getAdminDashboardStats(chapterId?: string) {
+        const userWhere: any = { flags: { [Op.contains]: [AccountFlags.VOLUNTEER] } };
+        const appWhere: any = { status: ApplicationStatus.PENDING };
+        let appInclude: any = undefined;
+        let statInclude: any = undefined;
+
+        if (chapterId) {
+            userWhere.chapterId = chapterId;
+            appInclude = [{
+                model: User,
+                as: 'user',
+                where: { chapterId },
+                required: true,
+            }];
+            statInclude = [{
+                model: User,
+                as: 'user',
+                where: { chapterId },
+                required: true,
+            }];
+        }
+
         const [totalVolunteers, pendingApplications, onboardingVolunteers, trainingCompletion] = await Promise.all([
-            this.userModel.count({ where: { flags: { [Op.contains]: [AccountFlags.VOLUNTEER] } } }),
-            this.applicationModel.count({ where: { status: ApplicationStatus.PENDING } }),
-            this.statModel.count({ where: { status: VolunteerStatus.TRAINING } }),
-            this.calculateTrainingCompletionRate()
+            this.userModel.count({ where: userWhere }),
+            this.applicationModel.count({ where: appWhere, include: appInclude }),
+            this.statModel.count({ where: { status: VolunteerStatus.TRAINING }, include: statInclude }),
+            this.calculateTrainingCompletionRate(chapterId)
         ]);
 
         return {
@@ -399,7 +420,7 @@ export class VolunteersService {
         };
     }
 
-    async getAdminApplicationsList(query: { page?: number; limit?: number; search?: string; status?: string, roleId?: string }) {
+    async getAdminApplicationsList(query: { page?: number; limit?: number; search?: string; status?: string, roleId?: string, chapterId?: string }) {
         const page = query.page || 1;
         const limit = query.limit || 10;
         const offset = (page - 1) * limit;
@@ -416,12 +437,16 @@ export class VolunteersService {
                 { email: { [Op.iLike]: `%${query.search}%` } },
             ];
         }
+        if (query.chapterId) {
+            userWhere.chapterId = query.chapterId;
+        }
 
         const { rows, count } = await this.applicationModel.findAndCountAll({
             where,
             include: [
                 { 
                     model: User, 
+                    as: 'user',
                     where: Object.keys(userWhere).length > 0 ? userWhere : undefined,
                     required: Object.keys(userWhere).length > 0
                 },
@@ -440,14 +465,27 @@ export class VolunteersService {
         };
     }
 
-    private async calculateTrainingCompletionRate() {
-        const totalVolunteers = await this.userModel.count({ where: { flags: { [Op.contains]: [AccountFlags.VOLUNTEER] } } });
+    private async calculateTrainingCompletionRate(chapterId?: string) {
+        const volunteerWhere: any = { flags: { [Op.contains]: [AccountFlags.VOLUNTEER] } };
+        if (chapterId) volunteerWhere.chapterId = chapterId;
+
+        const totalVolunteers = await this.userModel.count({ where: volunteerWhere });
         if (totalVolunteers === 0) return 0;
 
         const totalResources = await this.trainingModel.count();
         if (totalResources === 0) return 100;
 
-        const completedRecords = await this.progressModel.count({ where: { isCompleted: true } });
+        const progressInclude = chapterId ? [{
+            model: User,
+            as: 'user',
+            where: { chapterId },
+            required: true
+        }] : undefined;
+
+        const completedRecords = await this.progressModel.count({
+            where: { isCompleted: true },
+            include: progressInclude
+        });
         
         const rate = (completedRecords / (totalVolunteers * totalResources)) * 100;
         return Math.round(rate);

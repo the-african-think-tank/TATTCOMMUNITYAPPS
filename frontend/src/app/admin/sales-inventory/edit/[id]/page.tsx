@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import toast from "react-hot-toast";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 interface Variant {
     id?: string;
@@ -157,20 +158,67 @@ export default function EditProductPage() {
         if (field === 'color') setOpenColorDropdownIndex(null);
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return;
+    const [isDragging, setIsDragging] = useState(false);
+
+    const processFiles = async (files: File[]) => {
+        if (!files.length) return;
+
+        for (const file of files) {
+            const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, file.name);
+            if (!validation.valid) {
+                toast.error(validation.error!);
+                return;
+            }
+        }
+
         const formData = new FormData();
-        Array.from(e.target.files).forEach(file => formData.append('files', file));
+        files.forEach(file => formData.append('files', file));
         try {
             setUploading(true);
-            const res = await api.post("/uploads/media", formData);
-            const urls = res.data.files.map((f: any) => f.url);
-            setForm(prev => ({...prev, additionalImages: [...prev.additionalImages, ...urls]}));
-            toast.success("Files uploaded");
+            const res = await api.post("/uploads/media", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+                timeout: 180000,
+            });
+            const urls = extractUploadedUrls(res.data);
+            if (urls.length > 0) {
+                setForm(prev => ({
+                    ...prev,
+                    imageUrl: prev.imageUrl || urls[0] || "",
+                    additionalImages: [...prev.additionalImages, ...urls]
+                }));
+                toast.success(`${urls.length} file(s) uploaded`);
+            } else {
+                toast.error("Failed to retrieve upload URLs");
+            }
         } catch (error) {
-            toast.error("Upload failed");
+            toast.error(getUploadErrorMessage(error, "Failed to upload media"));
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const files = Array.from(e.target.files);
+        processFiles(files);
+        e.target.value = "";
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files?.length) {
+            processFiles(Array.from(e.dataTransfer.files));
         }
     };
 
@@ -235,6 +283,39 @@ export default function EditProductPage() {
                                 <input className="w-full h-14 px-6 rounded-2xl border-border bg-background font-black outline-none" value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} />
                              </div>
                         </div>
+                    </div>
+                </section>
+
+                <section className="bg-surface border border-border rounded-3xl overflow-hidden shadow-sm">
+                    <div className="p-6 border-b border-border bg-background/30">
+                        <h3 className="font-black text-sm uppercase tracking-widest">Product Media</h3>
+                    </div>
+                    <div className="p-8">
+                        <label 
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`border-2 border-dashed rounded-[2rem] p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer relative overflow-hidden group ${isDragging ? "border-tatt-lime bg-tatt-lime/10" : "border-border bg-background/50 hover:border-tatt-lime"}`}
+                        >
+                            <input type="file" className="hidden" multiple accept="image/*" onChange={handleFileUpload} disabled={uploading} />
+                            {uploading ? <Loader2 className="h-10 w-10 animate-spin text-tatt-lime" /> : (
+                                <>
+                                    <UploadCloud size={32} className={`transition-colors mb-2 ${isDragging ? "text-tatt-lime scale-110" : "text-tatt-gray group-hover:text-tatt-lime"}`} />
+                                    <p className="text-xs font-bold text-foreground">Click to upload or drag and drop</p>
+                                    <p className="text-[10px] text-tatt-gray mt-1">PNG, JPG, WebP up to 50MB each</p>
+                                </>
+                            )}
+                        </label>
+                        {form.additionalImages.length > 0 && (
+                            <div className="grid grid-cols-4 gap-4 mt-8">
+                                {form.additionalImages.map((url, i) => (
+                                    <div key={i} className="aspect-square rounded-2xl border border-border overflow-hidden relative group">
+                                        <img src={url} className="size-full object-cover" alt="Product thumbnail" />
+                                        <button onClick={() => setForm({...form, additionalImages: form.additionalImages.filter(u => u !== url)})} className="absolute top-2 right-2 p-2 bg-red-500 rounded-xl text-white opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={12} /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </section>
 

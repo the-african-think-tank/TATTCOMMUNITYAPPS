@@ -29,6 +29,7 @@ server {
 # Serveur HTTPS
 server {
     server_name staff.theafricanthinktank.org staff.theafricanthinktank.com;
+    client_max_body_size 500M;
 
     location /adminer/ {
         proxy_pass http://localhost:8080/;
@@ -51,6 +52,7 @@ server {
     }
 
     location /api {
+        client_max_body_size 500M;
         add_header 'Access-Control-Allow-Origin' $cors_origin always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, Accept' always;

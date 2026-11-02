@@ -121,8 +121,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         
         const rolePermissions: Record<string, string[]> = {
             "/admin": ["SUPERADMIN", "ADMIN", "REGIONAL_ADMIN", "CONTENT_ADMIN", "SALES", "MODERATOR"],
+            "/admin/members": ["SUPERADMIN", "ADMIN", "REGIONAL_ADMIN"],
             "/admin/org-management": ["SUPERADMIN", "ADMIN"],
-            "/admin/regional-chapters": ["SUPERADMIN", "ADMIN", "REGIONAL_ADMIN"],
+            "/admin/regional-chapters": ["SUPERADMIN", "ADMIN"],
             "/admin/feed-moderation": ["SUPERADMIN", "ADMIN", "MODERATOR"],
             "/admin/community-feed": ["SUPERADMIN", "ADMIN", "REGIONAL_ADMIN", "CONTENT_ADMIN", "SALES", "MODERATOR"],
             "/admin/volunteers": ["SUPERADMIN", "ADMIN", "REGIONAL_ADMIN"],
@@ -154,6 +155,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         },
         {
             group: "Community", items: [
+                { icon: <Users size={20} />, label: "Chapter Members", href: "/admin/members" },
                 { icon: <Users size={20} />, label: "Org Management", href: "/admin/org-management", badge: "NEW", flag: "CAN_ACCESS_ORG_MANAGEMENT" },
                 { icon: <Globe size={20} />, label: "Regional Chapters", href: "/admin/regional-chapters", flag: "CAN_ACCESS_REGIONAL_CHAPTERS" },
                 { icon: <Rss size={20} />, label: "TATT-U Feed Moderation", href: "/admin/feed-moderation", dot: true, flag: "CAN_ACCESS_FORUM_MODERATION" },

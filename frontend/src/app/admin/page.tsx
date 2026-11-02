@@ -19,10 +19,21 @@ import {
     RefreshCw
 } from "lucide-react";
 import { useAdminDashboardOverview } from "@/hooks/use-queries";
+import { useAuth } from "@/context/auth-context";
+import { RegionalDirectorDashboard } from "@/components/pages/regional-director-dashboard";
 
 export default function AdminDashboardOverview() {
     const router = useRouter();
-    const { data, isLoading, isError, error, refetch } = useAdminDashboardOverview();
+    const { user } = useAuth();
+    const isRegionalAdmin = user?.systemRole === "REGIONAL_ADMIN";
+
+    const { data, isLoading, isError, error, refetch } = useAdminDashboardOverview({
+        enabled: !isRegionalAdmin,
+    });
+
+    if (isRegionalAdmin) {
+        return <RegionalDirectorDashboard />;
+    }
 
     if (isLoading) {
         return (

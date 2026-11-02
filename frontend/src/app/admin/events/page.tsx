@@ -25,7 +25,9 @@ import {
     Trash2,
     Clock,
     Archive,
-    ArchiveRestore
+    ArchiveRestore,
+    ChevronDown,
+    Check
 } from "lucide-react";
 import Image from "next/image";
 import api from "@/services/api";
@@ -34,6 +36,7 @@ import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import dayjs, { TIMEZONE_GROUPS, toUtcIso, formatLocalTime, formatInTimezone, formatLocalTimeString, toNativeDateTimeInput, normalizeTimezone } from "@/lib/dayjs";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 // --- Types ---
 
@@ -86,6 +89,7 @@ export default function AdminEventsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'calendar'>('grid');
     const [statusFilter, setStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
+    const [scopeFilter, setScopeFilter] = useState<'all' | 'chapter' | 'global'>('all');
 
     const safeDate = (dateStr: string) => {
         try {
@@ -230,6 +234,17 @@ export default function AdminEventsPage() {
         }
     };
 
+    const isRegionalAdmin = user?.systemRole === 'REGIONAL_ADMIN';
+    const userChapterId = user?.chapterId;
+
+    const isChapterEvent = (e: Event) => Boolean(userChapterId && e.locations?.some(loc => loc.chapterId === userChapterId));
+    const isGlobalEvent = (e: Event) => Boolean(e.isForAllMembers || e.locations?.some(loc => loc.chapter?.code === '1007') || !e.locations?.length);
+
+    const chapterEventsCount = events.filter(isChapterEvent).length;
+    const globalEventsCount = events.filter(isGlobalEvent).length;
+
+    const scopedEventsForStats = isRegionalAdmin ? events.filter(isChapterEvent) : events;
+
     const activeCount = events.filter(e => !e.isArchived).length;
     const archivedCount = events.filter(e => !!e.isArchived).length;
 
@@ -240,8 +255,13 @@ export default function AdminEventsPage() {
             const matchesDesc = e.description?.toLowerCase().includes(q);
             if (!matchesTitle && !matchesDesc) return false;
         }
-        if (statusFilter === 'active') return !e.isArchived;
-        if (statusFilter === 'archived') return !!e.isArchived;
+        if (statusFilter === 'active' && e.isArchived) return false;
+        if (statusFilter === 'archived' && !e.isArchived) return false;
+
+        if (isRegionalAdmin) {
+            if (scopeFilter === 'chapter' && !isChapterEvent(e)) return false;
+            if (scopeFilter === 'global' && !isGlobalEvent(e)) return false;
+        }
         return true;
     });
 
@@ -256,8 +276,8 @@ export default function AdminEventsPage() {
         return "bg-tatt-green-deep/10 text-tatt-green-deep";
     };
 
-    const availableChapters = user?.systemRole === 'REGIONAL_ADMIN' 
-        ? chapters.filter(c => c.regionalManagerId === user?.id || c.associateRegionalDirectorId === user?.id)
+    const availableChapters = isRegionalAdmin
+        ? chapters.filter(c => c.id === user?.chapterId || c.regionalManagerId === user?.id || c.associateRegionalDirectorId === user?.id)
         : chapters;
 
     return (
@@ -273,19 +293,19 @@ export default function AdminEventsPage() {
                     <div className="flex p-1 bg-surface border border-border rounded-xl shadow-sm">
                         <button 
                             onClick={() => setViewMode('grid')}
-                            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${viewMode === 'grid' ? 'bg-tatt-lime text-tatt-black shadow-md' : 'text-tatt-gray hover:text-tatt-black'}`}
+                            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-tatt-lime text-tatt-black shadow-md' : 'text-tatt-gray hover:text-foreground'}`}
                         >
                             Grid
                         </button>
                         <button 
                             onClick={() => setViewMode('list')}
-                            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${viewMode === 'list' ? 'bg-tatt-lime text-tatt-black shadow-md' : 'text-tatt-gray hover:text-tatt-black'}`}
+                            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer ${viewMode === 'list' ? 'bg-tatt-lime text-tatt-black shadow-md' : 'text-tatt-gray hover:text-foreground'}`}
                         >
                             List
                         </button>
                         <button 
                             onClick={() => setViewMode('calendar')}
-                            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all ${viewMode === 'calendar' ? 'bg-tatt-lime text-tatt-black shadow-md' : 'text-tatt-gray hover:text-tatt-black'}`}
+                            className={`px-6 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer ${viewMode === 'calendar' ? 'bg-tatt-lime text-tatt-black shadow-md' : 'text-tatt-gray hover:text-foreground'}`}
                         >
                             Calendar
                         </button>
@@ -295,6 +315,9 @@ export default function AdminEventsPage() {
                             setIsEditMode(false);
                             setEditingEventId(null);
                             setSelectedEvent(null);
+                            const defaultLocations = isRegionalAdmin && userChapterId
+                                ? [{ chapterId: userChapterId, address: "" }]
+                                : (availableChapters[0]?.id ? [{ chapterId: availableChapters[0].id, address: "" }] : []);
                             setForm({
                                 title: "",
                                 description: "",
@@ -302,13 +325,13 @@ export default function AdminEventsPage() {
                                 timezone: "America/Los_Angeles",
                                 type: "EVENT",
                                 basePrice: 0,
-                                isForAllMembers: true,
+                                isForAllMembers: !isRegionalAdmin,
                                 targetMembershipTiers: [],
-                                locations: []
+                                locations: defaultLocations
                             });
                             setIsCreateModalOpen(true);
                         }}
-                        className="bg-tatt-lime hover:bg-tatt-lime-dark text-tatt-green-deep px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-tatt-lime/20 transition-all border-2 border-tatt-lime-dark/10"
+                        className="bg-tatt-lime hover:bg-tatt-lime-dark text-tatt-green-deep px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-tatt-lime/20 transition-all border-2 border-tatt-lime-dark/10 cursor-pointer active:scale-95"
                     >
                         <Plus className="size-5" strokeWidth={3} />
                         <span className="uppercase tracking-widest text-xs font-black">New Event</span>
@@ -320,68 +343,171 @@ export default function AdminEventsPage() {
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <StatCard
                     icon={<CalendarIcon className="text-tatt-lime-dark" />}
-                    label="Upcoming Events"
-                    value={events.filter(e => !e.isArchived && safeDate(e.dateTime) > new Date()).length.toString()}
+                    label={isRegionalAdmin ? "Upcoming Events (Chapter)" : "Upcoming Events"}
+                    value={scopedEventsForStats.filter(e => !e.isArchived && safeDate(e.dateTime) > new Date()).length.toString()}
                     trend="+2%"
                 />
                 <StatCard
                     icon={<Users className="text-tatt-lime-dark" />}
-                    label="Total Registrations"
-                    value={events.reduce((acc, e) => acc + (e.registrationsCount || 0), 0).toString()}
+                    label={isRegionalAdmin ? "Registrations (Chapter)" : "Total Registrations"}
+                    value={scopedEventsForStats.reduce((acc, e) => acc + (e.registrationsCount || 0), 0).toString()}
                     trend="+15%"
                 />
                 <StatCard
                     icon={<DollarSign className="text-tatt-lime-dark" />}
-                    label="Revenue Goal"
-                    value={`$${events.reduce((acc, e) => acc + (e.basePrice * (e.registrationsCount || 0)), 0).toLocaleString()}`}
+                    label={isRegionalAdmin ? "Revenue (Chapter)" : "Revenue Goal"}
+                    value={`$${scopedEventsForStats.reduce((acc, e) => acc + (e.basePrice * (e.registrationsCount || 0)), 0).toLocaleString()}`}
                     trend="+8%"
                 />
             </section>
 
             {/* Filter and Search Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center p-1 bg-surface border border-border rounded-2xl overflow-x-auto">
-                    <button
-                        onClick={() => setStatusFilter('active')}
-                        className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                            statusFilter === 'active'
-                                ? 'bg-tatt-lime text-tatt-black shadow-md'
-                                : 'text-tatt-gray hover:text-foreground'
-                        }`}
-                    >
-                        Active ({activeCount})
-                    </button>
-                    <button
-                        onClick={() => setStatusFilter('archived')}
-                        className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                            statusFilter === 'archived'
-                                ? 'bg-amber-400 text-tatt-black shadow-md'
-                                : 'text-tatt-gray hover:text-foreground'
-                        }`}
-                    >
-                        Archived ({archivedCount})
-                    </button>
-                    <button
-                        onClick={() => setStatusFilter('all')}
-                        className={`px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                            statusFilter === 'all'
-                                ? 'bg-tatt-lime text-tatt-black shadow-md'
-                                : 'text-tatt-gray hover:text-foreground'
-                        }`}
-                    >
-                        All ({events.length})
-                    </button>
-                </div>
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-8">
+                {/* Left: Single Primary Segmented Control */}
+                {isRegionalAdmin ? (
+                    <div className="flex items-center p-1 bg-surface border border-border rounded-2xl shadow-sm overflow-x-auto">
+                        <button
+                            onClick={() => setScopeFilter('all')}
+                            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                                scopeFilter === 'all'
+                                    ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                    : 'text-tatt-gray hover:text-foreground'
+                            }`}
+                        >
+                            <span>All Events</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none ${scopeFilter === 'all' ? 'bg-tatt-black/15 text-tatt-black' : 'bg-background text-tatt-gray border border-border/50'}`}>
+                                {events.length}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setScopeFilter('chapter')}
+                            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                                scopeFilter === 'chapter'
+                                    ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                    : 'text-tatt-gray hover:text-foreground'
+                            }`}
+                        >
+                            <Building2 className="size-3" />
+                            <span>Chapter</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none ${scopeFilter === 'chapter' ? 'bg-tatt-black/15 text-tatt-black' : 'bg-background text-tatt-gray border border-border/50'}`}>
+                                {chapterEventsCount}
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setScopeFilter('global')}
+                            className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                                scopeFilter === 'global'
+                                    ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                    : 'text-tatt-gray hover:text-foreground'
+                            }`}
+                        >
+                            <Globe className="size-3" />
+                            <span>Global</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold leading-none ${scopeFilter === 'global' ? 'bg-tatt-black/15 text-tatt-black' : 'bg-background text-tatt-gray border border-border/50'}`}>
+                                {globalEventsCount}
+                            </span>
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center p-1 bg-surface border border-border rounded-2xl shadow-sm overflow-x-auto">
+                        <button
+                            onClick={() => setStatusFilter('active')}
+                            className={`px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                                statusFilter === 'active'
+                                    ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                    : 'text-tatt-gray hover:text-foreground'
+                            }`}
+                        >
+                            Active ({activeCount})
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter('archived')}
+                            className={`px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                                statusFilter === 'archived'
+                                    ? 'bg-amber-400 text-tatt-black shadow-md'
+                                    : 'text-tatt-gray hover:text-foreground'
+                            }`}
+                        >
+                            Archived ({archivedCount})
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter('all')}
+                            className={`px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+                                statusFilter === 'all'
+                                    ? 'bg-tatt-lime text-tatt-black shadow-md'
+                                    : 'text-tatt-gray hover:text-foreground'
+                            }`}
+                        >
+                            All ({events.length})
+                        </button>
+                    </div>
+                )}
 
-                <div className="relative flex-1 sm:max-w-xs">
-                    <input
-                        className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-tatt-lime/50 font-bold transition-all placeholder:text-tatt-gray/40 text-foreground"
-                        placeholder="Search events..."
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tatt-gray size-4" />
+                {/* Right: Compact Status Dropdown + Search Input */}
+                <div className="flex items-center gap-3 w-full lg:w-auto">
+                    {isRegionalAdmin && (
+                        <ActionDropdown
+                            ariaLabel="Filter events by status"
+                            placement="bottom start"
+                            triggerClassName="flex items-center gap-2 px-3.5 py-2.5 bg-surface border border-border hover:border-tatt-lime/40 rounded-xl text-xs font-bold transition-all cursor-pointer outline-none whitespace-nowrap shadow-sm"
+                            trigger={
+                                <div className="flex items-center gap-2">
+                                    <Filter className="size-3.5 text-tatt-lime" />
+                                    <span className="text-tatt-gray text-[11px] font-semibold uppercase tracking-wider">Status:</span>
+                                    <span className={`font-black uppercase tracking-wider ${statusFilter === 'archived' ? 'text-amber-400' : 'text-foreground'}`}>
+                                        {statusFilter === 'active' ? `Active (${activeCount})` : statusFilter === 'archived' ? `Archived (${archivedCount})` : `All (${events.length})`}
+                                    </span>
+                                    <ChevronDown className="size-3 text-tatt-gray ml-0.5" />
+                                </div>
+                            }
+                            items={[
+                                {
+                                    key: "active",
+                                    label: (
+                                        <div className="flex items-center justify-between w-full gap-4 text-xs font-bold">
+                                            <span>Active Events</span>
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-tatt-lime/10 text-tatt-lime">{activeCount}</span>
+                                        </div>
+                                    ),
+                                    icon: statusFilter === "active" ? <Check className="size-3.5 text-tatt-lime" /> : <div className="size-3.5" />,
+                                    onPress: () => setStatusFilter("active"),
+                                },
+                                {
+                                    key: "archived",
+                                    label: (
+                                        <div className="flex items-center justify-between w-full gap-4 text-xs font-bold">
+                                            <span>Archived Events</span>
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">{archivedCount}</span>
+                                        </div>
+                                    ),
+                                    icon: statusFilter === "archived" ? <Check className="size-3.5 text-amber-400" /> : <Archive className="size-3.5 text-tatt-gray" />,
+                                    onPress: () => setStatusFilter("archived"),
+                                },
+                                {
+                                    key: "all",
+                                    label: (
+                                        <div className="flex items-center justify-between w-full gap-4 text-xs font-bold">
+                                            <span>All Statuses</span>
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface border border-border text-foreground">{events.length}</span>
+                                        </div>
+                                    ),
+                                    icon: statusFilter === "all" ? <Check className="size-3.5 text-tatt-lime" /> : <div className="size-3.5" />,
+                                    onPress: () => setStatusFilter("all"),
+                                },
+                            ]}
+                        />
+                    )}
+
+                    <div className="relative flex-1 lg:w-72">
+                        <input
+                            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-tatt-lime/50 font-bold transition-all placeholder:text-tatt-gray/40 text-foreground"
+                            placeholder="Search events..."
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tatt-gray size-4" />
+                    </div>
                 </div>
             </div>
 
@@ -486,6 +612,9 @@ export default function AdminEventsPage() {
                             <EventCard
                                 key={event.id}
                                 event={event}
+                                isChapterEvent={isChapterEvent(event)}
+                                isGlobalEvent={isGlobalEvent(event)}
+                                canManage={!isRegionalAdmin || isChapterEvent(event)}
                                 onEdit={(e) => handleEditClick(event, e)}
                                 onClick={() => handleEventClick(event)}
                                 onDelete={(e) => handleDeleteEvent(event.id, e)}
@@ -529,68 +658,90 @@ export default function AdminEventsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/50">
-                                    {filteredEvents.map(event => (
-                                        <tr
-                                            key={event.id}
-                                            onClick={() => handleEventClick(event)}
-                                            className="hover:bg-tatt-lime/5 transition-colors cursor-pointer group"
-                                        >
-                                            <td className="px-8 py-6">
-                                                <div className="flex flex-col">
+                                    {filteredEvents.map(event => {
+                                        const isChapter = isChapterEvent(event);
+                                        const isGlobal = isGlobalEvent(event);
+                                        const canManage = !isRegionalAdmin || isChapter;
+                                        return (
+                                            <tr
+                                                key={event.id}
+                                                onClick={() => handleEventClick(event)}
+                                                className="hover:bg-tatt-lime/5 transition-colors cursor-pointer group"
+                                            >
+                                                <td className="px-8 py-6">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-sm text-foreground group-hover:text-tatt-lime transition-colors">{event.title}</span>
+                                                            {isChapter ? (
+                                                                <span className="px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                                                    <Building2 className="size-2.5" /> Chapter Event
+                                                                </span>
+                                                            ) : isGlobal ? (
+                                                                <span className="px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                                                                    <Globe className="size-2.5" /> Global Event
+                                                                </span>
+                                                            ) : null}
+                                                            {event.isArchived && (
+                                                                <span className="px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                                                    Archived
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[10px] font-black text-tatt-gray uppercase tracking-tighter opacity-60">Revenue Unit: ${Number(event.basePrice).toFixed(2)}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="text-xs font-bold text-foreground">
+                                                        Native: {formatInTimezone(event.dateTime, event.timezone || 'America/Los_Angeles')}
+                                                    </div>
+                                                    <div className="text-[10px] text-tatt-lime font-bold mt-1">
+                                                        Local: {formatLocalTime(event.dateTime)}
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className="text-xs font-bold text-foreground">
+                                                        {event.locations && event.locations.length > 0 ? (
+                                                            event.locations.length === 1 ? event.locations?.[0]?.chapter?.name : `${event.locations.length} Locations`
+                                                        ) : "All Chapters"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className={`px-2 py-1 rounded-[4px] text-[9px] font-black uppercase tracking-widest ${getTypeBadgeClass(event.type)}`}>
+                                                        {event.type}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-sm text-foreground group-hover:text-tatt-lime transition-colors">{event.title}</span>
-                                                        {event.isArchived && (
-                                                            <span className="px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                                                Archived
+                                                        {event.isForAllMembers ? <Globe className="size-3 text-tatt-lime" /> : <Lock className="size-3 text-tatt-bronze" />}
+                                                        <span className={`text-[10px] font-black uppercase tracking-widest ${event.isForAllMembers ? "text-tatt-lime" : "text-tatt-bronze"}`}>
+                                                            {event.isForAllMembers ? "Public Domain" : "Tier Restricted"}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {canManage ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={(e) => handleToggleArchive(event, e)}
+                                                                    className="p-2 hover:bg-amber-500/10 text-tatt-gray hover:text-amber-400 rounded-lg transition-all cursor-pointer"
+                                                                    title={event.isArchived ? "Restore Event" : "Archive Event"}
+                                                                >
+                                                                    {event.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                                                                </button>
+                                                                <button onClick={(e) => handleEditClick(event, e)} className="p-2 hover:bg-tatt-lime/10 text-tatt-gray hover:text-tatt-lime rounded-lg transition-all cursor-pointer" title="Edit Event"><Edit2 size={14} /></button>
+                                                                <button onClick={(e) => handleDeleteEvent(event.id, e)} className="p-2 hover:bg-red-500/10 text-tatt-gray hover:text-red-500 rounded-lg transition-all cursor-pointer" title="Delete Event"><Trash2 size={14} /></button>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-[9px] font-bold text-tatt-gray px-2 py-1 rounded bg-surface border border-border">
+                                                                Read Only
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <span className="text-[10px] font-black text-tatt-gray uppercase tracking-tighter opacity-60">Revenue Unit: ${Number(event.basePrice).toFixed(2)}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="text-xs font-bold text-foreground">
-                                                    Native: {formatInTimezone(event.dateTime, event.timezone || 'America/Los_Angeles')}
-                                                </div>
-                                                <div className="text-[10px] text-tatt-lime font-bold mt-1">
-                                                    Local: {formatLocalTime(event.dateTime)}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <span className="text-xs font-bold text-foreground">
-                                                    {event.locations && event.locations.length > 0 ? (
-                                                        event.locations.length === 1 ? event.locations?.[0]?.chapter?.name : `${event.locations.length} Locations`
-                                                    ) : "All Chapters"}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <span className={`px-2 py-1 rounded-[4px] text-[9px] font-black uppercase tracking-widest ${getTypeBadgeClass(event.type)}`}>
-                                                    {event.type}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2">
-                                                    {event.isForAllMembers ? <Globe className="size-3 text-tatt-lime" /> : <Lock className="size-3 text-tatt-bronze" />}
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${event.isForAllMembers ? "text-tatt-lime" : "text-tatt-bronze"}`}>
-                                                        {event.isForAllMembers ? "Public Domain" : "Tier Restricted"}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={(e) => handleToggleArchive(event, e)}
-                                                        className="p-2 hover:bg-amber-500/10 text-tatt-gray hover:text-amber-400 rounded-lg transition-all cursor-pointer"
-                                                        title={event.isArchived ? "Restore Event" : "Archive Event"}
-                                                    >
-                                                        {event.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                                                    </button>
-                                                    <button onClick={(e) => handleEditClick(event, e)} className="p-2 hover:bg-tatt-lime/10 text-tatt-gray hover:text-tatt-lime rounded-lg transition-all cursor-pointer" title="Edit Event"><Edit2 size={14} /></button>
-                                                    <button onClick={(e) => handleDeleteEvent(event.id, e)} className="p-2 hover:bg-red-500/10 text-tatt-gray hover:text-red-500 rounded-lg transition-all cursor-pointer" title="Delete Event"><Trash2 size={14} /></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -689,12 +840,15 @@ export default function AdminEventsPage() {
                                     <select
                                         value={form.isForAllMembers ? "true" : "false"}
                                         onChange={e => setForm({ ...form, isForAllMembers: e.target.value === "true" })}
-                                        disabled={user?.systemRole === 'REGIONAL_ADMIN'}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime disabled:opacity-50"
+                                        disabled={isRegionalAdmin}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tatt-lime disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                                     >
-                                        <option value="true">Public / All Members</option>
-                                        <option value="false">Restricted / Tier-based</option>
+                                        {!isRegionalAdmin && <option value="true">Public / All Members</option>}
+                                        <option value="false">{isRegionalAdmin ? "Local Chapter Members Only" : "Restricted / Tier-based"}</option>
                                     </select>
+                                    {isRegionalAdmin && (
+                                        <p className="text-[10px] text-tatt-gray mt-1">Regional events are restricted to your chapter membership.</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -712,7 +866,7 @@ export default function AdminEventsPage() {
                                                         : [...form.targetMembershipTiers, tier];
                                                     setForm({ ...form, targetMembershipTiers: tiers });
                                                 }}
-                                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${form.targetMembershipTiers.includes(tier)
+                                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${form.targetMembershipTiers.includes(tier)
                                                     ? "bg-tatt-lime text-tatt-black border-tatt-lime shadow-lg shadow-tatt-lime/20"
                                                     : "bg-background text-tatt-gray border-border hover:border-tatt-lime/50"
                                                     }`}
@@ -726,33 +880,38 @@ export default function AdminEventsPage() {
 
                             <div className="space-y-3 pt-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-sm font-bold">Locations & Chapters</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setForm({ ...form, locations: [...form.locations, { chapterId: availableChapters[0]?.id || "", address: "" }] })}
-                                        className="text-xs font-bold text-tatt-lime-dark hover:underline flex items-center gap-1"
-                                    >
-                                        <Plus className="size-3" /> Add Location
-                                    </button>
+                                    <label className="text-sm font-bold">{isRegionalAdmin ? "Chapter & Venue" : "Locations & Chapters"}</label>
+                                    {!isRegionalAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm({ ...form, locations: [...form.locations, { chapterId: availableChapters[0]?.id || "", address: "" }] })}
+                                            className="text-xs font-bold text-tatt-lime-dark hover:underline flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <Plus className="size-3" /> Add Location
+                                        </button>
+                                    )}
                                 </div>
                                 {form.locations.map((loc, idx) => (
                                     <div key={idx} className="flex gap-2 items-end">
                                         <div className="flex-1 space-y-1">
+                                            <label className="text-[10px] text-tatt-gray font-bold uppercase tracking-wider">Chapter</label>
                                             <select
                                                 value={loc.chapterId}
+                                                disabled={isRegionalAdmin}
                                                 onChange={e => {
                                                     const newLocs = [...form.locations];
                                                     if (newLocs[idx]) newLocs[idx].chapterId = e.target.value;
                                                     setForm({ ...form, locations: newLocs });
                                                 }}
-                                                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs"
+                                                className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs disabled:opacity-75 cursor-pointer disabled:cursor-not-allowed"
                                             >
-                                                {user?.systemRole === 'REGIONAL_ADMIN' 
-                                                    ? availableChapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-                                                    : chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                {availableChapters.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div className="flex-[2] space-y-1">
+                                            <label className="text-[10px] text-tatt-gray font-bold uppercase tracking-wider">Venue / Address</label>
                                             <input
                                                 value={loc.address}
                                                 onChange={e => {
@@ -764,13 +923,15 @@ export default function AdminEventsPage() {
                                                 className="w-full bg-background border border-border rounded-xl px-4 py-2 text-xs"
                                             />
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm({ ...form, locations: form.locations.filter((_, i) => i !== idx) })}
-                                            className="p-2 text-tatt-bronze hover:bg-tatt-yellow/10 rounded-lg transition-colors"
-                                        >
-                                            <X className="size-4" />
-                                        </button>
+                                        {!isRegionalAdmin && form.locations.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm({ ...form, locations: form.locations.filter((_, i) => i !== idx) })}
+                                                className="p-2 text-tatt-bronze hover:bg-tatt-yellow/10 rounded-lg transition-colors cursor-pointer"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -940,13 +1101,19 @@ function EventCard({
     onClick,
     onEdit,
     onDelete,
-    onToggleArchive
+    onToggleArchive,
+    isChapterEvent,
+    isGlobalEvent,
+    canManage,
 }: {
     event: Event;
     onClick: () => void;
     onEdit: (e: any) => void;
     onDelete: (e: any) => void;
     onToggleArchive: (e: any) => void;
+    isChapterEvent: boolean;
+    isGlobalEvent: boolean;
+    canManage: boolean;
 }) {
     const eventDateStr = dayjs(event.dateTime).format("MMM D, YYYY");
     const nativeTimeOnly = dayjs(event.dateTime).tz(event.timezone || 'America/Los_Angeles').format("h:mm A z");
@@ -979,6 +1146,17 @@ function EventCard({
                         <span className="px-3 py-1 bg-tatt-black/80 backdrop-blur-md text-tatt-lime text-[9px] font-black uppercase tracking-widest rounded-full border border-tatt-lime/20 shadow-md">
                             {event.type}
                         </span>
+                        {isChapterEvent ? (
+                            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-[9px] font-black uppercase tracking-widest rounded-full border border-emerald-500/30 shadow-md flex items-center gap-1">
+                                <Building2 className="size-2.5" />
+                                Chapter Event
+                            </span>
+                        ) : isGlobalEvent ? (
+                            <span className="px-3 py-1 bg-sky-500/20 text-sky-300 text-[9px] font-black uppercase tracking-widest rounded-full border border-sky-500/30 shadow-md flex items-center gap-1">
+                                <Globe className="size-2.5" />
+                                Global Event
+                            </span>
+                        ) : null}
                         {event.isArchived && (
                             <span className="px-3 py-1 bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-widest rounded-full border border-amber-500/30 shadow-md">
                                 Archived
@@ -990,29 +1168,37 @@ function EventCard({
                     </div>
 
                     {/* Edit, Archive & Delete Quick Action Controls */}
-                    <div className="absolute top-4 right-4 z-20 flex gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onToggleArchive(e); }}
-                            className="bg-tatt-black/80 hover:bg-amber-500 text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
-                            title={event.isArchived ? "Restore Event" : "Archive Event"}
-                        >
-                            {event.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                        </button>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onEdit(e); }}
-                            className="bg-tatt-black/80 hover:bg-tatt-lime text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
-                            title="Edit Event"
-                        >
-                            <Edit2 size={14} />
-                        </button>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onDelete(e); }}
-                            className="bg-tatt-black/80 hover:bg-red-600 text-white p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
-                            title="Delete Event"
-                        >
-                            <Trash2 size={14} />
-                        </button>
-                    </div>
+                    {canManage ? (
+                        <div className="absolute top-4 right-4 z-20 flex gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onToggleArchive(e); }}
+                                className="bg-tatt-black/80 hover:bg-amber-500 text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
+                                title={event.isArchived ? "Restore Event" : "Archive Event"}
+                            >
+                                {event.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onEdit(e); }}
+                                className="bg-tatt-black/80 hover:bg-tatt-lime text-white hover:text-tatt-black p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
+                                title="Edit Event"
+                            >
+                                <Edit2 size={14} />
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+                                className="bg-tatt-black/80 hover:bg-red-600 text-white p-2.5 rounded-xl transition-all border border-white/10 cursor-pointer active:scale-95 shadow-md"
+                                title="Delete Event"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="absolute top-4 right-4 z-20">
+                            <span className="px-2.5 py-1 bg-tatt-black/70 backdrop-blur-md text-[9px] font-bold uppercase tracking-wider text-tatt-gray border border-white/10 rounded-full">
+                                Read Only
+                            </span>
+                        </div>
+                    )}
 
                     {/* Title */}
                     <div className="absolute bottom-4 left-6 right-6 z-10">

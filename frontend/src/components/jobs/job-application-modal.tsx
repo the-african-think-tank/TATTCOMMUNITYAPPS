@@ -8,9 +8,13 @@ import type { User } from "@/context/auth-context";
 import toast from "react-hot-toast";
 import { RichTextView, hasHtmlTags } from "@/components/shared/rich-text-view";
 import { analytics } from "@/lib/analytics";
+import { 
+  UPLOAD_LIMITS, 
+  validateFileSize, 
+  extractUploadedUrls, 
+  getUploadErrorMessage 
+} from "@/lib/upload-utils";
 
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [".pdf", ".doc", ".docx"];
 
 function formatDatePosted(dateString?: string | null): string {
@@ -48,6 +52,7 @@ export function JobApplicationModal({
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,50 +64,54 @@ export function JobApplicationModal({
   const employerIndustry = ((isKiongoziListing ? (job.postedBy?.industry || job.category) : job.category) || "Industry").trim() || "Industry";
   const employerRole = isKiongoziListing ? job.postedBy?.businessRole : null;
 
+  const processResumeFile = (file: File) => {
+    setUploadError(null);
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!ALLOWED_TYPES.includes(ext)) {
+      setUploadError("Please upload PDF, DOC, or DOCX.");
+      setResumeFile(null);
+      return;
+    }
+    const validation = validateFileSize(file, UPLOAD_LIMITS.DOCUMENT.maxBytes, "Resume / CV");
+    if (!validation.valid) {
+      setUploadError(validation.error!);
+      setResumeFile(null);
+      return;
+    }
+    setResumeFile(file);
+    setResumeUrl(null);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setUploadError(null);
     if (!file) {
       setResumeFile(null);
       setResumeUrl(null);
       return;
     }
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!ALLOWED_TYPES.includes(ext)) {
-      setUploadError("Please upload PDF, DOC, or DOCX.");
-      setResumeFile(null);
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setUploadError("Maximum file size: 5MB.");
-      setResumeFile(null);
-      return;
-    }
-    setResumeFile(file);
-    setResumeUrl(null);
+    processResumeFile(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    setUploadError(null);
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!ALLOWED_TYPES.includes(ext)) {
-      setUploadError("Please upload PDF, DOC, or DOCX.");
-      setResumeFile(null);
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setUploadError("Maximum file size: 5MB.");
-      setResumeFile(null);
-      return;
-    }
-    setResumeFile(file);
-    setResumeUrl(null);
+    processResumeFile(file);
   };
 
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,13 +126,14 @@ export function JobApplicationModal({
       const formData = new FormData();
       formData.append("files", resumeFile);
       try {
-        const { data } = await api.post<{ files: { url: string }[] }>("/uploads/media", formData, {
+        const { data } = await api.post("/uploads/media", formData, {
           headers: { "Content-Type": "multipart/form-data" },
+          timeout: 120000,
         });
-        finalResumeUrl = data.files?.[0]?.url ?? null;
+        const urls = extractUploadedUrls(data);
+        finalResumeUrl = urls[0] ?? null;
       } catch (err: any) {
-        const res = err?.response;
-        const errMsg = res?.data?.message ?? (res?.data?.errors?.[0] ? String(res.data.errors[0]) : "Failed to upload resume. Try again.");
+        const errMsg = getUploadErrorMessage(err, "Failed to upload resume. Try again.");
         setError(errMsg);
         toast.error(errMsg);
         setSubmitting(false);
@@ -389,18 +399,29 @@ export function JobApplicationModal({
                 <label className="block text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-3 ml-1 opacity-70">Curriculum Vitae / Resume *</label>
                 <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} className="hidden" />
                 <div
-                  onDrop={handleDrop} onDragOver={handleDragOver} onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all ${resumeFile ? "bg-tatt-lime/5 border-tatt-lime/60 shadow-inner" : "bg-background border-border hover:border-tatt-lime/40"}`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all ${
+                    isDragging
+                      ? "bg-tatt-lime/10 border-tatt-lime scale-[1.01]"
+                      : resumeFile
+                        ? "bg-tatt-lime/5 border-tatt-lime/60 shadow-inner"
+                        : "bg-background border-border hover:border-tatt-lime/40"
+                  }`}
                 >
-                  <div className={`mx-auto mb-4 size-14 rounded-2xl flex items-center justify-center transition-all ${resumeFile ? "bg-tatt-lime text-black" : "bg-tatt-gray/10 text-tatt-gray"}`}>
+                  <div className={`mx-auto mb-4 size-14 rounded-2xl flex items-center justify-center transition-all ${
+                    isDragging || resumeFile ? "bg-tatt-lime text-black" : "bg-tatt-gray/10 text-tatt-gray"
+                  }`}>
                     <Upload className="size-6" />
                   </div>
                   <p className="text-sm text-foreground font-black">
                     {resumeFile ? resumeFile.name : (
-                      <>Drop CV file or <span className="text-tatt-lime">Browse Work</span></>
+                      <>Click to upload or drag and drop</>
                     )}
                   </p>
-                  <p className="text-[10px] text-tatt-gray mt-2 font-black uppercase tracking-widest opacity-60">PDF, DOCX accepted (Max 5MB)</p>
+                  <p className="text-[10px] text-tatt-gray mt-2 font-black uppercase tracking-widest opacity-60">PDF, DOC, DOCX accepted (Max 100MB)</p>
                   {uploadError && <p className="text-red-500 text-xs mt-3 font-black uppercase tracking-tighter">{uploadError}</p>}
                 </div>
               </div>

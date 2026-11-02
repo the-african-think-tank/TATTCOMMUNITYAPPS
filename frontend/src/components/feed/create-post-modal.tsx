@@ -3,12 +3,33 @@
 import { useState, useRef, useEffect } from "react";
 import {
     MessageSquare, Calendar, Briefcase, Zap, Plus, ChevronDown,
-    Lock, Image as ImageIcon, Paperclip, MapPin, Link2, X
+    Lock, Image as ImageIcon, Paperclip, MapPin, Link2, X,
+    Film, FileText, Music, Info, Upload
 } from "lucide-react";
 import { AppModal } from "@/components/modals/app-modal";
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
 import toast from "react-hot-toast";
+
+export const FEED_FILE_LIMITS = {
+    IMAGE: { maxBytes: 50 * 1024 * 1024, maxMb: 50, label: "Images" },
+    VIDEO: { maxBytes: 500 * 1024 * 1024, maxMb: 500, label: "Videos" },
+    AUDIO: { maxBytes: 100 * 1024 * 1024, maxMb: 100, label: "Audio" },
+    DOCUMENT: { maxBytes: 100 * 1024 * 1024, maxMb: 100, label: "Documents" },
+};
+
+export function getFeedFileCategory(file: File): keyof typeof FEED_FILE_LIMITS {
+    if (file.type.startsWith("image/")) return "IMAGE";
+    if (file.type.startsWith("video/")) return "VIDEO";
+    if (file.type.startsWith("audio/")) return "AUDIO";
+    return "DOCUMENT";
+}
+
+export function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export const POST_TYPES = [
     { id: "GENERAL", name: "General Update", icon: MessageSquare, description: "Share a thought, insight, or status update." },
@@ -62,6 +83,7 @@ export function CreatePostModal({
 
     const [postTopicId, setPostTopicId] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,18 +118,58 @@ export function CreatePostModal({
         onClose();
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length + attachments.length > 10) {
-            toast.error("Maximum 10 attachments allowed");
+    const processIncomingFiles = (incomingFiles: File[]) => {
+        if (incomingFiles.length + attachments.length > 10) {
+            toast.error("Maximum 10 attachments allowed per post");
             return;
         }
 
-        const newPreviews = files.map(file => URL.createObjectURL(file));
-        setAttachments(prev => [...prev, ...files]);
-        setAttachmentPreviews(prev => [...prev, ...newPreviews]);
+        const validFiles: File[] = [];
+        const validPreviews: string[] = [];
 
+        for (const file of incomingFiles) {
+            const category = getFeedFileCategory(file);
+            const limit = FEED_FILE_LIMITS[category];
+            if (file.size > limit.maxBytes) {
+                toast.error(`"${file.name}" is too large (${formatFileSize(file.size)}). Max limit for ${limit.label.toLowerCase()} is ${limit.maxMb}MB.`);
+                continue;
+            }
+            validFiles.push(file);
+            validPreviews.push(file.type.startsWith("image/") ? URL.createObjectURL(file) : "");
+        }
+
+        if (validFiles.length > 0) {
+            setAttachments(prev => [...prev, ...validFiles]);
+            setAttachmentPreviews(prev => [...prev, ...validPreviews]);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const incomingFiles = Array.from(e.target.files || []);
+        processIncomingFiles(incomingFiles);
         if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        const droppedFiles = Array.from(e.dataTransfer.files || []);
+        if (droppedFiles.length > 0) {
+            processIncomingFiles(droppedFiles);
+        }
     };
 
     const removeAttachment = (index: number) => {
@@ -134,7 +196,8 @@ export function CreatePostModal({
                 attachments.forEach(file => formData.append("files", file));
 
                 const uploadRes = await api.post("/uploads/media", formData, {
-                    headers: { "Content-Type": "multipart/form-data" }
+                    headers: { "Content-Type": "multipart/form-data" },
+                    timeout: 300000, // 5 minutes to accommodate large media/video uploads
                 });
                 uploadedMediaUrls = uploadRes.data.files?.map((f: any) => f.url) || [];
             }
@@ -162,7 +225,13 @@ export function CreatePostModal({
                 onPostCreated(res.data);
             }
         } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to publish post", { id: loadingToast });
+            const apiError =
+                error.response?.data?.errors?.[0] ||
+                (typeof error.response?.data?.message === "string" ? error.response.data.message : error.response?.data?.message?.[0]) ||
+                (error.response?.status === 413 ? "File is too large (exceeds maximum upload limit)." : null) ||
+                error.message ||
+                "Failed to publish post";
+            toast.error(apiError, { id: loadingToast });
         } finally {
             setIsSubmitting(false);
         }
@@ -239,7 +308,24 @@ export function CreatePostModal({
                 </div>
             }
             footer={
-                <div className="flex flex-col gap-4 w-full">
+                <div className="flex flex-col gap-3 w-full">
+                    {/* Size Limit Indicator visible prior to posting */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-tatt-gray border-b border-border/40 pb-2.5">
+                        <div className="flex items-center gap-1.5 font-medium">
+                            <Info className="size-3.5 text-tatt-lime shrink-0" />
+                            <span>
+                                Max file size: <strong className="text-foreground">Images 50MB</strong> • <strong className="text-foreground">Videos 500MB</strong> • <strong className="text-foreground">Docs 100MB</strong>
+                            </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-tatt-gray/80 uppercase tracking-wider">
+                            {attachments.length > 0 ? (
+                                <span className="text-tatt-lime font-black">{attachments.length}/10 files attached</span>
+                            ) : (
+                                "Up to 10 files"
+                            )}
+                        </span>
+                    </div>
+
                     <div className="flex items-center justify-between w-full">
                         <div className="flex gap-2">
                             <input
@@ -248,21 +334,21 @@ export function CreatePostModal({
                                 onChange={handleFileChange}
                                 multiple
                                 hidden
-                                accept="image/*,video/*,application/pdf"
+                                accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                             />
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer text-tatt-gray"
-                                title="Add Images or Media"
+                                className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer text-tatt-gray active:scale-95"
+                                title="Add Images or Videos (Images up to 50MB, Videos up to 500MB)"
                             >
                                 <ImageIcon className="h-5 w-5" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer text-tatt-gray"
-                                title="Attach Documents"
+                                className="p-2.5 bg-black/5 hover:bg-tatt-lime/10 hover:text-tatt-lime rounded-xl transition-all cursor-pointer text-tatt-gray active:scale-95"
+                                title="Attach Documents or Audio (Up to 100MB)"
                             >
                                 <Paperclip className="h-5 w-5" />
                             </button>
@@ -271,7 +357,7 @@ export function CreatePostModal({
                             type="button"
                             onClick={handleCreatePost}
                             disabled={isSubmitting || !newPostContent.trim()}
-                            className="bg-tatt-lime text-black font-black px-8 py-3 rounded-xl text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 cursor-pointer disabled:opacity-50"
+                            className="bg-tatt-lime text-black font-black px-8 py-3 rounded-xl text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-tatt-lime/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? "Publishing..." : "Publish Post"}
                         </button>
@@ -280,6 +366,19 @@ export function CreatePostModal({
             }
             maxWidth="max-w-3xl"
         >
+            <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative transition-all rounded-2xl ${isDragging ? "ring-2 ring-tatt-lime ring-dashed bg-tatt-lime/5 p-2" : ""}`}
+            >
+                {isDragging && (
+                    <div className="absolute inset-0 z-30 bg-background/90 backdrop-blur-xs border-2 border-dashed border-tatt-lime rounded-2xl flex flex-col items-center justify-center pointer-events-none p-6">
+                        <Upload className="size-10 text-tatt-lime mb-2 animate-bounce" />
+                        <p className="text-sm font-bold text-foreground">Drop media or documents to attach</p>
+                        <p className="text-xs text-tatt-gray mt-1">Images up to 50MB • Videos up to 500MB • Docs up to 100MB</p>
+                    </div>
+                )}
             <input
                 value={newPostTitle}
                 onChange={(e) => setNewPostTitle(e.target.value)}
@@ -422,23 +521,59 @@ export function CreatePostModal({
             />
 
             {/* Attachment Previews */}
-            {attachmentPreviews.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-4">
-                    {attachmentPreviews.map((preview, i) => (
-                        <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-background">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={preview} alt="Attachment preview" className="w-full h-full object-cover" />
-                            <button
-                                type="button"
-                                onClick={() => removeAttachment(i)}
-                                className="absolute top-2 right-2 size-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            {attachments.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-4">
+                    {attachments.map((file, i) => {
+                        const isImage = file.type.startsWith("image/");
+                        const isVideo = file.type.startsWith("video/");
+                        const isAudio = file.type.startsWith("audio/");
+                        const preview = attachmentPreviews[i];
+
+                        return (
+                            <div
+                                key={i}
+                                className="relative rounded-xl overflow-hidden border border-border group bg-background p-2 flex flex-col justify-between min-h-[100px]"
                             >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                    ))}
+                                {isImage && preview ? (
+                                    <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black/20 mb-1.5">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={preview} alt={file.name} className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center aspect-video w-full rounded-lg bg-black/5 border border-border/50 mb-1.5 text-tatt-gray group-hover:text-tatt-lime transition-colors">
+                                        {isVideo ? (
+                                            <Film className="size-8" />
+                                        ) : isAudio ? (
+                                            <Music className="size-8" />
+                                        ) : (
+                                            <FileText className="size-8" />
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="space-y-0.5 px-0.5">
+                                    <p className="text-xs font-semibold text-foreground truncate" title={file.name}>
+                                        {file.name}
+                                    </p>
+                                    <p className="text-[10px] text-tatt-gray font-medium">
+                                        {formatFileSize(file.size)}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => removeAttachment(i)}
+                                    className="absolute top-2 right-2 size-6 rounded-full bg-black/70 text-white flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-red-500 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md"
+                                    title="Remove attachment"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
+            </div>
         </AppModal>
     );
 }

@@ -1,12 +1,11 @@
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthButton } from "@/components/atoms/auth-button";
-import { JoinAsSelector } from "@/components/molecules/join-as-selector";
 import { SignupField } from "@/components/molecules/signup-field";
 import api from "@/services/api";
 import { useAuth } from "@/context/auth-context";
@@ -162,7 +161,6 @@ const signupSchema = z.object({
   confirmPassword: z
     .string()
     .min(1, "Please confirm your password"),
-  joinAs: z.enum(["MEMBER", "VOLUNTEER"]),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -185,7 +183,6 @@ export function SignupForm() {
   const hibp = useHibpCheck();
 
   const {
-    control,
     register,
     handleSubmit,
     watch,
@@ -193,7 +190,6 @@ export function SignupForm() {
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     mode: "onBlur",
-    defaultValues: { joinAs: "MEMBER" },
   });
 
   const passwordValue = watch("password") || "";
@@ -238,7 +234,6 @@ export function SignupForm() {
       if (response.data.access_token) {
         analytics.trackSignUp({
           method: "email",
-          joinAs: data.joinAs,
           tier: "FREE",
         });
         authLogin(response.data.access_token, response.data.user);
@@ -287,14 +282,6 @@ export function SignupForm() {
       )}
 
       <form className="mt-10 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Controller
-          name="joinAs"
-          control={control}
-          render={({ field }) => (
-            <JoinAsSelector value={field.value} onChange={field.onChange} />
-          )}
-        />
-
         <div className="space-y-4">
           {/* Name row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

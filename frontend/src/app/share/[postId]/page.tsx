@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Navbar, Footer } from "@/components/organisms";
 import toast from "react-hot-toast";
+import { PostMediaGallery } from "@/components/feed/post-media-gallery";
 
 interface CommentAuthor {
     id: string;
@@ -354,14 +355,7 @@ export default function SharePostPage() {
 
                             {/* Media Display */}
                             {post.mediaUrls && post.mediaUrls.length > 0 && !post.isPremiumLocked && (
-                                <div className={`grid gap-3 mt-6 overflow-hidden rounded-2xl border border-border ${post.mediaUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                    {post.mediaUrls.map((url, i) => (
-                                        <div key={i} className="aspect-video overflow-hidden bg-black/5">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={url} alt="Insight media" className="w-full h-full object-cover" />
-                                        </div>
-                                    ))}
-                                </div>
+                                <PostMediaGallery mediaUrls={post.mediaUrls} className="mt-6" />
                             )}
                         </div>
 

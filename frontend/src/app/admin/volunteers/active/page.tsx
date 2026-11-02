@@ -18,6 +18,7 @@ import {
 import api from "@/services/api";
 import toast from "react-hot-toast";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
+import { useAuth } from "@/context/auth-context";
 
 interface VolunteerStat {
     rating: number;
@@ -41,6 +42,9 @@ interface Volunteer {
 
 export default function ActiveVolunteersPage() {
     const router = useRouter();
+    const { user } = useAuth();
+    const isRegionalAdmin = user?.systemRole === 'REGIONAL_ADMIN';
+
     const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -56,7 +60,8 @@ export default function ActiveVolunteersPage() {
                     page,
                     limit: 10,
                     search: search || undefined,
-                    status: 'ACTIVE'
+                    status: 'ACTIVE',
+                    chapterId: isRegionalAdmin ? user?.chapterId : undefined
                 }
             });
             setVolunteers(data.data);
@@ -72,7 +77,7 @@ export default function ActiveVolunteersPage() {
 
     useEffect(() => {
         fetchVolunteers();
-    }, [page, search]);
+    }, [page, search, isRegionalAdmin, user?.chapterId]);
 
     const renderStars = (rating: number = 5) => {
         const fullStars = Math.floor(rating);

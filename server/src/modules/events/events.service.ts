@@ -70,9 +70,20 @@ export class EventsService {
     }
 
     async createEvent(admin: User, dto: CreateEventDto) {
-        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN];
+        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN, SystemRole.REGIONAL_ADMIN];
         if (!allowedRoles.includes(admin.systemRole) && !admin.flags?.includes(AccountFlags.CAN_ACCESS_EVENTS)) {
-            throw new ForbiddenException('Only Org admins and content admins can create events.');
+            throw new ForbiddenException('Only Org admins, content admins, and regional admins can create events.');
+        }
+
+        if (admin.systemRole === SystemRole.REGIONAL_ADMIN) {
+            if (!admin.chapterId) {
+                throw new BadRequestException('Regional admin is not associated with any chapter.');
+            }
+            dto.isForAllMembers = false;
+            dto.locations = [{
+                chapterId: admin.chapterId,
+                address: dto.locations?.[0]?.address || 'TBD',
+            }];
         }
 
         const event = await this.eventRepo.create({
@@ -111,13 +122,30 @@ export class EventsService {
     }
 
     async updateEvent(admin: User, id: string, dto: CreateEventDto) {
-        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN];
+        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN, SystemRole.REGIONAL_ADMIN];
         if (!allowedRoles.includes(admin.systemRole) && !admin.flags?.includes(AccountFlags.CAN_ACCESS_EVENTS)) {
-            throw new ForbiddenException('Only Org admins and content admins can update events.');
+            throw new ForbiddenException('Only Org admins, content admins, and regional admins can update events.');
         }
 
-        const event = await this.eventRepo.findByPk(id);
+        const event = await this.eventRepo.findByPk(id, {
+            include: [{ model: EventChapter, as: 'locations' }],
+        });
         if (!event) throw new NotFoundException('Event not found');
+
+        if (admin.systemRole === SystemRole.REGIONAL_ADMIN) {
+            if (!admin.chapterId) {
+                throw new BadRequestException('Regional admin is not associated with any chapter.');
+            }
+            const isLocalChapterEvent = !event.isForAllMembers && event.locations?.some(loc => loc.chapterId === admin.chapterId);
+            if (!isLocalChapterEvent) {
+                throw new ForbiddenException('You can only update events hosted by your chapter.');
+            }
+            dto.isForAllMembers = false;
+            dto.locations = [{
+                chapterId: admin.chapterId,
+                address: dto.locations?.[0]?.address || 'TBD',
+            }];
+        }
 
         await event.update({
             title: dto.title,
@@ -156,13 +184,25 @@ export class EventsService {
     }
 
     async deleteEvent(admin: User, id: string) {
-        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN];
+        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN, SystemRole.REGIONAL_ADMIN];
         if (!allowedRoles.includes(admin.systemRole) && !admin.flags?.includes(AccountFlags.CAN_ACCESS_EVENTS)) {
-            throw new ForbiddenException('Only Org admins and content admins can delete events.');
+            throw new ForbiddenException('Only Org admins, content admins, and regional admins can delete events.');
         }
 
-        const event = await this.eventRepo.findByPk(id);
+        const event = await this.eventRepo.findByPk(id, {
+            include: [{ model: EventChapter, as: 'locations' }],
+        });
         if (!event) throw new NotFoundException('Event not found');
+
+        if (admin.systemRole === SystemRole.REGIONAL_ADMIN) {
+            if (!admin.chapterId) {
+                throw new BadRequestException('Regional admin is not associated with any chapter.');
+            }
+            const isLocalChapterEvent = !event.isForAllMembers && event.locations?.some(loc => loc.chapterId === admin.chapterId);
+            if (!isLocalChapterEvent) {
+                throw new ForbiddenException('You can only delete events hosted by your chapter.');
+            }
+        }
 
         // Cascade delete should handle associations if configured, but let's be safe.
         await this.eventChapterRepo.destroy({ where: { eventId: id } });
@@ -209,9 +249,11 @@ export class EventsService {
             where.dateTime = { [Op.gt]: new Date() };
         }
 
-        const isAdmin = viewer?.systemRole && [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN].includes(viewer.systemRole as SystemRole);
+        const isOrgAdmin = viewer?.systemRole && [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN].includes(viewer.systemRole as SystemRole);
+        const isRegionalAdmin = viewer?.systemRole === SystemRole.REGIONAL_ADMIN;
+        const canManageEvents = isOrgAdmin || isRegionalAdmin || viewer?.flags?.includes(AccountFlags.CAN_ACCESS_EVENTS);
 
-        if (isAdmin && archived) {
+        if (canManageEvents && archived) {
             if (archived === 'true') {
                 where.isArchived = true;
             } else if (archived === 'false') {
@@ -223,12 +265,69 @@ export class EventsService {
             where.isArchived = false;
         }
 
+        const globalChapter = await Chapter.findOne({ where: { code: '1007' } });
+        const globalChapterId = globalChapter?.id;
+
         let targetChapterId: string | null = null;
-        if (chapterId && chapterId !== 'all' && chapterId !== 'global' && chapterId.trim() !== '') {
-            // Check if this chapterId corresponds to the Global Chapter (code 1007)
-            const chapter = await Chapter.findByPk(chapterId);
-            if (!chapter || chapter.code !== '1007') {
+        if (chapterId && chapterId !== 'all' && chapterId !== 'global' && chapterId !== 'chapter' && chapterId.trim() !== '') {
+            if (chapterId !== globalChapterId) {
                 targetChapterId = chapterId;
+            }
+        }
+
+        if (isRegionalAdmin && viewer?.chapterId) {
+            if (chapterId === 'chapter' || targetChapterId === viewer.chapterId) {
+                // Strictly local chapter events
+                where.id = {
+                    [Op.in]: this.eventRepo.sequelize.literal(
+                        `(SELECT "eventId" FROM "event_chapters" WHERE "chapterId" = '${viewer.chapterId}')`
+                    )
+                };
+            } else if (chapterId === 'global') {
+                // Strictly global events
+                if (globalChapterId) {
+                    where[Op.or] = [
+                        { isForAllMembers: true },
+                        {
+                            id: {
+                                [Op.in]: this.eventRepo.sequelize.literal(
+                                    `(SELECT "eventId" FROM "event_chapters" WHERE "chapterId" = '${globalChapterId}')`
+                                )
+                            }
+                        }
+                    ];
+                } else {
+                    where.isForAllMembers = true;
+                }
+            } else {
+                // Both local chapter events AND global events (exclude other chapters' local events)
+                const allowedChapterIds = [viewer.chapterId, ...(globalChapterId ? [globalChapterId] : [])];
+                const chapterIdListSql = allowedChapterIds.map(id => `'${id}'`).join(',');
+                where[Op.or] = [
+                    { isForAllMembers: true },
+                    {
+                        id: {
+                            [Op.in]: this.eventRepo.sequelize.literal(
+                                `(SELECT "eventId" FROM "event_chapters" WHERE "chapterId" IN (${chapterIdListSql}))`
+                            )
+                        }
+                    }
+                ];
+            }
+        } else if (chapterId === 'global') {
+            if (globalChapterId) {
+                where[Op.or] = [
+                    { isForAllMembers: true },
+                    {
+                        id: {
+                            [Op.in]: this.eventRepo.sequelize.literal(
+                                `(SELECT "eventId" FROM "event_chapters" WHERE "chapterId" = '${globalChapterId}')`
+                            )
+                        }
+                    }
+                ];
+            } else {
+                where.isForAllMembers = true;
             }
         }
 
@@ -237,7 +336,7 @@ export class EventsService {
                 model: EventChapter,
                 as: 'locations',
                 include: [{ model: Chapter, as: 'chapter' }],
-                ...(targetChapterId ? { where: { chapterId: targetChapterId }, required: true } : {})
+                ...(targetChapterId && !isRegionalAdmin ? { where: { chapterId: targetChapterId }, required: true } : {})
             },
             { model: User, as: 'featuredGuests', attributes: ['id', 'firstName', 'lastName', 'profilePicture'], through: { attributes: [] } },
         ];
@@ -401,13 +500,25 @@ export class EventsService {
     }
 
     async toggleArchive(admin: User, id: string, isArchived: boolean) {
-        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN];
+        const allowedRoles = [SystemRole.SUPERADMIN, SystemRole.ADMIN, SystemRole.CONTENT_ADMIN, SystemRole.REGIONAL_ADMIN];
         if (!allowedRoles.includes(admin.systemRole) && !admin.flags?.includes(AccountFlags.CAN_ACCESS_EVENTS)) {
-            throw new ForbiddenException('Only Org admins and content admins can archive events.');
+            throw new ForbiddenException('Only Org admins, content admins, and regional admins can archive events.');
         }
 
-        const event = await this.eventRepo.findByPk(id);
+        const event = await this.eventRepo.findByPk(id, {
+            include: [{ model: EventChapter, as: 'locations' }],
+        });
         if (!event) throw new NotFoundException('Event not found');
+
+        if (admin.systemRole === SystemRole.REGIONAL_ADMIN) {
+            if (!admin.chapterId) {
+                throw new BadRequestException('Regional admin is not associated with any chapter.');
+            }
+            const isLocalChapterEvent = !event.isForAllMembers && event.locations?.some(loc => loc.chapterId === admin.chapterId);
+            if (!isLocalChapterEvent) {
+                throw new ForbiddenException('You can only archive events hosted by your chapter.');
+            }
+        }
 
         await event.update({
             isArchived,

@@ -3,7 +3,7 @@
 import { useAuth } from "@/context/auth-context";
 import api from "@/services/api";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
     User as UserIcon,
     BadgeCheck,
@@ -35,6 +35,7 @@ import { CancelPlanModal } from "@/components/modals/CancelPlanModal";
 import { DowngradePlanModal } from "@/components/modals/DowngradePlanModal";
 import { ConfirmRevertDowngradeModal } from "@/components/modals/ConfirmRevertDowngradeModal";
 import { ALL_COUNTRIES } from "@/constants/countries";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 // --- Custom Components ---
 
@@ -609,6 +610,9 @@ export default function SettingsPage() {
     });
     const [savingBusiness, setSavingBusiness] = useState(false);
     const [loadingBusiness, setLoadingBusiness] = useState(false);
+    const [draggingBizField, setDraggingBizField] = useState<'logoUrl' | 'bannerUrl' | null>(null);
+    const businessLogoInputRef = useRef<HTMLInputElement>(null);
+    const businessBannerInputRef = useRef<HTMLInputElement>(null);
 
 
     useEffect(() => {
@@ -767,6 +771,13 @@ export default function SettingsPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, "Profile picture");
+        if (!validation.valid) {
+            toast.error(validation.error!);
+            e.target.value = "";
+            return;
+        }
+
         const uploadFormData = new FormData();
         uploadFormData.append("files", file);
 
@@ -775,7 +786,7 @@ export default function SettingsPage() {
 
             // 1. Upload the image
             const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
-            const imageUrl = response.data.files?.[0]?.url;
+            const imageUrl = extractUploadedUrls(response.data)[0];
 
             if (!imageUrl) {
                 toast.error("Failed to retrieve upload URL", { id: 'upload' });
@@ -799,7 +810,7 @@ export default function SettingsPage() {
             toast.success("Profile picture updated!", { id: 'upload' });
         } catch (error) {
             console.error("Failed to update profile picture", error);
-            toast.error("Failed to update profile picture.", { id: 'upload' });
+            toast.error(getUploadErrorMessage(error, "Failed to update profile picture."), { id: 'upload' });
         }
     };
 
@@ -845,9 +856,13 @@ export default function SettingsPage() {
         setBusinessData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleBusinessFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'bannerUrl') => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const processBusinessFile = async (file: File, field: 'logoUrl' | 'bannerUrl') => {
+        const label = field === 'logoUrl' ? 'Business logo' : 'Directory banner';
+        const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, label);
+        if (!validation.valid) {
+            toast.error(validation.error!);
+            return;
+        }
 
         const uploadFormData = new FormData();
         uploadFormData.append("files", file);
@@ -855,15 +870,24 @@ export default function SettingsPage() {
         try {
             toast.loading(`Uploading business ${field === 'logoUrl' ? 'logo' : 'banner'}...`, { id: 'biz-upload' });
             const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
-            const imageUrl = response.data.files?.[0]?.url;
+            const imageUrl = extractUploadedUrls(response.data)[0];
 
             if (imageUrl) {
                 setBusinessData(prev => ({ ...prev, [field]: imageUrl }));
                 toast.success("Image uploaded successfully!", { id: 'biz-upload' });
+            } else {
+                toast.error("Failed to retrieve uploaded image URL", { id: 'biz-upload' });
             }
         } catch (error) {
-            toast.error("Upload failed.", { id: 'biz-upload' });
+            toast.error(getUploadErrorMessage(error, "Upload failed."), { id: 'biz-upload' });
         }
+    };
+
+    const handleBusinessFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'bannerUrl') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        processBusinessFile(file, field);
+        e.target.value = "";
     };
 
     const handleSaveBusiness = async () => {
@@ -975,7 +999,8 @@ export default function SettingsPage() {
                                             {user?.communityTier} Tier
                                         </span>
                                     </div>
-                                    <p className="text-tatt-gray mb-4">Update your profile photo and visible tier status.</p>
+                                    <p className="text-tatt-gray mb-2">Update your profile photo and visible tier status.</p>
+                                    <p className="text-[10px] text-tatt-gray font-medium mb-4">PNG, JPG, or WebP up to 50MB</p>
                                     <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                                         <label className="px-5 py-3 bg-tatt-lime text-black text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg shadow-tatt-lime/20 cursor-pointer flex items-center gap-2">
                                             <Camera className="size-4" />
@@ -1426,31 +1451,66 @@ export default function SettingsPage() {
                                             <div>
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-3 block">Corporate Logo</label>
                                                 <div className="flex items-center gap-6">
-                                                    <div className="size-24 rounded-2xl bg-background border-2 border-dashed border-border flex items-center justify-center overflow-hidden shrink-0">
+                                                    <div 
+                                                        onClick={() => businessLogoInputRef.current?.click()}
+                                                        onDragOver={(e) => { e.preventDefault(); setDraggingBizField('logoUrl'); }}
+                                                        onDragLeave={(e) => { e.preventDefault(); setDraggingBizField(null); }}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            setDraggingBizField(null);
+                                                            const f = e.dataTransfer.files?.[0];
+                                                            if (f) processBusinessFile(f, 'logoUrl');
+                                                        }}
+                                                        className={`size-24 rounded-2xl bg-background border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0 cursor-pointer transition-all ${
+                                                            draggingBizField === 'logoUrl' ? 'border-tatt-lime bg-tatt-lime/10 scale-105' : 'border-border hover:border-tatt-lime/60'
+                                                        }`}
+                                                        title="Click or drag and drop logo"
+                                                    >
                                                         {businessData.logoUrl ? (
                                                             <img src={businessData.logoUrl} className="size-full object-cover" alt="Logo" />
                                                         ) : (
                                                             <ImageIcon className="text-tatt-gray opacity-20 size-8" />
                                                         )}
                                                     </div>
-                                                    <label className="px-6 py-3 bg-surface border border-border text-[10px] font-black uppercase tracking-widest rounded-xl hover:border-tatt-lime transition-all cursor-pointer">
-                                                        Upload Logo
-                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleBusinessFileUpload(e, 'logoUrl')} />
-                                                    </label>
+                                                    <div className="space-y-1">
+                                                        <label className="px-6 py-3 bg-surface border border-border text-[10px] font-black uppercase tracking-widest rounded-xl hover:border-tatt-lime transition-all cursor-pointer inline-block">
+                                                            Upload Logo
+                                                            <input ref={businessLogoInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleBusinessFileUpload(e, 'logoUrl')} />
+                                                        </label>
+                                                        <span className="text-[9px] text-tatt-gray font-medium block">Click to upload or drag & drop (Up to 50MB)</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-3 block">Directory Banner</label>
-                                                <div className="w-full h-24 rounded-2xl bg-background border-2 border-dashed border-border flex items-center justify-center overflow-hidden mb-3">
+                                                <div 
+                                                    onClick={() => businessBannerInputRef.current?.click()}
+                                                    onDragOver={(e) => { e.preventDefault(); setDraggingBizField('bannerUrl'); }}
+                                                    onDragLeave={(e) => { e.preventDefault(); setDraggingBizField(null); }}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        setDraggingBizField(null);
+                                                        const f = e.dataTransfer.files?.[0];
+                                                        if (f) processBusinessFile(f, 'bannerUrl');
+                                                    }}
+                                                    className={`w-full h-28 rounded-2xl bg-background border-2 border-dashed flex flex-col items-center justify-center overflow-hidden mb-3 cursor-pointer transition-all ${
+                                                        draggingBizField === 'bannerUrl' ? 'border-tatt-lime bg-tatt-lime/10 scale-[1.01]' : 'border-border hover:border-tatt-lime/60'
+                                                    }`}
+                                                    title="Click or drag and drop cover banner"
+                                                >
                                                     {businessData.bannerUrl ? (
                                                         <img src={businessData.bannerUrl} className="size-full object-cover" alt="Banner" />
                                                     ) : (
-                                                        <ImageIcon className="text-tatt-gray opacity-20 size-8" />
+                                                        <div className="flex flex-col items-center gap-1.5 text-tatt-gray p-4 text-center">
+                                                            <ImageIcon className="opacity-40 size-6 text-tatt-lime" />
+                                                            <span className="text-xs font-bold text-foreground">Click to upload or drag and drop banner</span>
+                                                            <span className="text-[10px] text-tatt-gray">PNG, JPG, or WebP up to 50MB</span>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <label className="px-6 py-3 bg-surface border border-border text-[10px] font-black uppercase tracking-widest rounded-xl hover:border-tatt-lime transition-all cursor-pointer block text-center">
                                                     Upload Cover Image
-                                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleBusinessFileUpload(e, 'bannerUrl')} />
+                                                    <input ref={businessBannerInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => handleBusinessFileUpload(e, 'bannerUrl')} />
                                                 </label>
                                             </div>
                                         </div>

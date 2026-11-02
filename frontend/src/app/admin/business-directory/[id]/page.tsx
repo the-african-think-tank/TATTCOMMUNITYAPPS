@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
+import { UPLOAD_LIMITS, validateFileSize, extractUploadedUrls, getUploadErrorMessage } from "@/lib/upload-utils";
 
 interface BusinessPartner {
   id: string;
@@ -105,9 +106,14 @@ export default function BusinessDetailsPage() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processLogoFile = async (file: File) => {
+    const validation = validateFileSize(file, UPLOAD_LIMITS.IMAGE.maxBytes, "Logo");
+    if (!validation.valid) {
+      toast.error(validation.error!);
+      return;
+    }
 
     const uploadFormData = new FormData();
     uploadFormData.append("files", file);
@@ -115,17 +121,45 @@ export default function BusinessDetailsPage() {
     setIsUploading(true);
     try {
       toast.loading("Uploading logo image...", { id: "logo-upload" });
-      const response = await api.post("/uploads/media", uploadFormData);
-      const imageUrl = response.data.files?.[0]?.url;
+      const response = await api.post("/uploads/media", uploadFormData, { timeout: 120000 });
+      const imageUrl = extractUploadedUrls(response.data)[0];
       if (imageUrl) {
         setLogoInput(imageUrl);
         toast.success("Logo uploaded successfully!", { id: "logo-upload" });
+      } else {
+        toast.error("Failed to retrieve upload URL", { id: "logo-upload" });
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload logo file.", { id: "logo-upload" });
+      toast.error(getUploadErrorMessage(error, "Failed to upload logo file."), { id: "logo-upload" });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processLogoFile(file);
+    e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processLogoFile(file);
     }
   };
 
@@ -472,12 +506,17 @@ export default function BusinessDetailsPage() {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-tatt-gray mb-2">
                   Option 1: Upload Image File from Device
                 </label>
-                <label className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-tatt-lime rounded-xl p-4 bg-background/50 hover:bg-tatt-lime/5 transition-all cursor-pointer group">
-                  <Upload size={24} className="text-tatt-gray group-hover:text-tatt-lime mb-1" />
+                <label 
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 transition-all cursor-pointer group ${isDragging ? "border-tatt-lime bg-tatt-lime/10" : "border-border bg-background/50 hover:border-tatt-lime hover:bg-tatt-lime/5"}`}
+                >
+                  <Upload size={24} className={`mb-1 transition-colors ${isDragging ? "text-tatt-lime scale-110" : "text-tatt-gray group-hover:text-tatt-lime"}`} />
                   <span className="text-xs font-bold text-tatt-black">
-                    {isUploading ? "Uploading image file..." : "Click to select image file"}
+                    {isUploading ? "Uploading image file..." : "Click to upload or drag and drop"}
                   </span>
-                  <span className="text-[10px] text-tatt-gray mt-0.5">PNG, JPG, WebP, SVG up to 10MB</span>
+                  <span className="text-[10px] text-tatt-gray mt-0.5">PNG, JPG, WebP, SVG up to 50MB</span>
                   <input
                     type="file"
                     accept="image/*"
